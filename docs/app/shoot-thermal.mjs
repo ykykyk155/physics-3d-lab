@@ -1,0 +1,27 @@
+﻿import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import puppeteer from "puppeteer-core";
+const ROOT = path.resolve(import.meta.dirname); const PORT = 18163;
+const MIME={".html":"text/html",".js":"text/javascript",".json":"application/json"};
+const server=http.createServer((req,res)=>{let p=decodeURIComponent(new URL(req.url,"http://x").pathname);if(p==="/")p="/index.html";let f=path.join(ROOT,p);if(!fs.existsSync(f)){const a=path.join(ROOT,"..",p);if(fs.existsSync(a))f=a;else{res.writeHead(404);res.end();return;}}res.writeHead(200,{"Content-Type":MIME[path.extname(f)]||"application/octet-stream"});fs.createReadStream(f).pipe(res);});
+await new Promise(r=>server.listen(PORT,"127.0.0.1",r));
+const b=await puppeteer.launch({executablePath:"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",headless:true,args:["--enable-unsafe-swiftshader","--use-angle=swiftshader","--disable-gpu","--no-sandbox"]});
+const pg=await b.newPage(); await pg.setViewport({width:1420,height:700});
+await pg.goto(`http://127.0.0.1:${PORT}/index.html`,{waitUntil:"load"});
+await pg.waitForFunction("window.__LAB && window.__LAB.ready",{timeout:60000});
+const sl=ms=>new Promise(r=>setTimeout(r,ms));
+const shot=async(id,name,t)=>{
+  await pg.evaluate(i=>window.__LAB.switch(i), id); await sl(800);
+  await pg.evaluate(()=>{ window.__LAB.store.playback.playing=false; });
+  if(t!=null) await pg.evaluate(tt=>window.__LAB.current().exp.seek(tt), t);
+  await sl(400);
+  await pg.evaluate(()=>{ const r=window.__LAB.renderer(),c=window.__LAB.camera(),s=window.__LAB.current().scene; if(s) r.render(s,c); });
+  const vp=await pg.$('#viewport');
+  await vp.screenshot({path:path.join(ROOT,'shots','all',name+'.png')});
+  const info=await pg.evaluate(()=>{const r=window.__LAB.renderer();return{calls:r.info.render.calls,tris:r.info.render.triangles};});
+  console.log(name, JSON.stringify(info));
+};
+await shot("F1-melting-curve","F1-melting-curve",560);
+await shot("F2-boiling","F2-boiling",200);
+await shot("F3-heat-engine","F3-heat-engine",0.3);
+await shot("A1-incline-speed","A1-incline-speed",0.6);
+await shot("A6-energy","A6-energy",2.5);
+await b.close(); server.close();

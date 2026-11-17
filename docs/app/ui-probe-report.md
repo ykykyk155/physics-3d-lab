@@ -1,0 +1,163 @@
+# UI→引擎通路探针报告
+
+时间：2026-11-17T06:18:20.266Z
+方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
+
+| 实验 | 控件 | 类型 | onParam 送达 | 判定 |
+|---|---|---|---|---|
+| A1-incline-speed | theta | number | 1（store=5） | ✅ |
+| A1-incline-speed | length | number | 1（store=0.5） | ✅ |
+| A1-incline-speed | mu | number | 1（store=0） | ✅ |
+| A1-incline-speed | mass | number | 1（store=0.1） | ✅ |
+| A1-incline-speed | duration 快照校验 | getter | actual=0.9741859660984475 vs 快照 0.97（±10%） | ✅ |
+| A1-incline-speed | 置灰文案=zeroHint | branch | 期望「当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）」实际「当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）」 | ✅ |
+| A1-incline-speed | seek 拖动一致性 | 0.36→0.71→0.36 | simTime 回位=true、无NaN=true | ✅ |
+| A1-incline-speed | zeroKind=branch | 默认 d0=0.9741859660984475 → 触发后 d1=0 | | ✅ 0↔非0 互斥成立 |
+| A2-newton-first | surface | enum | 1（store=0.6） | ✅ |
+| A2-newton-first | height | number | 1（store=0.05） | ✅ |
+| A2-newton-first | mass | number | 1（store=0.1） | ✅ |
+| A2-newton-first | duration 快照校验 | getter | actual=3.4 vs 快照 3.4（±10%） | ✅ |
+| A2-newton-first | seek 拖动一致性 | 1.26→2.48→1.26 | simTime 回位=true、无NaN=true | ✅ |
+| A3-friction | normal | number | 1（store=0.5） | ✅ |
+| A3-friction | mu | number | 1（store=0.1） | ✅ |
+| A3-friction | area | enum | 1（store=small） | ✅ |
+| A3-friction | pull | number | 1（store=0.05） | ✅ |
+| A3-friction | duration 快照校验 | getter | actual=11.999999999999998 vs 快照 12（±10%） | ✅ |
+| A3-friction | seek 拖动一致性 | 4.44→8.76→4.44 | simTime 回位=true、无NaN=true | ✅ |
+| A4-liquid-pressure | depth | number | 1（store=1） | ✅ |
+| A4-liquid-pressure | liquid | enum | 1（store=0.8） | ✅ |
+| A4-liquid-pressure | orient | number | 1（store=360） | ✅ |
+| A4-liquid-pressure | vessel | enum | 1（store=flare） | ✅ |
+| A5-buoyancy | volume | number | 1（store=20） | ✅ |
+| A5-buoyancy | rhoObj | number | 1（store=0.4） | ✅ |
+| A5-buoyancy | rhoLiquid | number | 1（store=0.8） | ✅ |
+| A5-buoyancy | submerge | number | 1（store=0） | ✅ |
+| A5-buoyancy | hollow | enum | 1（store=hollow） | ✅ |
+| A5-buoyancy | ballast | number | 1（store=100） | ✅ |
+| A6-energy | mass | number | 1（store=0.05） | ✅ |
+| A6-energy | height | number | 1（store=0.05） | ✅ |
+| A6-energy | pendLen | number | 1（store=0.2） | ✅ |
+| A6-energy | angle | number | 1（store=5） | ✅ |
+| A6-energy | damping | number | 1（store=0.3） | ✅ |
+| A6-energy | duration 快照校验 | getter | actual=6.21874067737446 vs 快照 6.22（±10%） | ✅ |
+| A6-energy | seek 拖动一致性 | 2.3→4.54→2.3 | simTime 回位=true、无NaN=true | ✅ |
+| A7-lever | f1 | number | 1（store=0.5） | ✅ |
+| A7-lever | l1 | number | 1（store=1） | ✅ |
+| A7-lever | f2 | number | 1（store=0.5） | ✅ |
+| A7-lever | l2 | number | 1（store=1） | ✅ |
+| A7-lever | duration 快照校验 | getter | actual=0 vs 快照 0（±10%） | ✅ |
+| A7-lever | 置灰文案=zeroHint | branch | 期望「当前平衡，杠杆静止（改动任一参数使力矩不等即转动）」实际「当前平衡，杠杆静止（改动任一参数使力矩不等即转动）」 | ✅ |
+| A7-lever | zeroKind=branch | 默认 d0=0 → 触发后 d1=2.2 | | ✅ 0↔非0 互斥成立 |
+| D1-series-parallel | voltage | number | 1（store=6） | ✅ |
+| D1-series-parallel | r1 | number | 1（store=50） | ✅ |
+| D1-series-parallel | r2 | number | 1（store=50） | ✅ |
+| D1-series-parallel | mode | enum | 1（store=series） | ✅ |
+| D1-series-parallel | switch | enum | 1（store=on） | ✅ |
+| D1-series-parallel | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| D2-resistance-factor | len | number | 1（store=100） | ✅ |
+| D2-resistance-factor | area | number | 1（store=4） | ✅ |
+| D2-resistance-factor | mat | enum | 1（store=1.1） | ✅ |
+| D2-resistance-factor | temp | number | 1（store=100） | ✅ |
+| D2-resistance-factor | strands | number | 1（store=1） | ✅ |
+| D2-resistance-factor | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| D3-rheostat-lamp | wiper | number | 1（store=100） | ✅ |
+| D3-rheostat-lamp | rating | enum | 1（store=20） | ✅ |
+| D3-rheostat-lamp | voltage | number | 1（store=6） | ✅ |
+| D3-rheostat-lamp | wiring | enum | 1（store=correct） | ✅ |
+| D3-rheostat-lamp | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| D4-ohm-law | voltage | number | 1（store=0） | ✅ |
+| D4-ohm-law | rfix | enum | 1（store=5） | ✅ |
+| D4-ohm-law | graph | enum | 1（store=ir） | ✅ |
+| D4-ohm-law | dut | enum | 1（store=bulb） | ✅ |
+| D5-power-joule | voltage | number | 1（store=1.5） | ✅ |
+| D5-power-joule | r | number | 1（store=5） | ✅ |
+| D5-power-joule | time | number | 1（store=0） | ✅ |
+| D5-power-joule | ra | number | 1（store=5） | ✅ |
+| D5-power-joule | rb | number | 1（store=5） | ✅ |
+| D5-power-joule | link | enum | 1（store=parallel） | ✅ |
+| D5-power-joule | duration 快照校验 | getter | actual=180 vs 快照 180（±10%） | ✅ |
+| D5-power-joule | seek 拖动一致性 | 66.6→131.4→66.6 | simTime 回位=true、无NaN=true | ✅ |
+| D6-magnet-solenoid | layout | enum | 1（store=horseshoe） | ✅ |
+| D6-magnet-solenoid | current | number | 1（store=0） | ✅ |
+| D6-magnet-solenoid | turns | number | 1（store=10） | ✅ |
+| D6-magnet-solenoid | core | enum | 1（store=iron） | ✅ |
+| D6-magnet-solenoid | dir | enum | 1（store=-1） | ✅ |
+| D6-magnet-solenoid | needles | number | 1（store=0） | ✅ |
+| D7-motor-generator | mode | enum | 1（store=cut） | ✅ |
+| D7-motor-generator | current | number | 1（store=0） | ✅ |
+| D7-motor-generator | field | number | 1（store=0.1） | ✅ |
+| D7-motor-generator | speed | number | 1（store=0） | ✅ |
+| D7-motor-generator | moveDir | enum | 1（store=along） | ✅ |
+| D7-motor-generator | commutator | enum | 1（store=off） | ✅ |
+| B1-pinhole | objDist | number | 1（store=50） | ✅ |
+| B1-pinhole | screenDist | number | 1（store=50） | ✅ |
+| B1-pinhole | hole | number | 1（store=10） | ✅ |
+| B1-pinhole | shape | enum | 1（store=circle） | ✅ |
+| B1-pinhole | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| B2-reflection | incidence | number | 1（store=80） | ✅ |
+| B2-reflection | plane | number | 1（store=0） | ✅ |
+| B2-reflection | kind | enum | 1（store=specular） | ✅ |
+| B2-reflection | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| B3-plane-mirror | objDist | number | 1（store=20） | ✅ |
+| B3-plane-mirror | tilt | number | 1（store=90） | ✅ |
+| B3-plane-mirror | altHeight | number | 1（store=10） | ✅ |
+| B3-plane-mirror | screen | enum | 1（store=off） | ✅ |
+| B3-plane-mirror | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| B4-refraction | incidence | number | 1（store=85） | ✅ |
+| B4-refraction | pair | enum | 1（store=air-water） | ✅ |
+| B4-refraction | scene | enum | 1（store=laser） | ✅ |
+| B4-refraction | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| B5-convex-lens | focal | number | 1（store=30） | ✅ |
+| B5-convex-lens | objDist | number | 1（store=60） | ✅ |
+| B5-convex-lens | aperture | number | 1（store=10） | ✅ |
+| B5-convex-lens | cover | enum | 1（store=off） | ✅ |
+| B5-convex-lens | source | enum | 1（store=F） | ✅ |
+| B5-convex-lens | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| C1-sound-medium | medium | enum | 1（store=1500） | ✅ |
+| C1-sound-medium | temp | number | 1（store=-20） | ✅ |
+| C1-sound-medium | pressure | number | 1（store=0） | ✅ |
+| C1-sound-medium | freq | enum | 1（store=256） | ✅ |
+| C1-sound-medium | dist | number | 1（store=0.2） | ✅ |
+| C2-sound-chars | freq | number | 1（store=2000） | ✅ |
+| C2-sound-chars | amp | number | 1（store=100） | ✅ |
+| C2-sound-chars | wave | enum | 1（store=sine） | ✅ |
+| C2-sound-chars | ruler | number | 1（store=30） | ✅ |
+| C2-sound-chars | pipe | number | 1（store=40） | ✅ |
+| C2-sound-chars | zeroKind=static | 参数极值下恒 0 | | ✅ |
+| C3-noise-control | level | number | 1（store=0） | ✅ |
+| C3-noise-control | range | number | 1（store=1） | ✅ |
+| C3-noise-control | material | enum | 1（store=3） | ✅ |
+| C3-noise-control | stage | enum | 1（store=source） | ✅ |
+| F1-melting-curve | substance | enum | 1（store=hypo） | ✅ |
+| F1-melting-curve | power | number | 1（store=100） | ✅ |
+| F1-melting-curve | mass | number | 1（store=50） | ✅ |
+| F1-melting-curve | t0 | number | 1（store=-20） | ✅ |
+| F1-melting-curve | duration | number | 1（store=1） | ✅ |
+| F1-melting-curve | duration 快照校验 | getter | actual=600 vs 快照 600（±10%） | ✅ |
+| F1-melting-curve | seek 拖动一致性 | 222→438→222 | simTime 回位=true、无NaN=true | ✅ |
+| F2-boiling | pressure | number | 1（store=70） | ✅ |
+| F2-boiling | volume | number | 1（store=50） | ✅ |
+| F2-boiling | t0 | number | 1（store=90） | ✅ |
+| F2-boiling | flame | number | 1（store=1） | ✅ |
+| F2-boiling | duration 快照校验 | getter | actual=246.64323433243067 vs 快照 246.64（±10%） | ✅ |
+| F2-boiling | seek 拖动一致性 | 91.26→180.05→91.26 | simTime 回位=true、无NaN=true | ✅ |
+| F3-heat-engine | material | enum | 1（store=2.1） | ✅ |
+| F3-heat-engine | mass | number | 2（store=0.1） | ✅ |
+| F3-heat-engine | heatQ | number | 1（store=0） | ✅ |
+| F3-heat-engine | rpm | number | 1（store=0） | ✅ |
+| F3-heat-engine | stroke | enum | 2（store=intake） | ✅ |
+| F3-heat-engine | qTotal | number | 2（store=0） | ✅ |
+| F3-heat-engine | wUseful | number | 1（store=0） | ✅ |
+| F3-heat-engine | duration 快照校验 | getter | actual=1.2000000000000002 vs 快照 1.2（±10%） | ✅ |
+| F3-heat-engine | 置灰文案=zeroHint | branch | 期望「当前转速为零，曲轴不转（调大转速即有循环）」实际「当前转速为零，曲轴不转（调大转速即有循环）」 | ✅ |
+| F3-heat-engine | seek 拖动一致性 | 0.44→0.88→0.44 | simTime 回位=true、无NaN=true | ✅ |
+| F3-heat-engine | zeroKind=branch | 默认 d0=1.2000000000000002 → 触发后 d1=0 | | ✅ 0↔非0 互斥成立 |
+
+## 结论
+
+- 控件总数 115，onParam 送达 115。**UI→引擎通路完好：所有控件都能把改动送进 onParam。**画面不动的问题出在实验侧 onParam 实现。
+- duration 快照校验（durationIsSnapshot 场景）：9/9 通过。getter 与 JSON 快照一致，无脱节。
+- 无界时长断言（duration=Infinity 场景）：0/0 通过。（尚无场景声明 ∞）
+- seek 拖动一致性（验收第 9 条，有 seek 且 duration>0 的场景）：8/8 通过。
+- durationZeroKind 双类断言：static（任何参数下恒 0）9/9；branch（默认与触发参数下 0↔非 0）3/3。两类分开统计，断言不同。
+- branch 置灰文案取 JSON zeroHint：3/3 通过。

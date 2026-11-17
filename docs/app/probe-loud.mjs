@@ -1,0 +1,13 @@
+﻿import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import puppeteer from "puppeteer-core";
+const ROOT = path.resolve(import.meta.dirname); const PORT = 18155;
+const MIME={".html":"text/html",".js":"text/javascript",".json":"application/json"};
+const server=http.createServer((req,res)=>{let p=decodeURIComponent(new URL(req.url,"http://x").pathname);if(p==="/")p="/index.html";let f=path.join(ROOT,p);if(!fs.existsSync(f)){const a=path.join(ROOT,"..",p);if(fs.existsSync(a))f=a;else{res.writeHead(404);res.end();return;}}res.writeHead(200,{"Content-Type":MIME[path.extname(f)]||"application/octet-stream"});fs.createReadStream(f).pipe(res);});
+await new Promise(r=>server.listen(PORT,"127.0.0.1",r));
+const b=await puppeteer.launch({executablePath:"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",headless:true,args:["--enable-unsafe-swiftshader","--use-angle=swiftshader","--disable-gpu","--no-sandbox"]});
+const pg=await b.newPage();
+pg.on("console",m=>console.log("CONSOLE",m.type(),m.text()));
+pg.on("pageerror",e=>console.log("PAGEERROR",e.message));
+await pg.goto(`http://127.0.0.1:${PORT}/index.html`,{waitUntil:"load"});
+await new Promise(r=>setTimeout(r,3000));
+console.log("READY", await pg.evaluate(()=>!!(window.__LAB&&window.__LAB.ready)));
+await b.close(); server.close();

@@ -1,0 +1,11 @@
+{
+  "name": "physics-3d-lab",
+  "private": true,
+  "scripts": {
+    "release": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/make-release.ps1",
+    "verify": "node tools/verify-release.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.17.0"
+  }
+}

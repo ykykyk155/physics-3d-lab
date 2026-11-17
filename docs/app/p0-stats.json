@@ -1,0 +1,52 @@
+[
+  {
+    "id": "A2-newton-first",
+    "calls": 18,
+    "tris": 1776
+  },
+  {
+    "id": "D2-resistance-factor",
+    "calls": 13,
+    "tris": 4296
+  },
+  {
+    "id": "D4-ohm-law",
+    "calls": 37,
+    "tris": 13006
+  },
+  {
+    "id": "D5-power-joule",
+    "calls": 17,
+    "tris": 5472
+  },
+  {
+    "id": "D6-magnet-solenoid",
+    "calls": 13,
+    "tris": 2102
+  },
+  {
+    "id": "D7-motor-generator",
+    "calls": 12,
+    "tris": 364
+  },
+  {
+    "id": "C1-sound-medium",
+    "calls": 15,
+    "tris": 8412
+  },
+  {
+    "id": "C3-noise-control",
+    "calls": 24,
+    "tris": 3372
+  },
+  {
+    "id": "B4-refraction",
+    "calls": 9,
+    "tris": 198
+  },
+  {
+    "id": "F1-melting-curve",
+    "calls": 24,
+    "tris": 3874
+  }
+]

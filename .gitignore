@@ -1,0 +1,15 @@
+# 这个目录里还放着别的项目（DAY160 视频素材等，几百 MB）。
+# 这里用「全禁 + 白名单」的方式，只收初中物理 3D 演示项目自己的文件。
+# 克隆出来的仓库 = 本项目，不会带进无关素材。
+
+/*
+!/.gitignore
+!/package.json
+!/README.md
+!/docs/
+!/tools/
+!/release/
+
+# 发布目录：收目录，但 zip 是构建产物，每次重新生成，不入库
+/release/*.zip
+/release/_ziptest/

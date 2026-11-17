@@ -1,0 +1,130 @@
+{
+  "rows": [
+    {
+      "id": "A1-incline-speed",
+      "calls": 18,
+      "tris": 1746
+    },
+    {
+      "id": "A2-newton-first",
+      "calls": 18,
+      "tris": 1776
+    },
+    {
+      "id": "A3-friction",
+      "calls": 21,
+      "tris": 2068
+    },
+    {
+      "id": "A4-liquid-pressure",
+      "calls": 12,
+      "tris": 862
+    },
+    {
+      "id": "A5-buoyancy",
+      "calls": 15,
+      "tris": 2702
+    },
+    {
+      "id": "A6-energy",
+      "calls": 8,
+      "tris": 1044
+    },
+    {
+      "id": "A7-lever",
+      "calls": 8,
+      "tris": 1976
+    },
+    {
+      "id": "D1-series-parallel",
+      "calls": 24,
+      "tris": 12068
+    },
+    {
+      "id": "D2-resistance-factor",
+      "calls": 13,
+      "tris": 4296
+    },
+    {
+      "id": "D3-rheostat-lamp",
+      "calls": 9,
+      "tris": 11388
+    },
+    {
+      "id": "D4-ohm-law",
+      "calls": 37,
+      "tris": 13006
+    },
+    {
+      "id": "D5-power-joule",
+      "calls": 17,
+      "tris": 5472
+    },
+    {
+      "id": "D6-magnet-solenoid",
+      "calls": 13,
+      "tris": 2102
+    },
+    {
+      "id": "D7-motor-generator",
+      "calls": 12,
+      "tris": 364
+    },
+    {
+      "id": "B1-pinhole",
+      "calls": 10,
+      "tris": 940
+    },
+    {
+      "id": "B2-reflection",
+      "calls": 11,
+      "tris": 222
+    },
+    {
+      "id": "B3-plane-mirror",
+      "calls": 16,
+      "tris": 4968
+    },
+    {
+      "id": "B4-refraction",
+      "calls": 9,
+      "tris": 198
+    },
+    {
+      "id": "B5-convex-lens",
+      "calls": 20,
+      "tris": 2690
+    },
+    {
+      "id": "C1-sound-medium",
+      "calls": 15,
+      "tris": 8412
+    },
+    {
+      "id": "C2-sound-chars",
+      "calls": 6,
+      "tris": 840
+    },
+    {
+      "id": "C3-noise-control",
+      "calls": 24,
+      "tris": 3372
+    },
+    {
+      "id": "F1-melting-curve",
+      "calls": 24,
+      "tris": 3874
+    },
+    {
+      "id": "F2-boiling",
+      "calls": 12,
+      "tris": 9380
+    },
+    {
+      "id": "F3-heat-engine",
+      "calls": 48,
+      "tris": 14188
+    }
+  ],
+  "errors": []
+}

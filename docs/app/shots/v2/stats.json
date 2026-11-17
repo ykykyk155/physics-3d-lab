@@ -1,0 +1,37 @@
+[
+  {
+    "id": "A1-incline-speed",
+    "calls": 18,
+    "tris": 1746
+  },
+  {
+    "id": "A3-friction",
+    "calls": 21,
+    "tris": 2068
+  },
+  {
+    "id": "A5-buoyancy",
+    "calls": 15,
+    "tris": 2702
+  },
+  {
+    "id": "B5-convex-lens",
+    "calls": 20,
+    "tris": 2690
+  },
+  {
+    "id": "D1-series-parallel",
+    "calls": 25,
+    "tris": 12104
+  },
+  {
+    "id": "D6-magnet-solenoid",
+    "calls": 13,
+    "tris": 4740
+  },
+  {
+    "id": "F3-heat-engine",
+    "calls": 35,
+    "tris": 10706
+  }
+]

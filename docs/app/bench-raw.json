@@ -1,0 +1,202 @@
+[
+  {
+    "id": "A1-incline-speed",
+    "steady": 18,
+    "playMax": 18,
+    "tris": 1746,
+    "ms": 34.6,
+    "shadowCalls": 18
+  },
+  {
+    "id": "A2-newton-first",
+    "steady": 17,
+    "playMax": 17,
+    "tris": 1860,
+    "ms": 44.4,
+    "shadowCalls": 17
+  },
+  {
+    "id": "A3-friction",
+    "steady": 21,
+    "playMax": 21,
+    "tris": 2068,
+    "ms": 26.6,
+    "shadowCalls": 21
+  },
+  {
+    "id": "A4-liquid-pressure",
+    "steady": 12,
+    "playMax": 12,
+    "tris": 862,
+    "ms": 45,
+    "shadowCalls": 12
+  },
+  {
+    "id": "A5-buoyancy",
+    "steady": 15,
+    "playMax": 15,
+    "tris": 2702,
+    "ms": 35.1,
+    "shadowCalls": 15
+  },
+  {
+    "id": "A6-energy",
+    "steady": 8,
+    "playMax": 8,
+    "tris": 1044,
+    "ms": 17.8,
+    "shadowCalls": 8
+  },
+  {
+    "id": "A7-lever",
+    "steady": 9,
+    "playMax": 9,
+    "tris": 2276,
+    "ms": 25.2,
+    "shadowCalls": 9
+  },
+  {
+    "id": "D1-series-parallel",
+    "steady": 24,
+    "playMax": 24,
+    "tris": 12068,
+    "ms": 35.8,
+    "shadowCalls": 24
+  },
+  {
+    "id": "D2-resistance-factor",
+    "steady": 13,
+    "playMax": 13,
+    "tris": 4296,
+    "ms": 39.9,
+    "shadowCalls": 13
+  },
+  {
+    "id": "D3-rheostat-lamp",
+    "steady": 9,
+    "playMax": 9,
+    "tris": 11388,
+    "ms": 30.4,
+    "shadowCalls": 9
+  },
+  {
+    "id": "D4-ohm-law",
+    "steady": 37,
+    "playMax": 37,
+    "tris": 13006,
+    "ms": 34.6,
+    "shadowCalls": 37
+  },
+  {
+    "id": "D5-power-joule",
+    "steady": 17,
+    "playMax": 17,
+    "tris": 11872,
+    "ms": 31.2,
+    "shadowCalls": 17
+  },
+  {
+    "id": "D6-magnet-solenoid",
+    "steady": 13,
+    "playMax": 13,
+    "tris": 2102,
+    "ms": 29,
+    "shadowCalls": 13
+  },
+  {
+    "id": "D7-motor-generator",
+    "steady": 15,
+    "playMax": 15,
+    "tris": 2868,
+    "ms": 32.2,
+    "shadowCalls": 15
+  },
+  {
+    "id": "B1-pinhole",
+    "steady": 10,
+    "playMax": 10,
+    "tris": 940,
+    "ms": 16.6,
+    "shadowCalls": 15
+  },
+  {
+    "id": "B2-reflection",
+    "steady": 11,
+    "playMax": 11,
+    "tris": 222,
+    "ms": 16.7,
+    "shadowCalls": 15
+  },
+  {
+    "id": "B3-plane-mirror",
+    "steady": 16,
+    "playMax": 16,
+    "tris": 4968,
+    "ms": 19.8,
+    "shadowCalls": 16
+  },
+  {
+    "id": "B4-refraction",
+    "steady": 9,
+    "playMax": 9,
+    "tris": 198,
+    "ms": 72.1,
+    "shadowCalls": 9
+  },
+  {
+    "id": "B5-convex-lens",
+    "steady": 20,
+    "playMax": 20,
+    "tris": 2690,
+    "ms": 24.5,
+    "shadowCalls": 20
+  },
+  {
+    "id": "C1-sound-medium",
+    "steady": 11,
+    "playMax": 11,
+    "tris": 5532,
+    "ms": 76.1,
+    "shadowCalls": 11
+  },
+  {
+    "id": "C2-sound-chars",
+    "steady": 6,
+    "playMax": 6,
+    "tris": 840,
+    "ms": 32.2,
+    "shadowCalls": 6
+  },
+  {
+    "id": "C3-noise-control",
+    "steady": 24,
+    "playMax": 24,
+    "tris": 3372,
+    "ms": 34.2,
+    "shadowCalls": 24
+  },
+  {
+    "id": "F1-melting-curve",
+    "steady": 25,
+    "playMax": 25,
+    "tris": 5654,
+    "ms": 32,
+    "shadowCalls": 25
+  },
+  {
+    "id": "F2-boiling",
+    "steady": 12,
+    "playMax": 12,
+    "tris": 9380,
+    "ms": 43.1,
+    "shadowCalls": 12
+  },
+  {
+    "id": "F3-heat-engine",
+    "steady": 35,
+    "playMax": 48,
+    "tris": 10706,
+    "ms": 42.2,
+    "shadowCalls": 46
+  }
+]
