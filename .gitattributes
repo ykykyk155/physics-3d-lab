@@ -1,0 +1,16 @@
+# 统一换行：仓库里存 LF，各处检出也是 LF（避免 Windows 上 CRLF 造成 diff 噪音）
+* text=auto eol=lf
+
+# 二进制资产，不要做任何换行处理
+*.png binary
+*.jpg binary
+*.ico binary
+*.docx binary
+*.zip binary
+*.ttf binary
+*.wav binary
+*.npy binary
+*.bin binary
+
+# 发布目录是构建产物，语法按普通文件处理即可
+release/ -text

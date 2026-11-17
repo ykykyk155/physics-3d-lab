@@ -4,6 +4,7 @@
 
 /*
 !/.gitignore
+!/.gitattributes
 !/package.json
 !/README.md
 !/docs/
