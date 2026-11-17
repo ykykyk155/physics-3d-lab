@@ -45,6 +45,12 @@ Get-ChildItem $out -Recurse -Directory | Where-Object { $_.Name -in 'shots','all
 $readmeSrc = Join-Path $PSScriptRoot 'release-readme.md'
 if (Test-Path $readmeSrc) { Copy-Item $readmeSrc (Join-Path $out 'README.md') }
 
+# offline launcher: double-click to run locally without any web server experience.
+# added after the *.bat / *.ps1 strip so it survives.
+$launcher = Join-Path $PSScriptRoot 'start-lab.ps1'
+if (Test-Path $launcher) { Copy-Item $launcher $out }
+Get-ChildItem $PSScriptRoot -Filter '*.bat' -File | ForEach-Object { Copy-Item $_.FullName $out }
+
 # --- verify: every required file must exist, one by one ---
 $required = @(
     'index.html',
