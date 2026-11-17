@@ -317,6 +317,31 @@ else md += `- 统计面板收起/展开：❌ before=${tog.before} after=${tog.a
 md += `- 统计面板（exp.readouts() → 100ms 渲染）：${statOK}/${statTotal} 通过。\n`;
 md += `- 播放速度六档（0.25/0.5/1/2/4/8，高亮=defaultSpeed，置灰=duration≤0）：${speedOK}/${speedTotal} 通过。\n`;
 md += `- 表实一致门禁（有 duration 必带 durationIsSnapshot 或 durationZeroKind）：${coverOK}/${coverTotal} 通过。\n`;
+// 平移视角：右键拖动 target 生效且在限内；越界被钳制；重置连 target 一起回场景初始机位
+await page.evaluate(i => window.__LAB.switch(i), ids[0]);
+await sleep(900);
+const cam0 = await page.evaluate(() => { const t = window.__LAB.controls().target; return { x: t.x, y: t.y, z: t.z }; });
+const cbox = await page.evaluate(() => { const r = document.querySelector('canvas').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+await page.mouse.move(cbox.x, cbox.y);
+await page.mouse.down({ button: 'right' });
+for (let i = 1; i <= 12; i++) await page.mouse.move(cbox.x + 12 * i, cbox.y - 7 * i);
+await page.mouse.up({ button: 'right' });
+await frames();
+const pan = await page.evaluate(o => { const t = window.__LAB.controls().target; return {
+  moved: Math.hypot(t.x - o.x, t.y - o.y, t.z - o.z) > 0.01,
+  inLimits: Math.hypot(t.x, t.z) <= 8.01 && t.y >= -0.01 && t.y <= 8.01 }; }, cam0);
+await page.evaluate(() => { const t = window.__LAB.controls().target; t.set(20, -5, 0); });
+await frames();
+const clamp = await page.evaluate(() => { const t = window.__LAB.controls().target; return {
+  x: t.x, y: t.y, z: t.z, ok: Math.hypot(t.x, t.z) <= 8.01 && t.y >= -0.01 }; });
+await page.click('#btnReset'); await sleep(600);
+const back = await page.evaluate(o => { const t = window.__LAB.controls().target;
+  return Math.hypot(t.x - o.x, t.y - o.y, t.z - o.z) < 0.05; }, cam0);
+if (pan.moved && pan.inLimits && clamp.ok && back) {
+  md += `- 平移视角：右键拖动 target 生效且在限内、越界钳制（20,-5,0 → ${clamp.x.toFixed(2)},${clamp.y.toFixed(2)},${clamp.z.toFixed(2)}）、重置回初始机位，✅。\n`;
+} else {
+  md += `- 平移视角：❌ moved=${pan.moved} inLimits=${pan.inLimits} clampOK=${clamp.ok} resetBack=${back}\n`;
+}
 fs.writeFileSync(path.join(ROOT, 'ui-probe-report.md'), md, 'utf8');
 console.log(`total=${total} delivered=${delivered}`);
 console.log(md.split('\n').filter(l => l.includes('❌')).join('\n') || 'ALL DELIVERED');

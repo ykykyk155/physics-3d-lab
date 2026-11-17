@@ -1,17 +1,17 @@
 # 外壳侧整体验收报告
 
-时间：2026-11-17T09:05:08.798Z
+时间：2026-11-17T09:42:54.165Z
 环境：headless Chromium(Edge) + SwiftShader，1280×900 → 390×844
 
 ## 结论总览
 
 | 验收项 | 标准 | 结果 |
 |---|---|---|
-| ① 移动端抽屉 | <768px 面板变底部抽屉，把手可见、可展开，3D 区可拖拽 | handle=PASS 展开位移=matrix(1, 0, 0, 1, 0, 0) 拖拽位移=6.592 → PASS |
-| ② 内存增幅(3轮×25场景) | ≤10% | 4.92% → PASS |
+| ① 移动端抽屉 | <768px 面板变底部抽屉，把手可见、可展开，3D 区可拖拽 | handle=PASS 展开位移=matrix(1, 0, 0, 1, 0, 0) 拖拽位移=6.517 → PASS |
+| ② 内存增幅(3轮×25场景) | ≤10% | 4.87% → PASS |
 | ② WebGL 泄漏告警 | 控制台无泄漏类告警（性能提示不计） | 泄漏类 0 条、性能提示 4 条 → PASS |
 | ③ shader 重编译 | programs.length 切换后不增长 | R1=10 R2=10 R3=10（轮内峰值 10）→ PASS |
-| ③ 共享资源不重建 | geometries/textures 三轮后不增长(容差2%) | geo 35→35 PASS；tex 3→3 PASS |
+| ③ 共享资源不重建 | geometries/textures 三轮后不增长(容差2%) | geo 34→35 PASS；tex 3→3 PASS |
 | ④ 绘制预算（props 实物化后复核） | 稳态 calls ≤60、tris <200k | 最高 37 calls / 13,006 tris → PASS |
 ## 明细
 
@@ -51,7 +51,7 @@
 泄漏类（判 FAIL）：（无）
 
 性能提示（不计入判定）4 条：
-- [.WebGL-0x111c00bf9c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x111c00bf9c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x111c00bf9c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x111c00bf9c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+- [.WebGL-0x6634001be200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0x6634001be200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0x6634001be200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0x6634001be200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)

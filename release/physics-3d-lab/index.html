@@ -259,7 +259,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <input type="range" id="timeRange" min="0" max="1" step="0.01" value="0" aria-label="时间轴">
       <span class="tb-time" id="tbTime"></span>
     </div>
-    <div class="hint-chip" id="hintChip">拖拽旋转 · 滚轮缩放</div>
+    <div class="hint-chip" id="hintChip">左键旋转 · 右键平移 · 滚轮缩放</div>
     <aside id="stats">
       <div class="stats-head" id="statsHead">
         <span class="stats-title">实时数据</span>
@@ -350,7 +350,9 @@ function initEngine(){
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.minDistance = 2; controls.maxDistance = 30;
   controls.maxPolarAngle = 0.495 * Math.PI;
-  controls.enablePan = false;
+  controls.enablePan = true;                             // 平移：右键/中键拖动，教学时把模型挪回视野中央
+  controls.screenSpacePanning = true;                    // 平移跟随屏幕方向，斜拖不漂
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
   controls.target.set(0, 1, 0);
 
   labelRenderer = new CSS2DRenderer();
@@ -460,6 +462,12 @@ function animate(){
     labelRenderer.render(current.scene, camera);
   }
   controls.update();
+  {                                                      // 平移限制：target 水平半径 ≤8、y∈[0,8]，防止拖出视野找不回
+    const tg = controls.target;
+    const hr = Math.hypot(tg.x, tg.z);
+    if(hr > 8){ const s = 8 / hr; tg.x *= s; tg.z *= s; }
+    if(tg.y < 0) tg.y = 0; else if(tg.y > 8) tg.y = 8;
+  }
 }
 
 /* ---------- 场景切换：令牌防竞态 + 遮罩 150/150ms + 释放 ---------- */
@@ -525,6 +533,7 @@ function switchExperiment(id, opts = {}){
       viewportError('「' + meta.name + '」尚未在 experiments.js 中实现（' + id + '）');
     }
     current = { scene, exp: impl || null };
+    current.cam0 = { pos: camera.position.clone(), tgt: controls.target.clone() };   // 场景初始机位（含面板补偿），重置回此位
     curDuration = (current.exp && typeof current.exp.duration === 'number') ? current.exp.duration : 0;
     setupTimebar();                                      // simTime 归零、时长/禁用态/标签刷新
     for(const p of meta.params) pending.add(p.id);       // build 后按 JSON 默认值全量 onParam 一轮
@@ -847,6 +856,8 @@ function resetAll(){
     clampFollows();
     if(k < 1){ requestAnimationFrame(frame); return; }
     if(current.exp && current.exp.reset){ try{ current.exp.reset(); }catch(e){ console.error('[reset]', e); } }
+    const c0 = current.cam0;                             // 重置连相机一起回场景初始机位（含面板补偿）
+    if(c0){ camera.position.copy(c0.pos); controls.target.copy(c0.tgt); controls.update(); }
     renderer.shadowMap.needsUpdate = true;
     store.simTime = 0;                                   // 重置=参数回默认 + 时间轴回零
     seekPending = null;
