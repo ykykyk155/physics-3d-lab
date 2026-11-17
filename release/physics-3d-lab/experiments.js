@@ -13,21 +13,21 @@ const CAM = {
   'A1-incline-speed': { p: [2.4, 2.2, 3.6], t: [0.5, 0.15, 0] },
   'A2-newton-first': { p: [-0.4, 5.0, 7.2], t: [-0.4, 0.25, 0] },
   'A3-friction': { p: [0, 2.7, 5.3], t: [0, 1.0, 0] },
-  'A4-liquid-pressure': { p: [1.5, 2.8, 6.0], t: [-0.2, 1.2, 0] },
+  'A4-liquid-pressure': { p: [1.70, 2.99, 6.72], t: [-0.2, 1.2, 0] },   // 拉远 12%：右侧 U 形管别落进统计面板
   'A5-buoyancy': { p: [1.7, 3.3, 7.0], t: [0, 1.5, 0] },
   'A6-energy': { p: [1.0, 3.0, 6.6], t: [0.3, 1.5, 0] },
-  'A7-lever': { p: [0, 3.0, 7.8], t: [0, 1.35, 0] },
+  'A7-lever': { p: [0, 3.08, 8.19], t: [0, 1.35, 0] },   // 拉远 5%：梁端别贴到统计面板
   'B1-pinhole': { p: [0, 2.6, 6.4], t: [0, 0.9, 0] },
   'B2-reflection': { p: [0, 2.8, 6.0], t: [0, 0.6, 0] },
   'B3-plane-mirror': { p: [0, 1.4, 2.6], t: [0, 0.6, 0] },
   'B4-refraction': { p: [0, 3.2, 7.0], t: [0, 0, 0] },
   'B5-convex-lens': { p: [1.4, 2.3, 6.2], t: [0.3, 1.1, 0] },
   'C1-sound-medium': { p: [0, 3.2, 7.0], t: [0, 1.8, 0] },
-  'C2-sound-chars': { p: [0, 2.0, 7.4], t: [0, 2.0, 0] },
-  'C3-noise-control': { p: [0, 2.8, 8.6], t: [0, 1.1, 0] },
+  'C2-sound-chars': { p: [0, 2.0, 8.29], t: [0, 2.0, 0] },   // 拉远 12%：示波器面板 6 单位宽
+  'C3-noise-control': { p: [0, 3.06, 9.89], t: [0, 1.1, 0] },   // 拉远 15%：反射墙在 x=4，别落进统计面板
   'D1-series-parallel': { p: [0, 2.1, 6.2], t: [0, 1.55, 0] },
   'D2-resistance-factor': { p: [0, 2.2, 5.8], t: [0.3, 1.3, 0] },
-  'D3-rheostat-lamp': { p: [0, 2.0, 5.2], t: [0, 1.4, 0] },
+  'D3-rheostat-lamp': { p: [0, 2.07, 5.82], t: [0, 1.4, 0] },   // 拉远 12%
   'D4-ohm-law': { p: [0.3, 2.6, 8.6], t: [0.2, 1.5, 0] },
   'D5-power-joule': { p: [0, 2.2, 5.4], t: [0, 1.0, 0] },
   'D6-magnet-solenoid': { p: [0, 2.8, 7.0], t: [0, 1.5, 0] },
@@ -38,17 +38,73 @@ const CAM = {
 };
 
 export const EXPERIMENTS = {};
+/* ---------- 右侧统计面板的遮挡补偿 ----------
+ * 统计面板是浮在 3D 视区右侧的一层（桌面端约 236px，可收起），会盖住画面右边一条。
+ * 不改画布尺寸、不改 FOV（那会把场景横向裁掉），而是把相机和观察目标一起沿「相机右向量」
+ * 平移，让内容居中到未被遮挡的那块区域。平移量 = 遮挡宽度的一半。
+ * 面板收起时遮挡为 0，视图自动回到正中；用 ResizeObserver 跟随开合，且只补「变化量」，
+ * 不重置用户已经拖出来的视角。 */
+let _curInset = 0;
+let _ctx = null;
+
+function panelInset() {
+  const p = document.getElementById('stats');
+  const vp = document.getElementById('viewport');
+  if (!p || !vp) return 0;
+  const pr = p.getBoundingClientRect(), vr = vp.getBoundingClientRect();
+  if (pr.width < 40 || pr.height < 40) return 0;           // 已收起
+  if (pr.left < vr.left + vr.width * 0.55) return 0;       // 不是右侧浮层（例如窄屏抽屉）就不算
+  return Math.max(0, Math.min(pr.width, vr.right - pr.left));
+}
+
+function shiftByPx(ctx, px) {
+  if (!ctx || !ctx.camera || !ctx.controls || !px) return;
+  const cam = ctx.camera, tgt = ctx.controls.target;
+  if (!cam || !tgt || !tgt.isVector3) return;
+  cam.updateMatrixWorld(true);
+  const el = ctx.renderer && ctx.renderer.domElement;
+  const h = (el && el.clientHeight) ? el.clientHeight : 700;
+  const dist = cam.position.distanceTo(tgt);
+  if (!(dist > 1e-6)) return;
+  const worldPerPx = (2 * Math.tan((cam.fov || 50) * Math.PI / 360) * dist) / h;
+  const d = px * worldPerPx;
+  const m = cam.matrixWorld.elements;                       // 第 0 列 = 相机右向量
+  cam.position.set(cam.position.x + m[0] * d, cam.position.y + m[1] * d, cam.position.z + m[2] * d);
+  tgt.set(tgt.x + m[0] * d, tgt.y + m[1] * d, tgt.z + m[2] * d);
+  if (ctx.controls.update) ctx.controls.update();
+}
+
+function syncPanelInset(ctx) {
+  const want = panelInset();
+  const delta = want - _curInset;
+  _curInset = want;
+  if (delta) shiftByPx(ctx || _ctx, delta / 2);             // 遮挡宽的一半 = 内容需要左移的像素
+}
+
+if (typeof window !== 'undefined' && typeof ResizeObserver !== 'undefined') {
+  const attach = () => {
+    const st = document.getElementById('stats');
+    if (!st) return setTimeout(attach, 300);
+    new ResizeObserver(() => syncPanelInset(_ctx)).observe(st);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+}
+
 for (const id in RAW) {
   const impl = RAW[id];
   const cam = CAM[id];
   const api = {
     build(ctx) {
       impl.build(ctx);
+      _ctx = ctx;
+      _curInset = 0;                                        // 每个场景都是全新相机，从 0 起算
       if (cam && ctx.camera && ctx.controls && ctx.controls.target) {
         ctx.camera.position.set(cam.p[0], cam.p[1], cam.p[2]);
         ctx.controls.target.set(cam.t[0], cam.t[1], cam.t[2]);
         ctx.camera.lookAt(ctx.controls.target);
         if (ctx.controls.update) ctx.controls.update();
+        syncPanelInset(ctx);                                // 再按面板实际遮挡量居中
       }
     },
     onParam(k, v) { impl.onParam(k, v); },

@@ -32,7 +32,7 @@ await page.waitForFunction('window.__LAB && window.__LAB.ready', { timeout: 6000
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const outDir = path.join(ROOT, 'shots');
-const shots = ['A1-incline-speed', 'C1-sound-medium', 'D7-motor-generator', 'F1-melting-curve'];
+const shots = ['B5-convex-lens', 'C3-noise-control', 'A4-liquid-pressure', 'C2-sound-chars'];
 for (const id of shots) {
   await page.evaluate(i => window.__LAB.switch(i), id);
   await sleep(1500);

@@ -4,7 +4,7 @@
     "textbook": "人教版 PEP 2024秋八上 / 2025春八下 / 2025秋九年级全一册",
     "priority": "P0 首批必做 25 个场景；P1 二期扩展 11 个见文末 backlog",
     "note": "params[] 每一项直接对应设计总裁规范里的一个滑杆区块：id 作 state key，label 显示名，min/max/step/default 生成 input[type=range]，unit 拼在数值后；type=enum 的项不做滑杆，2~4 档用分段按钮、5~6 档用下拉。result 是滑杆旁实时显示的计算量（公式驱动，禁止硬编码）；公式存在分段条件时（如 μ≥tanθ 静止），读数区显示状态词替代数值。",
-    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 12 个（A1/A2/A3/A6/A7/C1/C3/D5/D7/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（A4、A5、B1~B5、C2、D1~D4、D6 共 13 个，duration 恒 0，断言「任何参数下必须为 0」）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的场景不带此字段，外壳用默认句「本实验无时间演化」。", "moduleColors": { "mechanics": "#F59E0B", "electricity": "#FACC15", "optics": "#A78BFA", "acoustics": "#34D399", "thermal": "#FB7185" }
+    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 14 个（A1/A2/A3/A6/A7/C1/C2/C3/D1/D5/D7/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（A4、A5、B1~B5、D2~D4、D6 共 11 个，duration 恒 0，断言「任何参数下必须为 0」；判据＝拖到 t=0.5×duration 画面与 t=0 逐像素相同——注意签名必须覆盖父节点旋转、InstancedMesh 实例矩阵与 Line2 顶点数据，且取样步长避开 3 的倍数，C2/D1 曾因只读变换矩阵被误判静止）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的场景不带此字段，外壳用默认句「本实验无时间演化」。", "moduleColors": { "mechanics": "#F59E0B", "electricity": "#FACC15", "optics": "#A78BFA", "acoustics": "#34D399", "thermal": "#FB7185" }
   },
   "experiments": [
     {
@@ -195,7 +195,7 @@
       "phenomenon": "三维疏密纵波扩散 + 乒乓球被弹开；抽气 → 响度衰减至听不见而振动仍在（真空不能传声）；换介质波前速度明显不同；距离拉大响度按 1/r 下降"
     },
     {
-      "id": "C2-sound-chars", "module": "acoustics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "id": "C2-sound-chars", "module": "acoustics", "priority": "P0", "duration": 4, "durationIsSnapshot": true, "snapshotTolerance": 0.1, "durationSource": "实现值 4s：波形沿横轴平移，整段时间正好走一个完整相位周期。此前误标 static——原因是只看了 step 有没有推进时间，没做像素级复核；实测播放 0.7s 画面确实在变（用截图逐像素比对确认）。噪声波形同时改成确定性伪随机，同一 t 两次 seek 波形一致",
       "name": "声音的特性（音调、响度、音色）", "chapter": "八上 第二章 第2节 声音的特性",
       "quantities": ["f", "A", "λ", "波形"],
       "params": [
@@ -225,7 +225,7 @@
     },
 
     {
-      "id": "D1-series-parallel", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "id": "D1-series-parallel", "module": "electricity", "priority": "P0", "duration": 4, "durationIsSnapshot": true, "snapshotTolerance": 0.1, "durationSource": "实现值 4s：电子粒子沿导线环行，整段时间环行圈数随电流变 k=clamp(I/0.15,0.2,3)。断路 I=0 时电子不动但仍有时长——那是参数状态，不是「没有过程」。此前误标 static 是漏检：InstancedMesh 的实例矩阵动画不体现在 object 的变换上，只读局部/世界矩阵的探针看不见，要用像素比对才抓得住",
       "name": "串联与并联电路 · 电流和电压的规律", "chapter": "九全 第十五章 第2~5节、第十六章 第2节",
       "quantities": ["I", "U", "R"],
       "params": [

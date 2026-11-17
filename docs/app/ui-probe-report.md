@@ -1,6 +1,6 @@
 # UI→引擎通路探针报告
 
-时间：2026-11-17T08:34:43.012Z
+时间：2026-11-17T08:51:24.496Z
 方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
 
 | 实验 | 控件 | 类型 | onParam 送达 | 判定 |
@@ -71,15 +71,16 @@
 | A7-lever | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
 | A7-lever | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 0.5×（期望 0.5×） | ✅ |
 | A7-lever | 表实门禁 | duration | 有时长=false snap=true kind=branch | ✅ |
-| D1-series-parallel | voltage | number | 1（store=6） | ✅ |
-| D1-series-parallel | r1 | number | 1（store=50） | ✅ |
-| D1-series-parallel | r2 | number | 1（store=50） | ✅ |
-| D1-series-parallel | mode | enum | 1（store=series） | ✅ |
-| D1-series-parallel | switch | enum | 1（store=on） | ✅ |
-| D1-series-parallel | zeroKind=static | 参数极值下恒 0 | | ✅ |
-| D1-series-parallel | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
+| D1-series-parallel | voltage | number | 1（store=1.5） | ✅ |
+| D1-series-parallel | r1 | number | 1（store=5） | ✅ |
+| D1-series-parallel | r2 | number | 1（store=5） | ✅ |
+| D1-series-parallel | mode | enum | 1（store=parallel） | ✅ |
+| D1-series-parallel | switch | enum | 1（store=off） | ✅ |
+| D1-series-parallel | duration 快照校验 | getter | actual=4 vs 快照 4（±10%） | ✅ |
+| D1-series-parallel | seek 拖动一致性 | 1.48→2.92→1.48 | simTime 回位=true、无NaN=true | ✅ |
+| D1-series-parallel | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | D1-series-parallel | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 1×（期望 1×） | ✅ |
-| D1-series-parallel | 表实门禁 | duration | 有时长=false snap=false kind=static | ✅ |
+| D1-series-parallel | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
 | D2-resistance-factor | len | number | 1（store=100） | ✅ |
 | D2-resistance-factor | area | number | 1（store=4） | ✅ |
 | D2-resistance-factor | mat | enum | 1（store=1.1） | ✅ |
@@ -186,15 +187,16 @@
 | C1-sound-medium | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | C1-sound-medium | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 1×（期望 1×） | ✅ |
 | C1-sound-medium | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
-| C2-sound-chars | freq | number | 1（store=2000） | ✅ |
-| C2-sound-chars | amp | number | 1（store=100） | ✅ |
-| C2-sound-chars | wave | enum | 1（store=sine） | ✅ |
-| C2-sound-chars | ruler | number | 1（store=30） | ✅ |
-| C2-sound-chars | pipe | number | 1（store=40） | ✅ |
-| C2-sound-chars | zeroKind=static | 参数极值下恒 0 | | ✅ |
-| C2-sound-chars | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
+| C2-sound-chars | freq | number | 1（store=50） | ✅ |
+| C2-sound-chars | amp | number | 1（store=0） | ✅ |
+| C2-sound-chars | wave | enum | 1（store=square） | ✅ |
+| C2-sound-chars | ruler | number | 1（store=5） | ✅ |
+| C2-sound-chars | pipe | number | 1（store=5） | ✅ |
+| C2-sound-chars | duration 快照校验 | getter | actual=4 vs 快照 4（±10%） | ✅ |
+| C2-sound-chars | seek 拖动一致性 | 1.48→2.92→1.48 | simTime 回位=true、无NaN=true | ✅ |
+| C2-sound-chars | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | C2-sound-chars | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 1×（期望 1×） | ✅ |
-| C2-sound-chars | 表实门禁 | duration | 有时长=false snap=false kind=static | ✅ |
+| C2-sound-chars | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
 | C3-noise-control | level | number | 1（store=0） | ✅ |
 | C3-noise-control | range | number | 1（store=1） | ✅ |
 | C3-noise-control | material | enum | 1（store=3） | ✅ |
@@ -241,10 +243,10 @@
 ## 结论
 
 - 控件总数 115，onParam 送达 115。**UI→引擎通路完好：所有控件都能把改动送进 onParam。**画面不动的问题出在实验侧 onParam 实现。
-- duration 快照校验（durationIsSnapshot 场景）：12/12 通过。getter 与 JSON 快照一致，无脱节。
+- duration 快照校验（durationIsSnapshot 场景）：14/14 通过。getter 与 JSON 快照一致，无脱节。
 - 无界时长断言（duration=Infinity 场景）：0/0 通过。（尚无场景声明 ∞）
-- seek 拖动一致性（验收第 9 条，有 seek 且 duration>0 的场景）：11/11 通过。
-- durationZeroKind 双类断言：static（任何参数下恒 0）13/13；branch（默认与触发参数下 0↔非 0）3/3。两类分开统计，断言不同。
+- seek 拖动一致性（验收第 9 条，有 seek 且 duration>0 的场景）：13/13 通过。
+- durationZeroKind 双类断言：static（任何参数下恒 0）11/11；branch（默认与触发参数下 0↔非 0）3/3。两类分开统计，断言不同。
 - branch 置灰文案取 JSON zeroHint：3/3 通过。
 - 统计面板收起/展开：默认展开 → 点击收起 → 再点恢复，✅。
 - 统计面板（exp.readouts() → 100ms 渲染）：25/25 通过。

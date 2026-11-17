@@ -1,0 +1,252 @@
+[
+  {
+    "id": "A1-incline-speed",
+    "contentRight": 865,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "A2-newton-first",
+    "contentRight": 485,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "A3-friction",
+    "contentRight": 870,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "A4-liquid-pressure",
+    "contentRight": 1160,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "A5-buoyancy",
+    "contentRight": 1137,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "A6-energy",
+    "contentRight": 982,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "A7-lever",
+    "contentRight": 1165,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "D1-series-parallel",
+    "contentRight": 1111,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Line2#",
+    "covered": false
+  },
+  {
+    "id": "D2-resistance-factor",
+    "contentRight": 1138,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "D3-rheostat-lamp",
+    "contentRight": 1152,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "D4-ohm-law",
+    "contentRight": 1076,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Line2#",
+    "covered": false
+  },
+  {
+    "id": "D5-power-joule",
+    "contentRight": 1059,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "D6-magnet-solenoid",
+    "contentRight": 1097,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Line2#",
+    "covered": false
+  },
+  {
+    "id": "D7-motor-generator",
+    "contentRight": 921,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "B1-pinhole",
+    "contentRight": 922,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "B2-reflection",
+    "contentRight": 1010,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Line2#",
+    "covered": false
+  },
+  {
+    "id": "B3-plane-mirror",
+    "contentRight": 1125,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "B4-refraction",
+    "contentRight": 1069,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "B5-convex-lens",
+    "contentRight": 1617,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Line2#",
+    "covered": true
+  },
+  {
+    "id": "C1-sound-medium",
+    "contentRight": 1028,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "C2-sound-chars",
+    "contentRight": 1154,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "C3-noise-control",
+    "contentRight": 1174,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": true
+  },
+  {
+    "id": "F1-melting-curve",
+    "contentRight": 1122,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "F2-boiling",
+    "contentRight": 925,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  },
+  {
+    "id": "F3-heat-engine",
+    "contentRight": 1120,
+    "panelLeft": 1168,
+    "panelRight": 1404,
+    "panelOpen": true,
+    "viewportRight": 1420,
+    "who": "Mesh#",
+    "covered": false
+  }
+]

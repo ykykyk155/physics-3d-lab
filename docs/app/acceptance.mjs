@@ -38,11 +38,13 @@ page.on('pageerror', e => warnings.push('pageerror: ' + String(e).slice(0, 200))
 await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'load', timeout: 60000 });
 await page.waitForFunction('window.__LAB && window.__LAB.ready', { timeout: 60000 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+await page.waitForFunction('!document.getElementById("fade").classList.contains("on")', { timeout: 5000 }).catch(() => {});
+await sleep(200);                                        // 避开切场景遮罩 160ms 窗口，否则首击被吞（布线抽查竞态）
 
 const snap = () => page.evaluate(() => {
   const r = window.__LAB.renderer();
-  window.gc && window.gc();
-  return {
+  window.gc && window.gc(); window.gc && window.gc(); window.gc && window.gc();
+  return {                                              // heap 取三次 gc 后的最小值：usedJSHeapSize 波动大，单点会虚报增幅
     programs: r.info.programs.length,
     geometries: r.info.memory.geometries,
     textures: r.info.memory.textures,
@@ -52,6 +54,10 @@ const snap = () => page.evaluate(() => {
     id: window.__LAB.store.experimentId,
   };
 });
+const snapHeap = async () => {                          // 三次采样取最小，压掉 GC/JIT 噪声
+  const a = await snap(), b = await snap(), c = await snap();
+  return { ...c, heap: Math.min(a.heap, b.heap, c.heap) };
+};
 
 // UI 布线抽查：真实点击模块 Tab + 场景卡片
 const wire = {};
@@ -76,7 +82,7 @@ for (let round = 1; round <= 3; round++) {
     await sleep(520);
     if (round === 3) perExp.push(await page.evaluate(() => window.__LAB.renderer().info.programs.length));
   }
-  rounds.push({ round, end: await snap(), maxProgramsRound3: round === 3 ? Math.max(...perExp) : null });
+  rounds.push({ round, end: await snapHeap(), maxProgramsRound3: round === 3 ? Math.max(...perExp) : null });
 }
 
 // 内存与 shader 判定

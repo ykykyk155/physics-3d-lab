@@ -95,6 +95,8 @@ const C2 = {
     this.pipeLbl = mkLabel('空气柱', '#7ec8ff'); ctx.scene.add(this.pipeLbl);
     this.lbl = mkLabel('', C); this.lbl.position.set(0, 3.8, 0); ctx.scene.add(this.lbl);
     this.lbl2 = mkLabel('', '#9ad2ff'); this.lbl2.position.set(0, 3.45, 0); ctx.scene.add(this.lbl2);
+    this.t = 0;
+    this.duration = 4;          // 波形一个完整相位周期（build 期就有值：外壳切场景时立刻读 duration）
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -121,20 +123,28 @@ const C2 = {
     setLabel(this.lbl2, 'λ = v/f = ' + lambda.toFixed(3) + ' m' + (f > 20000 ? ' · 超声' : f < 20 ? ' · 次声' : ''));
   },
   step(dt) {
-    if (dt <= 0) return;
-    this.t = (this.t || 0) + dt;
+    if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
+    this.renderWave(this.t || 0);
+  },
+  // 时间轴：波形沿横轴平移。duration 4s 内走完一个完整相位周期，拖到任意时刻波形位置固定可复现。
+  seek(t) {
+    this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
+    this.renderWave(this.t);
+  },
+  renderWave(t) {
     const f = this.f || 440, amp = this.amp || 0.6, type = this.p.wave || 'sine';
     // 横轴按频率归一：默认 440Hz 显示约 3 个完整周期，f 越大波形越密
     const cycles = clamp(f / 440 * 3, 0.7, 12);
+    const phase = (t / (this.duration || 4)) * Math.PI * 2;      // 整段时间走一个相位周期
     const N = 121, pts = [];
     for (let i = 0; i < N; i++) {
       const x = -2.8 + i * (5.6 / (N - 1));
-      const ph = (i / (N - 1)) * cycles * Math.PI * 2 + this.t * 2;
+      const ph = (i / (N - 1)) * cycles * Math.PI * 2 + phase;
       let y;
       switch (type) {
         case 'square': y = Math.sign(Math.sin(ph)); break;
         case 'saw': y = 2 * (((ph / (2 * Math.PI)) % 1) - 0.5) * 2; break;
-        case 'noise': y = (Math.random() * 2 - 1); break;
+        case 'noise': y = (Math.sin(ph * 12.9898) * 43758.5453) % 1; break;   // 确定性伪随机：同一 t 两次 seek 波形一致
         default: y = Math.sin(ph);
       }
       pts.push(new THREE.Vector3(x, 2.0 + y * amp * 1.2, 0));
@@ -258,6 +268,7 @@ Object.assign(C2, {
       rd('振幅', (this.amp || 0) * 100, '%', 0),
       rd('钢尺基频', 340 / (4 * rulerCm / 100), 'Hz', 0),
       rd('空气柱基频', 340 / (2 * pipeCm / 100), 'Hz', 0),
+      rd('已用时 t', this.t, 's', 2),
     ];
   },
 });

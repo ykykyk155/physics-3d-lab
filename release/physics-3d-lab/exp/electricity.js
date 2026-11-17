@@ -58,6 +58,7 @@ const D1 = {
     this.lbl = mkLabel('', C); this.lbl.position.set(0, 4.0, 0); ctx.scene.add(this.lbl);
     this.lblI = mkLabel('', '#ffe066'); ctx.scene.add(this.lblI);
     this.t = 0;
+    this.duration = 4;          // 电子环行一个完整过程（build 期就有值：外壳切场景时立刻读 duration）
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -105,13 +106,24 @@ const D1 = {
   },
   step(dt) {
     if (!this.elec.length || !this.curve) return;
-    this.t += dt;
+    if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
+    this.renderAt(this.t || 0);
+  },
+  // 时间轴：电子沿导线环行。整段时间走 k 圈，k 随电流变（电流越大跑得越快），
+  // 断路时 I=0 → 电子不动，但时间轴仍在（这是参数状态，不是「没有这个实验过程」）。
+  seek(t) {
+    if (!this.elec.length || !this.curve) return;
+    this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
+    this.renderAt(this.t);
+  },
+  renderAt(t) {
+    if (!this.elec.length || !this.curve) return;
     const I = this.I || 0;
-    const spd = clamp(I * 0.12, 0, 0.6);
+    const k = clamp(I / 0.15, 0.2, 3);                 // 整段时间绕行的圈数
     const inst = this.elec[0];
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1);
     for (let i = 0; i < this.phases.length; i++) {
-      const p = (this.phases[i] + this.t * spd) % 1;
+      const p = (this.phases[i] + (t / (this.duration || 4)) * k) % 1;
       const pos = this.curve.getPointAt(p);
       m.compose(pos, q, s);
       inst.setMatrixAt(i, m);
@@ -119,7 +131,7 @@ const D1 = {
     inst.instanceMatrix.needsUpdate = true;
     inst.visible = I > 0.001;
   },
-  reset() { this.t = 0; this.recompute(); },
+  reset() { this.t = 0; this.recompute(); if (this.renderAt) this.renderAt(0); },
   dispose() {},
 };
 
@@ -655,6 +667,7 @@ Object.assign(D1, {
       rd('电流 I', this.I, 'A', 2),
       { label: '连接方式', value: this.p.mode === 'parallel' ? '并联' : '串联', unit: '' },
       { label: '开关', value: this.p.switch === 'off' ? '断开' : '闭合', unit: '' },
+      rd('已用时 t', this.t, 's', 2),
     ];
   },
 });

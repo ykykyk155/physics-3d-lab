@@ -30,6 +30,10 @@ await page.setViewport({ width: 1420, height: 700, deviceScaleFactor: 1 });   //
 await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'load' });
 await page.waitForFunction('window.__LAB && window.__LAB.ready', { timeout: 60000 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// 统计面板是 #viewport 内部的浮层，会占掉每格右侧约 21%。总览图只展示场景，
+// 截图时先隐藏它：experiments.js 的 ResizeObserver 会把相机遮挡补偿自动归零，画面回到正中。
+await page.evaluate(() => { const s = document.getElementById('stats'); if (s) s.style.display = 'none'; });
+await sleep(300);
 
 const ids = await page.evaluate(() => {
   const M = ['mechanics', 'electricity', 'optics', 'acoustics', 'thermal'];

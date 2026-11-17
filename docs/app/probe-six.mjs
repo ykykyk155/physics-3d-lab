@@ -48,7 +48,26 @@ const SIG = () => page.evaluate(() => {
     if (!o.geometry || o.isCSS2DObject) return;
     n++;
     const e = o.matrixWorld.elements;
-    out.push(n + ':' + Array.prototype.map.call(e, v => v.toFixed(3)).join(','));
+    const g = o.geometry;
+    // 波形（Line2）和电子粒子（InstancedMesh）不靠变换矩阵动，得把顶点/实例数据也算进来，
+    // 否则「几何在改、矩阵没变」的动画会被误判成「画面完全相同」。
+    let geo = '';
+    for (const key of ['position', 'instanceStart', 'instanceEnd']) {
+      const a = g.attributes && g.attributes[key];
+      if (!a || !a.array) continue;
+      const step = 1;   // 全量求和：步长若取到 3 的倍数就只采到 x 分量，而波形只改 y（C2 曾被误判成「完全相同」）
+      let acc = 0;
+      for (let i = 0; i < a.array.length; i += step) acc += a.array[i] * ((i % 97) + 1);
+      geo += key[0] + acc.toFixed(3) + '/';
+    }
+    let inst = '';
+    if (o.isInstancedMesh && o.instanceMatrix && o.instanceMatrix.array) {
+      const a = o.instanceMatrix.array;
+      let acc = 0;
+      for (let i = 0; i < a.length; i += 9) acc += a[i] * (i + 1);
+      inst = acc.toFixed(3);
+    }
+    out.push(n + ':' + Array.prototype.map.call(e, v => v.toFixed(3)).join(',') + '|' + geo + inst);
   });
   return out.join('|');
 });
@@ -61,6 +80,8 @@ const CASES = [
   { id: 'A5-buoyancy', expect: 'static' },
   { id: 'D6-magnet-solenoid', expect: 'static' },
   { id: 'D4-ohm-law', expect: 'static' },   // 全表最后一个「表里写 4s、实现返回 0」的场景
+  { id: 'C2-sound-chars', expect: 'process' },   // 波形在 step 里滚，标着「无时间演化」就是自相矛盾
+  { id: 'D1-series-parallel', expect: 'process' }, // 电子粒子沿导线移动，同上
 ];
 
 let fails = 0;
