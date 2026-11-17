@@ -24,7 +24,8 @@ await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 
 const browser = await puppeteer.launch({
   executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', headless: true,
-  args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--disable-gpu', '--no-sandbox'],
+  args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--disable-gpu', '--no-sandbox',
+         '--autoplay-policy=no-user-gesture-required'],
 });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 900 });
@@ -341,6 +342,77 @@ if (pan.moved && pan.inLimits && clamp.ok && back) {
   md += `- 平移视角：右键拖动 target 生效且在限内、越界钳制（20,-5,0 → ${clamp.x.toFixed(2)},${clamp.y.toFixed(2)},${clamp.z.toFixed(2)}）、重置回初始机位，✅。\n`;
 } else {
   md += `- 平移视角：❌ moved=${pan.moved} inLimits=${pan.inLimits} clampOK=${clamp.ok} resetBack=${back}\n`;
+}
+// 音频：开关+localStorage 记忆、非声学场景静音、声学三场景 audioAt 随参数联动（听感由人工录音验收）
+const audioRes = await page.evaluate(async () => {
+  const L = window.__LAB, out = {};
+  const btn = document.getElementById('audioBtn');
+  out.exists = !!btn;
+  btn.click();                                          // 打开
+  await new Promise(r => setTimeout(r, 200));
+  out.on = btn.classList.contains('on');
+  out.saved = localStorage.getItem('lab-audio');
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const read = () => { const e = L.current().exp; return e && typeof e.audioAt === 'function' ? e.audioAt(L.store.simTime) : null; };
+  const blkByLabel = part => [...document.querySelectorAll('.param-block')].find(b => {
+    const s = b.querySelector('.param-head span'); return s && s.textContent.includes(part); });
+  const slider = async (labelPart, to) => {
+    const blk = blkByLabel(labelPart); if (!blk) return false;
+    const input = blk.querySelector('input[type=range]'); if (!input) return false;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(input, String(to));
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await raf2(); return true;
+  };
+  const toggleParam = async labelPart => {              // 滑杆打到对侧极值 / 枚举点到另一档，通吃两类控件
+    const blk = blkByLabel(labelPart); if (!blk) return null;
+    const pid = blk.dataset.pid;
+    const input = blk.querySelector('input[type=range]');
+    if (input) {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      const to = Math.abs(parseFloat(input.value) - parseFloat(input.min)) < 1e-9 ? input.max : input.min;
+      setter.call(input, String(to));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await raf2(); return String(to);
+    }
+    const cand = [...blk.querySelectorAll('.seg button'), ...blk.querySelectorAll('.dropdown li')].find(el => el.dataset.oid !== String(L.store.params[pid]));
+    if (!cand) return null;
+    cand.click(); await raf2(); return cand.dataset.oid;
+  };
+  L.switch('A1-incline-speed'); await new Promise(r => setTimeout(r, 800));
+  out.silentOnA1 = read() === null;
+  L.switch('C2-sound-chars'); await new Promise(r => setTimeout(r, 800));
+  const c2a = read();
+  const pitch = L.DATA().byId['C2-sound-chars'].params.find(p => p.type !== 'enum' && /音调|频率|freq/i.test(p.label || p.id));
+  let c2b = null;
+  if (pitch) { await slider(pitch.label, Math.abs(pitch.default - pitch.min) < 1e-9 ? pitch.max : pitch.min); c2b = read(); }
+  out.c2 = { mode: c2a && c2a.mode, freqA: c2a && c2a.freq, freqB: c2b && c2b.freq,
+    ok: !!(c2a && c2a.mode === 'tone' && isFinite(c2a.freq) && c2b && isFinite(c2b.freq) && c2b.freq !== c2a.freq) };
+  L.switch('C1-sound-medium'); await new Promise(r => setTimeout(r, 800));
+  const c1a = read();
+  await toggleParam('介质');
+  const c1b = read();
+  out.c1 = { mode: c1a && c1a.mode, ivA: c1a && c1a.interval, ivB: c1b && c1b.interval,
+    ok: !!(c1a && c1a.mode === 'pulse' && c1a.interval > 0 && c1b && c1b.interval > 0 && c1b.interval !== c1a.interval) };
+  L.switch('C3-noise-control'); await new Promise(r => setTimeout(r, 800));
+  const c3a = read();
+  const fA = c3a && c3a.filterHz;
+  await toggleParam('隔声材料');                        // C3 的降噪由隔声材料档位（dB）承载
+  const c3b = read();
+  const fB = c3b && c3b.filterHz;
+  out.c3 = { mode: c3a && c3a.mode, gA: c3a && c3a.gain, gB: c3b && c3b.gain, fA, fB,
+    ok: !!(c3a && c3a.mode === 'noise' && c3b && c3b.mode === 'noise' &&
+           (c3b.gain !== c3a.gain || fB !== fA)) };
+  btn.click();                                          // 恢复关闭
+  await new Promise(r => setTimeout(r, 100));
+  out.off = !btn.classList.contains('on') && localStorage.getItem('lab-audio') === '0';
+  out.ok = !!(out.exists && out.on && out.saved === '1' && out.silentOnA1 && out.c2.ok && out.c1.ok && out.c3.ok && out.off);
+  return out;
+});
+if (audioRes.ok) {
+  md += `- 音频引擎：开关开/关+localStorage 记忆 ✅；非声学场景返回 null 静音 ✅；C2 tone（freq 跟音调 ${audioRes.c2.freqA}→${audioRes.c2.freqB}）✅；C1 pulse（interval ${audioRes.c1.ivA}→${audioRes.c1.ivB} 随介质）✅；C3 noise（gain ${audioRes.c3.gA}→${audioRes.c3.gB}、filterHz ${audioRes.c3.fA}→${audioRes.c3.fB} 随隔声材料）✅。\n`;
+} else {
+  md += `- 音频引擎：❌ ${JSON.stringify(audioRes)}\n`;
 }
 fs.writeFileSync(path.join(ROOT, 'ui-probe-report.md'), md, 'utf8');
 console.log(`total=${total} delivered=${delivered}`);

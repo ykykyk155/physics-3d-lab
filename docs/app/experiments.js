@@ -130,6 +130,25 @@ for (const id in RAW) {
         return { label: String(r.label), value: v, unit: r.unit == null ? '' : String(r.unit) };
       });
     },
+    // 声音：audioAt(t) → null（不出声）或 { mode:'tone'|'noise'|'pulse', gain, freq?, wave?, interval?, filterHz? }
+    // 外壳每帧都会调，所以这里只做校验和兜底：gain 非法 / 非正一律回 null（当成静音），
+    // 频率、间隔、截止频率都钳到能用的范围。不做缓存、不产生副作用。
+    audioAt(t) {
+      const f = impl.audioAt;
+      if (typeof f !== 'function') return null;
+      let o;
+      try { o = f.call(impl, Number.isFinite(t) ? t : 0); } catch (e) { return null; }
+      if (!o || typeof o !== 'object') return null;
+      const g = Number(o.gain);
+      if (!Number.isFinite(g) || g <= 0) return null;
+      const fin = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : null; };
+      const out = { mode: (o.mode === 'noise' || o.mode === 'pulse') ? o.mode : 'tone', gain: Math.min(1, g) };
+      const fr = fin(o.freq, 20, 20000); if (fr != null) out.freq = fr;
+      if (typeof o.wave === 'string') out.wave = o.wave;
+      const iv = fin(o.interval, 0.02, 10); if (iv != null) out.interval = iv;
+      const fh = fin(o.filterHz, 20, 20000); if (fh != null) out.filterHz = fh;
+      return out;
+    },
   };
   // duration 由实验在 recompute 里按参数算；用 getter 实时取值。
   // Infinity（无界过程）必须原样透出，不能被 Number.isFinite 折成 0——那会误判成「无时间演化」

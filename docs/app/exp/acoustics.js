@@ -286,6 +286,62 @@ Object.assign(C3, {
   },
 });
 
+/* ===================== 声音（audioAt） =====================
+ * 接口与 readouts()/seek(t) 同一套路：传时间轴秒，返回 null（不发声）或
+ * { mode:'tone'|'noise'|'pulse', gain, freq?, wave?, interval?, filterHz? }。
+ * 几个硬约束：
+ *   1) 只读状态、无副作用（外壳每帧都会调）——尤其不要 new 节点、不要改 this。
+ *   2) gain 由实验内部定好，外壳直接乘总音量，不要再做二次归一。
+ *   3) 任何分支都不许返回 NaN：频率/间隔/截止都过 clamp，非法值走 null。 */
+const AUDIBLE = (f) => clamp(f, 20, 20000);
+
+Object.assign(C1, {
+  // 脉冲式：一声一声的「敲击」，间隔 = 距离 / 声速。
+  // 真实值太小（1m/340 ≈ 0.003s，人耳听成连续声），所以乘一个 600 倍的放慢系数，
+  // 与时间轴「把一个波壳周期拉成 6 秒」是同一个慢放思路。换成水(1500)/钢(5200)时 v 变大、间隔成比例变密，
+  // 这就是要让学生听出来的差别。
+  audioAt() {
+    const p = this.p.pressure != null ? this.p.pressure : 101.3;
+    if (p < 5) return null;                       // 真空不传声：直接不出声，而不是「很小声」
+    const v = this.speed || 340;
+    const dist = this.p.dist || 1;
+    const loud = clamp((this.loud || 0) / 80, 0, 1);
+    const interval = clamp((dist / v) * 600, 0.1, 2.5);
+    if (!(loud > 0.001) || !Number.isFinite(interval)) return null;
+    return { mode: 'pulse', freq: 700, wave: 'sine', gain: 0.2 * loud, interval };
+  },
+});
+
+Object.assign(C2, {
+  // 持续音：频率跟音调、音量跟振幅（响度）、波形跟音色。
+  // 音色选「噪声」时不能再用 tone——那是白噪声，得走 noise 模式配低通，否则听起来是纯音。
+  audioAt() {
+    const f = AUDIBLE(this.p.freq || 440);
+    const amp = clamp(this.amp != null ? this.amp : 0.6, 0, 1);
+    const w = this.p.wave || 'sine';
+    if (!(amp > 0.001)) return null;              // 振幅拉到 0 = 听不见
+    if (w === 'noise') return { mode: 'noise', gain: 0.22 * amp, filterHz: AUDIBLE(f * 4) };
+    const wave = w === 'square' ? 'square' : w === 'saw' ? 'sawtooth' : 'sine';
+    return { mode: 'tone', freq: f, wave, gain: 0.2 * amp };
+  },
+});
+
+Object.assign(C3, {
+  // 声噪：降噪越强 → 音量下去、低通压低。要听出「闷掉、变小」而不是直接静音，
+  // 所以 gain 最多压到 40%，截止频率从 6kHz 压到 600Hz。
+  audioAt() {
+    const att = (this.p.material != null ? Number(this.p.material) : 8) * 0.4;   // 降噪量 dB
+    const attN = clamp(att / 12, 0, 1);
+    const base = clamp(((this.loud || 0) - 25) / 65, 0, 1);                       // 接收响度
+    if (!(base > 0.001)) return null;
+    return {
+      mode: 'noise',
+      gain: 0.3 * base * (1 - 0.6 * attN),
+      filterHz: Math.round(6000 - 5400 * attN),
+    };
+  },
+});
+
 export const ACOUSTICS = {
   'C1-sound-medium': C1,
   'C2-sound-chars': C2,
