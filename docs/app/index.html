@@ -8,6 +8,27 @@
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
 </script>
+<!-- 预加载：模块依赖链最深有 5 跳，逐跳发现要串行等 5 次往返。
+     这里一次性声明全部依赖，让浏览器在解析 HTML 时就开始并行下载。 -->
+<link rel="modulepreload" href="./vendor/three.module.js">
+<link rel="modulepreload" href="./vendor/three.core.js">
+<link rel="modulepreload" href="./vendor/addons/controls/OrbitControls.js">
+<link rel="modulepreload" href="./vendor/addons/renderers/CSS2DRenderer.js">
+<link rel="modulepreload" href="./vendor/addons/lines/Line2.js">
+<link rel="modulepreload" href="./vendor/addons/lines/LineSegments2.js">
+<link rel="modulepreload" href="./vendor/addons/lines/LineSegmentsGeometry.js">
+<link rel="modulepreload" href="./vendor/addons/lines/LineGeometry.js">
+<link rel="modulepreload" href="./vendor/addons/lines/LineMaterial.js">
+<link rel="modulepreload" href="./vendor/addons/utils/BufferGeometryUtils.js">
+<link rel="modulepreload" href="./experiments.js">
+<link rel="modulepreload" href="./exp/common.js">
+<link rel="modulepreload" href="./exp/props.js">
+<link rel="modulepreload" href="./exp/mechanics.js">
+<link rel="modulepreload" href="./exp/optics.js">
+<link rel="modulepreload" href="./exp/acoustics.js">
+<link rel="modulepreload" href="./exp/electricity.js">
+<link rel="modulepreload" href="./exp/thermal.js">
+<link rel="preload" as="fetch" href="./data/experiments.json" crossorigin="anonymous">
 <style>
 :root{
   --color-bg:#0B1120;
