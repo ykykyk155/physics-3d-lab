@@ -1,5 +1,5 @@
 /* 声学 C1~C3 */
-import { THREE, COLORS, mat, box, cyl, sphere, decor, mergeByMaterial, mkLabel, setLabel, fatLine, setFatLine, addGround, clamp } from './common.js';
+import { THREE, COLORS, mat, box, cyl, sphere, decor, mergeByMaterial, mkLabel, setLabel, fatLine, setFatLine, addGround, clamp, rd } from './common.js';
 import { MATS, matClone, registerMaterials, bellJar, tuningFork } from './props.js';
 
 const C = COLORS.acoustics;
@@ -26,6 +26,7 @@ const C1 = {
     }
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
     this.t = 0;
+    this.duration = 6;          // 一个完整波壳扩散周期（build 期就有值：外壳切场景时立刻读 duration）
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -47,24 +48,31 @@ const C1 = {
     setLabel(this.lbl, 'v=' + v + 'm/s · 响度 ' + this.loud.toFixed(0) + 'dB' + (p < 5 ? ' · 真空不传声' : ''));
   },
   step(dt) {
-    this.t += dt;
+    if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
+    this.renderAt(this.t || 0);
+  },
+  // 时间轴：波壳从音叉向罩壁扩散，整段时间正好走一个完整周期；声速越快同一段时间里走的波壳越多
+  seek(t) {
+    this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
+    this.renderAt(this.t);
+  },
+  renderAt(t) {
     const v = this.speed || 340;
+    const rate = (10 / (this.duration || 6)) * (v / 340);   // 波壳相位推进速率：空气 340 时一个周期 = 整段时间
     const p = this.p.pressure != null ? this.p.pressure : 101.3;
     const amp = clamp(p / 101.3, 0, 1) * clamp(1 / (this.p.dist || 1), 0.15, 1);
     this.shells.forEach((s, i) => {
-      const phase = (this.t * v * 0.5 + i * 2.5) % 10;
-      const r = 0.2 + phase * 0.4;
-      // 波壳限制在真空罩内（半径 ≤1.7），不铺满画面、不给罩体/音叉/地面染色
-      const rr = Math.min(r, 1.7);
-      s.scale.setScalar(Math.max(0.05, rr));
-      s.material.opacity = 0.22 * amp * clamp(1 - rr / 2.0, 0, 1);
+      const phase = ((t * rate) + i * 2.5) % 10;
+      const r = 0.2 + (phase / 10) * 1.5;      // 0.2 → 1.7 线性扩张，正好到罩壁，不出现「贴在壁上不动」
+      s.scale.setScalar(Math.max(0.05, r));
+      s.material.opacity = 0.22 * amp * clamp(1 - r / 2.0, 0, 1);
     });
     // 音叉振动（整体轻微抖动）+ 乒乓球被声波推开
-    const vib = Math.sin(this.t * ((this.p.freq || 512) * 0.05));
+    const vib = Math.sin(t * ((this.p.freq || 512) * 0.05));
     this.fork.rotation.z = vib * 0.02;
     this.ball.position.y = 1.5 + Math.abs(vib) * 0.05 * amp * 6;
   },
-  reset() { this.t = 0; this.recompute(); },
+  reset() { this.t = 0; this.recompute(); if (this.renderAt) this.renderAt(0); },
   dispose() {},
 };
 
@@ -173,6 +181,7 @@ const C3 = {
     this.hl = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: 0x34D399 }));
     this.hl.rotation.x = Math.PI / 2; this.hl.visible = false; ctx.scene.add(this.hl);
     this.t = 0;
+    this.duration = 4;          // 一次完整回声（去+回）的呈现时长；真实 Δt 见读数
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -196,12 +205,18 @@ const C3 = {
     setLabel(this.lbl, 's=vΔt/2 → Δt=' + dt.toFixed(3) + 's · 接收 ' + this.loud.toFixed(0) + 'dB' + (this.loud > 90 ? ' ⚠噪声' : '') + ' · 控制环节：' + stageCn);
   },
   step(dt) {
-    if (dt <= 0) return;
-    this.t += dt;
-    const s = this.p.range || 50, v = 340;
-    const T = 2 * s / v;
-    const period = Math.max(T * 1.3, 0.1);
-    const ph = (this.t % period) / period;
+    if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
+    this.renderAt(this.t || 0);
+  },
+  // 时间轴：一次完整回声——前半天脉冲从声源飞到反射墙，后半天从墙回到耳。
+  // 真实回声只有 0.29s（读数里有），时间轴是把它拉慢到 4s 让人看清，不改物理量。
+  seek(t) {
+    this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
+    this.renderAt(this.t);
+  },
+  renderAt(t) {
+    const d = this.duration || 4;
+    const ph = clamp(t / d, 0, 1);
     const x0 = -4, xw = 4;
     if (ph < 0.5) {
       const u = ph / 0.5;
@@ -213,9 +228,52 @@ const C3 = {
       this.pulse2.position.set(xw - (xw - x0) * u, 1.2, 0); this.pulse2.visible = true;
     }
   },
-  reset() { this.t = 0; this.recompute(); },
+  reset() { this.t = 0; this.recompute(); if (this.renderAt) this.renderAt(0); },
   dispose() {},
 };
+
+/* ===================== 右侧统计面板读数 =====================
+ * 返回 [{ label, value, unit }]，每场景 3~6 项；声学多为静态量，靠参数改变。 */
+Object.assign(C1, {
+  readouts() {
+    const p = this.p.pressure != null ? this.p.pressure : 101.3;
+    return [
+      rd('声速 v', this.speed, 'm/s', 0),
+      rd('响度', this.loud, 'dB', 0),
+      rd('气压', p, 'kPa', 1),
+      rd('距声源', this.p.dist || 0, 'm'),
+      rd('音叉频率', this.p.freq || 0, 'Hz', 0),
+      rd('已用时 t', this.t, 's', 2),
+    ];
+  },
+});
+Object.assign(C2, {
+  readouts() {
+    const f = this.f || this.p.freq || 440;
+    const rulerCm = this.p.ruler != null ? this.p.ruler : 15;
+    const pipeCm = this.p.pipe != null ? this.p.pipe : 20;
+    return [
+      rd('频率 f', f, 'Hz', 0),
+      rd('波长 λ', 340 / f, 'm', 3),
+      rd('振幅', (this.amp || 0) * 100, '%', 0),
+      rd('钢尺基频', 340 / (4 * rulerCm / 100), 'Hz', 0),
+      rd('空气柱基频', 340 / (2 * pipeCm / 100), 'Hz', 0),
+    ];
+  },
+});
+Object.assign(C3, {
+  readouts() {
+    const att = (this.p.material != null ? Number(this.p.material) : 8) * 0.4;
+    return [
+      rd('回声时间 Δt', this.echoT, 's', 3),
+      rd('障碍物距离 s', this.p.range || 0, 'm', 0),
+      rd('接收响度', this.loud, 'dB', 0),
+      rd('降噪量', att, 'dB', 1),
+      { label: '控制环节', value: ({ source: '声源处', path: '传播路径', ear: '人耳处' }[this.p.stage || 'path']), unit: '' },
+      rd('已用时 t', this.t, 's', 2),
+    ];
+  },
+});
 
 export const ACOUSTICS = {
   'C1-sound-medium': C1,

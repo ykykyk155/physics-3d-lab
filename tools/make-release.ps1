@@ -30,6 +30,21 @@ Copy-Item $entry $out
 Copy-Item (Join-Path $app 'exp')    (Join-Path $out 'exp')    -Recurse
 Copy-Item (Join-Path $app 'vendor') (Join-Path $out 'vendor') -Recurse
 
+# data source: ONE source of truth lives in docs/ (the only *.json directly there).
+# The in-app copy is regenerated on every build so the two can never drift.
+# (They did drift once: snapshot markers were added to the source only, and the
+#  deployed copy kept serving stale data while the table looked correct.)
+$docsDir = Join-Path $repo 'docs'
+$srcTables = @(Get-ChildItem $docsDir -Filter '*.json' -File)
+if ($srcTables.Count -ne 1) {
+    throw "expected exactly one *.json in docs\ as the experiment table, found $($srcTables.Count)"
+}
+$srcTable = $srcTables[0].FullName
+$appDataDir = Join-Path $app 'data'
+New-Item -ItemType Directory -Force -Path $appDataDir | Out-Null
+Copy-Item $srcTable (Join-Path $appDataDir 'experiments.json') -Force
+Write-Host ("  sync: docs table ({0} bytes) -> app/data/experiments.json" -f $srcTables[0].Length)
+
 # data source: self-contained copy inside the package
 $dataDir = Join-Path $out 'data'
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
@@ -119,7 +134,18 @@ if ($jsonOk) {
     Write-Host "  [FAIL] experiments.json unreadable" -ForegroundColor Red
 }
 
-$pass = ($missing.Count -eq 0) -and $fetchOk -and (-not $badRef) -and $importOk -and $jsonOk -and ($scenes -eq 25)
+# --- verify: source table, in-app copy and packaged copy are byte-identical ---
+$hSrc  = (Get-FileHash $srcTable -Algorithm SHA256).Hash
+$hApp  = (Get-FileHash $selfJson -Algorithm SHA256).Hash
+$hPack = (Get-FileHash (Join-Path $dataDir 'experiments.json') -Algorithm SHA256).Hash
+$hashOk = ($hSrc -eq $hApp) -and ($hApp -eq $hPack)
+if ($hashOk) {
+    Write-Host "  [OK  ] table identical in docs, app/data and release ($($hSrc.Substring(0,12)))" -ForegroundColor Green
+} else {
+    Write-Host "  [FAIL] table copies differ - source/app/release must match" -ForegroundColor Red
+}
+
+$pass = ($missing.Count -eq 0) -and $fetchOk -and (-not $badRef) -and $importOk -and $jsonOk -and $hashOk -and ($scenes -eq 25)
 Write-Host ""
 if ($pass) { Write-Host "RELEASE READY" -ForegroundColor Green; exit 0 }
 else { Write-Host "RELEASE BLOCKED" -ForegroundColor Red; exit 1 }

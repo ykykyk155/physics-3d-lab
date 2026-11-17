@@ -41,6 +41,7 @@ const ids = await page.evaluate(() => {
 let md = `# UI→引擎通路探针报告\n\n时间：${new Date().toISOString()}\n方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。\n\n| 实验 | 控件 | 类型 | onParam 送达 | 判定 |\n|---|---|---|---|---|\n`;
 let total = 0, delivered = 0, snapTotal = 0, snapOK = 0, unbTotal = 0, unbOK = 0, seekTotal = 0, seekOK = 0;
 let zeroStaticN = 0, zeroStaticOK = 0, zeroBranchN = 0, zeroBranchOK = 0, hintTotal = 0, hintOK = 0;
+let statTotal = 0, statOK = 0, speedTotal = 0, speedOK = 0, coverTotal = 0, coverOK = 0;
 for (const id of ids) {
   await page.evaluate(i => window.__LAB.switch(i), id);
   await sleep(800);
@@ -48,6 +49,35 @@ for (const id of ids) {
     const L = window.__LAB, meta = L.DATA().byId[id];
     const exp = L.current().exp;
     const out = { hasExp: !!exp, hasOnParam: !!(exp && typeof exp.onParam === 'function'), params: [] };
+    // 实时数据统计面板：exp.readouts() 形状 + 面板渲染一致 + 无 NaN
+    let items = null;
+    if (exp && typeof exp.readouts === 'function') {
+      try { items = exp.readouts(); } catch (e) { items = null; }
+    }
+    const statBody = document.getElementById('statsBody');
+    const statCards = statBody ? [...statBody.querySelectorAll('.readout-card')] : [];
+    const n = Array.isArray(items) ? items.length : -1;
+    const shapeOK = n >= 1 && items.every(it => it && typeof it.label === 'string' && it.label.length > 0 &&
+      (typeof it.value === 'number' ? isFinite(it.value) : (typeof it.value === 'string' && it.value.length > 0)));
+    const domOK = statCards.length === n &&
+      statCards.every((c, i) => c.querySelector('.rlabel').textContent === items[i].label);
+    out.stat = { n, cards: statCards.length, ok: shapeOK && domOK && !/NaN|undefined/i.test(statBody ? statBody.textContent : '') };
+    // 播放速度六档：档位固定 0.25/0.5/1/2/4/8，默认档高亮与 JSON defaultSpeed 一致，置灰随 duration
+    const btns = [...document.querySelectorAll('.pb-speed')];
+    const expectActive = String(meta.defaultSpeed != null ? meta.defaultSpeed : 1) + '×';
+    const expectDisabled = !!(exp && typeof exp.duration === 'number' && exp.duration <= 0);
+    const gotActive = (btns.find(b => b.classList.contains('active')) || {}).textContent || null;
+    out.speeds = { n: btns.length, labels: btns.map(b => b.textContent).join(), gotActive, expectActive, ok:
+      btns.length === 6 && btns.map(b => b.textContent).join() === '0.25×,0.5×,1×,2×,4×,8×' &&
+      btns.every(b => b.disabled === expectDisabled) && gotActive === expectActive };
+    // 表实一致门禁：JSON 有 duration（>0 或 ∞）的场景必须带 durationIsSnapshot 或 durationZeroKind
+    {
+      const raw = meta.duration;
+      const d = typeof raw === 'string' ? (raw === 'Infinity' ? Infinity : parseFloat(raw)) : raw;
+      const hasDuration = typeof d === 'number' && d > 0;
+      out.cover = { hasDuration, snap: !!meta.durationIsSnapshot, kind: meta.durationZeroKind || null,
+        ok: !hasDuration || !!meta.durationIsSnapshot || !!meta.durationZeroKind };
+    }
     if (!exp) return out;
     const orig = exp.onParam.bind(exp);
     let count = 0;
@@ -245,6 +275,21 @@ for (const id of ids) {
       md += `| ${id} | zeroKind=branch | 默认 d0=${z.d0} → 触发后 d1=${z.d1} | | ${z.ok ? '✅ 0↔非0 互斥成立' : '❌ 分支未生效'} |\n`;
     }
   }
+  if (rows.stat) {
+    statTotal++;
+    if (rows.stat.ok) statOK++;
+    md += `| ${id} | 统计面板 | readouts() | ${rows.stat.cards}/${rows.stat.n} 项渲染一致、无NaN | ${rows.stat.ok ? '✅' : '❌ 缺 readouts 或形状/渲染不符'} |\n`;
+  }
+  if (rows.speeds) {
+    speedTotal++;
+    if (rows.speeds.ok) speedOK++;
+    md += `| ${id} | 速度六档 | playbar | 档位[${rows.speeds.labels}] 高亮 ${rows.speeds.gotActive}（期望 ${rows.speeds.expectActive}） | ${rows.speeds.ok ? '✅' : '❌ 档位/高亮/置灰不符'} |\n`;
+  }
+  if (rows.cover) {
+    coverTotal++;
+    if (rows.cover.ok) coverOK++;
+    md += `| ${id} | 表实门禁 | duration | 有时长=${rows.cover.hasDuration} snap=${rows.cover.snap} kind=${rows.cover.kind || '—'} | ${rows.cover.ok ? '✅' : '❌ 有 duration 却无快照/标注'} |\n`;
+  }
   if (!rows.hasExp) md += `| ${id} | — | — | 实验未实现（experiments.js 缺失） | ❌ |\n`;
   else if (!rows.hasOnParam) md += `| ${id} | — | — | 实验缺 onParam 方法 | ❌ |\n`;
 }
@@ -254,6 +299,24 @@ md += `- 无界时长断言（duration=Infinity 场景）：${unbOK}/${unbTotal}
 md += `- seek 拖动一致性（验收第 9 条，有 seek 且 duration>0 的场景）：${seekOK}/${seekTotal} 通过。\n`;
 md += `- durationZeroKind 双类断言：static（任何参数下恒 0）${zeroStaticOK}/${zeroStaticN}；branch（默认与触发参数下 0↔非 0）${zeroBranchOK}/${zeroBranchN}。两类分开统计，断言不同。\n`;
 md += `- branch 置灰文案取 JSON zeroHint：${hintOK}/${hintTotal} 通过。\n`;
+// 统计面板收起/展开（外壳行为，测一次）
+const tog = await page.evaluate(async () => {
+  const panel = document.getElementById('stats');
+  const head = document.getElementById('statsHead');
+  const before = !panel.classList.contains('collapsed');
+  head.click();
+  await new Promise(r => setTimeout(r, 80));
+  const after = panel.classList.contains('collapsed');
+  head.click();
+  await new Promise(r => setTimeout(r, 80));
+  const restored = !panel.classList.contains('collapsed');
+  return { before, after, restored, ok: before && after && restored };
+});
+if (tog.ok) md += `- 统计面板收起/展开：默认展开 → 点击收起 → 再点恢复，✅。\n`;
+else md += `- 统计面板收起/展开：❌ before=${tog.before} after=${tog.after} restored=${tog.restored}\n`;
+md += `- 统计面板（exp.readouts() → 100ms 渲染）：${statOK}/${statTotal} 通过。\n`;
+md += `- 播放速度六档（0.25/0.5/1/2/4/8，高亮=defaultSpeed，置灰=duration≤0）：${speedOK}/${speedTotal} 通过。\n`;
+md += `- 表实一致门禁（有 duration 必带 durationIsSnapshot 或 durationZeroKind）：${coverOK}/${coverTotal} 通过。\n`;
 fs.writeFileSync(path.join(ROOT, 'ui-probe-report.md'), md, 'utf8');
 console.log(`total=${total} delivered=${delivered}`);
 console.log(md.split('\n').filter(l => l.includes('❌')).join('\n') || 'ALL DELIVERED');

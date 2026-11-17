@@ -1,5 +1,5 @@
 /* 力学 A1~A7 */
-import { THREE, COLORS, DEG, G, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp } from './common.js';
+import { THREE, COLORS, DEG, G, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, rd } from './common.js';
 import { MATS, matClone, registerMaterials, cart, rollCart, woodBlock, metalBlock, beaker, springScale, setSpringScale, slottedMass } from './props.js';
 
 const C = COLORS.mechanics;
@@ -744,6 +744,92 @@ const A7 = {
   reset() { this.t = 0; this.recompute(); },
   dispose() {},
 };
+
+/* ===================== 右侧统计面板读数 =====================
+ * 约定：返回 [{ label, value, unit }]，每场景 3~6 项，数值随播放实时变化。
+ * 静止 / 零转速 / 无演化时也必须给合理值（0 或定性文字），不得出现 NaN —— rd() 已统一兜底。
+ * 读数只读状态、不改状态：面板每 100ms 拉一次，不能有副作用。 */
+Object.assign(A1, {
+  readouts() {
+    return [
+      rd('速度 v', this.v, 'm/s'),
+      rd('位移 s', this.u, 'm'),
+      rd('加速度 a', this.static ? 0 : this.aVal, 'm/s²'),
+      rd('摩擦力 f', this.Ff, 'N'),
+      rd('已用时 t', this._t, 's'),
+    ];
+  },
+});
+Object.assign(A2, {
+  readouts() {
+    const st = this.list ? this.stateAt(this.t || 0) : null;
+    const phase = st ? ({ ramp: '坡上下滑', flat: '平面滑行', stopped: '已停止' }[st.phase] || '—') : '—';
+    return [
+      rd('到坡底速度 v₀', this.v0, 'm/s'),
+      rd('所选材料 μ', this.sel ? this.sel.mu : 0, '', 2),
+      rd('滑行距离 s', isFinite(this.s) ? this.s : '∞（永不停止）', isFinite(this.s) ? 'm' : ''),
+      rd('已用时 t', this.t, 's'),
+      { label: '运动阶段', value: phase, unit: '' },
+    ];
+  },
+});
+Object.assign(A3, {
+  readouts() {
+    return [
+      rd('摩擦力 f', this.f, 'N'),
+      rd('压力 N', this.p.normal || 0, 'N'),
+      rd('摩擦因数 μ', this.p.mu || 0, '', 2),
+      rd('拖动位移 x', this.x, 'm'),
+      rd('已用时 t', this._t, 's'),
+    ];
+  },
+});
+Object.assign(A4, {
+  readouts() {
+    return [
+      rd('液体压强 p', this.press, 'Pa', 0),
+      rd('深度 h', this.p.depth || 0, 'cm', 0),
+      rd('液体密度 ρ', this.p.liquid || 0, 'g/cm³'),
+      rd('U 管液面差 Δh', this.dhmm, 'mm', 0),
+      rd('探头朝向', this.p.orient || 0, '°', 0),
+    ];
+  },
+});
+Object.assign(A5, {
+  readouts() {
+    return [
+      rd('重力 G', this.G, 'N'),
+      rd('浮力 F浮', this.Fb, 'N'),
+      rd('测力计示数', this.read, 'N'),
+      rd('浸没比例', (this.subFrac || 0) * 100, '%', 0),
+      { label: '浮沉状态', value: this.floatUp ? '上浮' : '下沉', unit: '' },
+    ];
+  },
+});
+Object.assign(A6, {
+  readouts() {
+    const L = this.L || 0.6, m = this.m || 0.2, th = this.theta || 0, w = this.omega || 0;
+    const v = Math.abs(w) * L;
+    return [
+      rd('摆角 θ', th / DEG, '°', 1),
+      rd('速度 v', v, 'm/s'),
+      rd('动能 Ek', 0.5 * m * v * v, 'J', 3),
+      rd('势能 Ep', m * G * (L - Math.cos(th) * L), 'J', 3),
+      rd('周期 T', 2 * Math.PI * Math.sqrt(L / G), 's'),
+    ];
+  },
+});
+Object.assign(A7, {
+  readouts() {
+    return [
+      rd('左侧 F1·L1', this.t1, 'N·m', 1),
+      rd('右侧 F2·L2', this.t2, 'N·m', 1),
+      rd('力矩差 ΔM', this.net, 'N·m', 1),
+      rd('梁倾角', (this.angle || 0) / DEG, '°', 1),
+      { label: '状态', value: this.balanced ? '平衡' : (this.net > 0 ? '左重下沉' : '右重下沉'), unit: '' },
+    ];
+  },
+});
 
 export const MECHANICS = {
   'A1-incline-speed': A1,

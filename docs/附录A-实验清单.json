@@ -4,11 +4,11 @@
     "textbook": "人教版 PEP 2024秋八上 / 2025春八下 / 2025秋九年级全一册",
     "priority": "P0 首批必做 25 个场景；P1 二期扩展 11 个见文末 backlog",
     "note": "params[] 每一项直接对应设计总裁规范里的一个滑杆区块：id 作 state key，label 显示名，min/max/step/default 生成 input[type=range]，unit 拼在数值后；type=enum 的项不做滑杆，2~4 档用分段按钮、5~6 档用下拉。result 是滑杆旁实时显示的计算量（公式驱动，禁止硬编码）；公式存在分段条件时（如 μ≥tanθ 静止），读数区显示状态词替代数值。",
-    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 9 个（A1/A2/A3/A6/A7/D5/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（B1~B5、C2、D1~D3 共 9 个，duration 恒 0，断言「任何参数下必须为 0」）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的 9 个不带此字段，外壳用默认句「本实验无时间演化」。", "moduleColors": { "mechanics": "#F59E0B", "electricity": "#FACC15", "optics": "#A78BFA", "acoustics": "#34D399", "thermal": "#FB7185" }
+    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 12 个（A1/A2/A3/A6/A7/C1/C3/D5/D7/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（A4、A5、B1~B5、C2、D1~D4、D6 共 13 个，duration 恒 0，断言「任何参数下必须为 0」）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的场景不带此字段，外壳用默认句「本实验无时间演化」。", "moduleColors": { "mechanics": "#F59E0B", "electricity": "#FACC15", "optics": "#A78BFA", "acoustics": "#34D399", "thermal": "#FB7185" }
   },
   "experiments": [
     {
-      "id": "A1-incline-speed", "module": "mechanics", "priority": "P0", "duration": 0.97,"durationZeroKind": "branch","zeroHint": "当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（以渲染师实现为准，已从 1.2 回填为 0.97）：能动分支 = √(2(L−0.3)/a) × 1.4，a = g(sinθ−μcosθ)，**注意有效路程是 L−0.3（扣掉车长与挡板余量），不是全长 L**；默认 θ=20°/L=1.0/μ=0.05 → a=2.891、√(2×0.7/2.891)=0.696、×1.4 = 0.97s。μ≥tanθ 的静止分支返回 0，故本场景标 durationZeroKind = branch（**分类标签，不是数值常量**：探针据此测「θ=5°、μ=0.30 时应为 0、默认时应为 0.97」，不得拿它当 duration 的值）", 
+      "id": "A1-incline-speed", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.25, "duration": 0.97,"durationZeroKind": "branch","zeroHint": "当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（以渲染师实现为准，已从 1.2 回填为 0.97）：能动分支 = √(2(L−0.3)/a) × 1.4，a = g(sinθ−μcosθ)，**注意有效路程是 L−0.3（扣掉车长与挡板余量），不是全长 L**；默认 θ=20°/L=1.0/μ=0.05 → a=2.891、√(2×0.7/2.891)=0.696、×1.4 = 0.97s。μ≥tanθ 的静止分支返回 0，故本场景标 durationZeroKind = branch（**分类标签，不是数值常量**：探针据此测「θ=5°、μ=0.30 时应为 0、默认时应为 0.97」，不得拿它当 duration 的值）", 
       "name": "斜面小车测平均速度", "chapter": "八上 第一章 第4节 速度的测量",
       "quantities": ["v", "s", "t", "a"],
       "params": [
@@ -49,7 +49,7 @@
       "phenomenon": "f–N 描点成过原点直线；改面积、改拉动速度 → 读数不变；启动前静摩擦爬到峰值后突降（最大静摩擦 > 滑动摩擦）"
     },
     {
-      "id": "A4-liquid-pressure", "module": "mechanics", "priority": "P0", "duration": 3,
+      "id": "A4-liquid-pressure", "module": "mechanics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
       "name": "探究液体内部压强的规律", "chapter": "八下 第九章 第2节 液体的压强",
       "quantities": ["p", "h", "rho"],
       "params": [
@@ -63,7 +63,7 @@
       "phenomenon": "深度越大高度差越大；同深度换朝向高度差不变（各方向压强相等）；换容器形状读数不变（破除“液体越重压强越大”）"
     },
     {
-      "id": "A5-buoyancy", "module": "mechanics", "priority": "P0", "duration": 3,
+      "id": "A5-buoyancy", "module": "mechanics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
       "name": "浮力 · 阿基米德原理 · 物体浮沉条件", "chapter": "八下 第十章 第2/3/4节",
       "quantities": ["F浮", "V排", "rho物", "rho液", "G"],
       "params": [
@@ -94,7 +94,7 @@
       "phenomenon": "木块被推出距离 ∝ Ek：h 加倍距离约加倍、m 加倍距离加倍（速度影响更陡）；单摆 Ek/Ep 条此消彼长、总量守恒；L↑ → 周期变大而与质量无关；阻尼>0 → 振幅衰减而周期不变"
     },
     {
-      "id": "A7-lever", "module": "mechanics", "priority": "P0", "duration": 0,"durationZeroKind": "branch","zeroHint": "当前平衡，杠杆静止（改动任一参数使力矩不等即转动）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：|F1L1 − F2L2| < 0.05 → 返回 0（平衡即无过程）；否则返回 2.2s（梁转到 ±25° 极限所需时间，|net| 越大落得越快）。默认参数 f1=2/l1=4 与 f2=4/l2=2 力矩都是 8，处于平衡态，故快照取 0；改动任一参数使力矩不等，duration 立刻变 2.2s、时间条自动可用。钩码为梁（pivotG）子节点、挂点 y=-0.30，随梁转动。快照为 0 时相对容差退化，校验用 |Δ| < max(0.1×|snapshot|, 0.1s)",
+      "id": "A7-lever", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 0,"durationZeroKind": "branch","zeroHint": "当前平衡，杠杆静止（改动任一参数使力矩不等即转动）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：|F1L1 − F2L2| < 0.05 → 返回 0（平衡即无过程）；否则返回 2.2s（梁转到 ±25° 极限所需时间，|net| 越大落得越快）。默认参数 f1=2/l1=4 与 f2=4/l2=2 力矩都是 8，处于平衡态，故快照取 0；改动任一参数使力矩不等，duration 立刻变 2.2s、时间条自动可用。钩码为梁（pivotG）子节点、挂点 y=-0.30，随梁转动。快照为 0 时相对容差退化，校验用 |Δ| < max(0.1×|snapshot|, 0.1s)",
       "name": "探究杠杆的平衡条件", "chapter": "八下 第十二章 第1/2节",
       "quantities": ["F1", "L1", "F2", "L2"],
       "params": [
@@ -156,7 +156,7 @@
       "quantities": ["入射角 i", "折射角 r", "n", "临界角 C"],
       "params": [
         { "id": "incidence", "label": "入射角 i", "min": 0, "max": 85, "step": 1, "default": 30, "unit": "°" },
-        { "id": "pair", "label": "介质组合", "type": "enum", "options": [ { "label": "空气→水 n=1.33", "value": "air-water" }, { "label": "空气→玻璃 n=1.50", "value": "air-glass" }, { "label": "水→空气", "value": "water-air" }, { "label": "玻璃→空气", "value": "glass-air" } ], "default": "air-water", "unit": "" },
+        { "id": "pair", "label": "介质组合", "type": "enum", "options": [ { "label": "空气→水 n=1.33", "value": "air-water" }, { "label": "空气→玻璃 n=1.50", "value": "air-glass" }, { "label": "水→空气", "value": "water-air" }, { "label": "玻璃→空气", "value": "glass-air" } ], "default": "water-air", "unit": "" },
         { "id": "scene", "label": "情景切换", "type": "enum", "options": [ { "label": "激光穿界面", "value": "laser" }, { "label": "筷子在水中折断", "value": "chopstick" }, { "label": "叉鱼瞄准位置（视深）", "value": "fish" }, { "label": "光纤全反射", "value": "fiber" } ], "default": "laser", "unit": "" }
       ],
       "formula": "n1 sin i = n2 sin r ; sin C = n2/n1 ; 视深 h' = h/n",
@@ -180,7 +180,7 @@
     },
 
     {
-      "id": "C1-sound-medium", "module": "acoustics", "priority": "P0", "duration": 1,
+      "id": "C1-sound-medium", "module": "acoustics", "priority": "P0", "duration": 6,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：6s = 一个完整波壳扩散周期；波壳相位速率与声速成正比，换介质（水/钢）时同一段时间里波壳更密，但 duration 本身不随参数变。t=半程画面必须与 t=0 不同（probe-six 判据）",
       "name": "声音的产生与传播（真空罩实验）", "chapter": "八上 第二章 第1节 声音的产生与传播",
       "quantities": ["v", "介质", "气压", "振幅"],
       "params": [
@@ -210,7 +210,7 @@
       "phenomenon": "三维示波器：f↑ 波形横向变密（音调高）；A↑ 纵向变高（响度大）而疏密不变；换波形 → 高低疏密相同形状不同（音色）；钢尺/空气柱压短 → 频率连续上升；f>20000 标超声、<20 标次声并提示人耳听不到"
     },
     {
-      "id": "C3-noise-control", "module": "acoustics", "priority": "P0", "duration": 1,
+      "id": "C3-noise-control", "module": "acoustics", "priority": "P0", "duration": 4,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：4s = 一次完整回声（声源→墙→耳）；真实 Δt=0.294s 仍在读数里，时间轴只是把它放慢到能看清",
       "name": "噪声的控制与声的利用（回声测距）", "chapter": "八上 第二章 第3/4/5节",
       "quantities": ["dB", "t", "s", "隔声量"],
       "params": [
@@ -269,7 +269,7 @@
       "phenomenon": "拖动滑片 → 接入电阻丝长度实时增减、电流连续变化、台灯亮度渐变；接上面两柱 → R≈0 灯最亮且滑片失效；接下面两柱 → 恒为最大、亮度不变；闭合前阻值调最大可做保护引导动画"
     },
     {
-      "id": "D4-ohm-law", "module": "electricity", "priority": "P0", "duration": 4,
+      "id": "D4-ohm-law", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
       "name": "电流与电压、电阻的关系（欧姆定律 + 伏安法测电阻）", "chapter": "九全 第十七章 第1~3节",
       "quantities": ["I", "U", "R", "Rx"],
       "params": [
@@ -299,7 +299,7 @@
       "phenomenon": "P 数值 + 灯泡亮度 + 电能表转盘转速三者同步；实际电压<额定 → 灯明显偏暗；串联时 R 大的瓶升温快；单独增大 I → 升温按平方暴涨；大电流下保险丝熔断"
     },
     {
-      "id": "D6-magnet-solenoid", "module": "electricity", "priority": "P0", "duration": 3,
+      "id": "D6-magnet-solenoid", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
       "name": "磁场与磁感线 · 电磁铁（电生磁）", "chapter": "九全 第二十章 第1/2/3节",
       "quantities": ["磁极", "磁场方向", "I", "N", "磁性强弱"],
       "params": [
@@ -315,7 +315,7 @@
       "phenomenon": "三维磁感线由 N 出回 S 闭合、疏密随间距变化；小磁针沿切线排列；同名磁极场线被挤开、异名连通；奥斯特实验通电偏转断电回位；增大 I、N 或插铁芯 → 吸起大头针按 I·N 增多；右手螺旋定则高亮手指与 N/S 对应"
     },
     {
-      "id": "D7-motor-generator", "module": "electricity", "priority": "P0", "duration": 1,
+      "id": "D7-motor-generator", "module": "electricity", "priority": "P0", "duration": 9,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：duration = clamp(1800/n, 4, 12)，n=转速；默认 200 r/min → 9s。整段转 3 圈不是 2 圈——2 圈时半程正好转满一圈、位姿与起点重合，probe-six 会误报无过程；探针签名读世界矩阵（线圈是父节点在转）",
       "name": "直流电动机与电磁感应（磁生电）", "chapter": "九全 第二十章 第4/5/6节",
       "quantities": ["转速 n", "受力方向", "感应电流 I", "v", "B"],
       "params": [
@@ -371,7 +371,7 @@
       "phenomenon": "沸腾时继续加热温度不再升高（沸点恒定）；气压↓→沸点↓（高山、真空罩）；沸腾前气泡上升变小、沸腾时气泡上升变大到液面破裂；加水量只延长到达沸腾的时间，不改变沸点"
     },
     {
-      "id": "F3-heat-engine", "module": "thermal", "priority": "P0", "duration": 1.2,"durationZeroKind": "branch","zeroHint": "当前转速为零，曲轴不转（调大转速即有循环）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：get duration() { return this.p.rpm>0 ? 6*(120/this.p.rpm) : 0 }。默认 600rpm → 6 个循环=1.2s；**rpm=0 → 返回 0**（CEO 口径：曲轴完全不转是「没有过程」，不是「无限长的过程」），走置灰 + 「本实验无时间演化」；速度档同时置灰", 
+      "id": "F3-heat-engine", "module": "thermal", "priority": "P0", "defaultSpeed": 0.25, "duration": 1.2,"durationZeroKind": "branch","zeroHint": "当前转速为零，曲轴不转（调大转速即有循环）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：get duration() { return this.p.rpm>0 ? 6*(120/this.p.rpm) : 0 }。默认 600rpm → 6 个循环=1.2s；**rpm=0 → 返回 0**（CEO 口径：曲轴完全不转是「没有过程」，不是「无限长的过程」），走置灰，置灰文案取本场景的 zeroHint（branch 类不用通用句「本实验无时间演化」）；速度档同时置灰", 
       "name": "比热容与四冲程热机", "chapter": "九全 第十三章 第1/2节、第十四章 第2节",
       "quantities": ["Q", "c", "ΔT", "W", "η", "转速"],
       "params": [

@@ -32,11 +32,12 @@
 <style>
 :root{
   --color-bg:#0B1120;
-  --color-surface:#1A2233;
-  --color-surface-hover:#243049;
-  --color-border:rgba(148,163,184,.16);
-  --color-text:#E5EAF5;
-  --color-text-secondary:#94A3B8;
+  --color-panel:#26324A;                 /* 新增：面板底色（左面板+统计面板+窄屏抽屉），比 3D 视区亮一档；--color-bg 只管视区 */
+  --color-surface:#323F5C;
+  --color-surface-hover:#3C4A6B;
+  --color-border:#46557A;
+  --color-text:#FFFFFF;
+  --color-text-secondary:#B4C0D4;
   --color-primary:#3B82F6;
   --font-sans:-apple-system,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Segoe UI",sans-serif;
   --font-mono:"JetBrains Mono","SF Mono",Consolas,monospace;
@@ -61,7 +62,7 @@ button{font-family:inherit}
 @media (min-width:768px) and (max-width:1023px){ #app{grid-template-columns:280px 1fr} }
 
 /* ---------- 左侧面板 ---------- */
-#panel{display:flex;flex-direction:column;background:var(--color-bg);border-right:1px solid var(--color-border);box-shadow:var(--shadow-panel);min-width:0;min-height:0}
+#panel{display:flex;flex-direction:column;background:var(--color-panel);border-right:1px solid var(--color-border);box-shadow:var(--shadow-panel);min-width:0;min-height:0}   /* 窄屏抽屉继承此背景，无需单独规则 */
 .p-header{padding:16px 16px 12px;border-bottom:1px solid var(--color-border)}
 .app-name{font-size:20px;line-height:28px;font-weight:600}
 .app-sub{font-size:12px;line-height:18px;color:var(--color-text-secondary);margin-top:2px}
@@ -164,6 +165,22 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 #toast.show{opacity:1;transform:translate(-50%,0)}
 .err-chip{position:absolute;top:60px;left:12px;z-index:6;max-width:70%;background:rgba(127,29,29,.85);border:1px solid rgba(248,113,113,.4);border-radius:var(--radius-md);padding:8px 12px;font-size:13px}
 
+/* ---------- 右侧统计面板（实时物理量，可收起；窄屏默认收起） ---------- */
+#stats{position:absolute;top:16px;right:16px;z-index:6;width:236px;max-width:calc(100vw - 24px);max-height:calc(100% - 132px);display:flex;flex-direction:column;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);overflow:hidden;transition:width var(--dur-base) var(--ease-in-out)}
+#stats.collapsed{width:auto}
+.stats-head{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;cursor:pointer;user-select:none;flex:none}
+.stats-title{font-size:12px;line-height:18px;letter-spacing:.05em;color:var(--color-text-secondary)}
+.stats-count{font-size:11px;line-height:16px;font-family:var(--font-mono);color:var(--color-text-secondary);opacity:.85}
+.stats-toggle{width:22px;height:22px;flex:none;margin-left:auto;border:none;border-radius:var(--radius-full);background:transparent;color:var(--color-text-secondary);display:grid;place-items:center;cursor:pointer}
+.stats-toggle:hover{background:var(--color-surface-hover);color:var(--color-text)}
+.stats-toggle svg{transition:transform var(--dur-base)}
+#stats.collapsed .stats-toggle svg{transform:rotate(180deg)}
+.stats-body{padding:2px 10px 10px;overflow-y:auto;min-height:0;scrollbar-width:thin}
+#stats.collapsed .stats-body{display:none}
+#stats .readout-card{padding:8px 10px}
+#stats .rlabel{font-size:12px;line-height:17px;font-weight:400}
+#stats .rval{font-size:13px}
+
 /* ---------- 移动端：底部抽屉 ---------- */
 @media (max-width:767px){
   #app{display:block}
@@ -186,12 +203,12 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <style>
 /* 启动遮罩：首屏到可交互之间有 1~2 秒，纯黑会让人以为卡死 */
 #boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-      background:#0B1120;transition:opacity .32s ease}
-#boot .boot-ring{width:34px;height:34px;border-radius:50%;border:3px solid rgba(148,163,184,.22);
-      border-top-color:#3B82F6;animation:bootspin .9s linear infinite;margin:0 auto 16px}
+      background:var(--color-bg);transition:opacity .32s ease}
+#boot .boot-ring{width:34px;height:34px;border-radius:50%;border:3px solid var(--color-border);
+      border-top-color:var(--color-primary);animation:bootspin .9s linear infinite;margin:0 auto 16px}
 @keyframes bootspin{to{transform:rotate(360deg)}}
-#boot .boot-title{color:#E5EAF5;font:500 15px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-align:center}
-#boot .boot-sub{color:#94A3B8;font:400 12px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+#boot .boot-title{color:var(--color-text);font:500 15px/1.5 var(--font-sans);text-align:center}
+#boot .boot-sub{color:var(--color-text-secondary);font:400 12px/1.6 var(--font-sans);
       margin-top:6px;text-align:center;max-width:360px;padding:0 24px}
 </style>
 <div id="boot">
@@ -243,6 +260,16 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <span class="tb-time" id="tbTime"></span>
     </div>
     <div class="hint-chip" id="hintChip">拖拽旋转 · 滚轮缩放</div>
+    <aside id="stats">
+      <div class="stats-head" id="statsHead">
+        <span class="stats-title">实时数据</span>
+        <span class="stats-count" id="statsCount"></span>
+        <button class="stats-toggle" id="statsToggle" type="button" aria-label="收起统计面板">
+          <svg width="12" height="12" viewBox="0 0 12 12"><path d="M4.5 2.5L8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="stats-body" id="statsBody"></div>
+    </aside>
     <div id="fade"></div>
     <div id="toast"></div>
   </main>
@@ -284,7 +311,7 @@ const MODULES = [
   { id:'acoustics',   label:'声学' },
   { id:'thermal',     label:'热学' },
 ];
-const SPEEDS = [0.5, 1, 2, 4, 8];
+const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];    // 六档：0.25 供短场景慢放（A1/F3 defaultSpeed=0.25），4/8 保住 F1/F2 快进
 let DATA = null;          // { meta, byId, byModule }
 let REG = null;           // experiments.js 的 EXPERIMENTS
 
@@ -589,6 +616,49 @@ function paintReadout(res, secondary){
     setTimeout(() => val.classList.remove('flash'), 120);
   }
 }
+/* ---------- 右侧统计面板：exp.readouts() -> [{label,value,unit}]，100ms 刷新 ---------- */
+let statsCollapsed = false;
+let statEls = [];                                       // [{val,unit}]，按 label 签名重建
+let statSig = '';
+function setStatsCollapsed(v){
+  statsCollapsed = v;
+  $('#stats').classList.toggle('collapsed', v);
+  $('#statsToggle').setAttribute('aria-label', v ? '展开统计面板' : '收起统计面板');
+}
+function renderStats(){
+  const exp = current.exp;
+  let items = null;
+  if(exp && typeof exp.readouts === 'function'){
+    try{ items = exp.readouts(); }catch(e){ console.error('[readouts]', e); items = null; }
+  }
+  if(!Array.isArray(items)) items = [];
+  const sig = items.map(it => it.label + '|' + (it.unit || '')).join(';');
+  if(sig !== statSig){                                  // 标签集合变化（切场景）→ 重建行
+    statSig = sig;
+    const body = $('#statsBody');
+    body.innerHTML = '';
+    statEls = items.map(it => {
+      const card = el('div', 'readout-card');
+      const lab = el('span', 'rlabel'); lab.textContent = it.label;
+      const main = el('span', 'rmain');
+      const val = el('span', 'rval'); val.textContent = '—';
+      const unit = el('span', 'runit'); unit.textContent = it.unit || '';
+      main.append(val, unit);
+      card.append(lab, main);
+      body.appendChild(card);
+      return { val, unit };
+    });
+    $('#statsCount').textContent = items.length ? items.length + ' 项' : '';
+  }
+  items.forEach((it, i) => {
+    const s = statEls[i];
+    const text = (it.value == null || it.value === '') ? '—' : fmtNum(it.value);
+    s.val.textContent = String(text);
+    s.val.classList.toggle('empty', text === '—');
+    s.val.classList.toggle('state', typeof it.value === 'string' && text !== '—');
+    s.unit.style.display = (typeof it.value === 'number' && isFinite(it.value)) ? '' : 'none';
+  });
+}
 const paramEls = {};
 function renderParams(meta){
   const box = $('#paramsArea'); box.innerHTML = '';
@@ -835,6 +905,7 @@ function syncDurationUI(){                              // duration 变化（含
   const unbounded = !isFinite(curDuration);
   bar.classList.toggle('disabled', curDuration <= 0);
   input.disabled = curDuration <= 0 || unbounded;
+  renderPlayback();                                     // 播放条置灰随 duration 活属性刷新（A1/A3/A6 的时长 build 后才就位）
   if(isFinite(curDuration)){
     input.max = curDuration > 0 ? curDuration : 1;
     if(store.simTime > curDuration){
@@ -906,6 +977,10 @@ function bindChrome(){
     $('#btnFull').textContent = document.fullscreenElement ? '退出全屏' : '全屏';
   });
   $('#drawerHandle').addEventListener('click', () => $('#panel').classList.toggle('open'));
+  $('#statsHead').addEventListener('click', () => setStatsCollapsed(!statsCollapsed));
+  setStatsCollapsed(window.matchMedia('(max-width:767px)').matches);   // 窄屏默认收起（抽屉化）
+  window.matchMedia('(max-width:767px)').addEventListener?.('change', e => setStatsCollapsed(e.matches));
+  setInterval(renderStats, 100);                        // 实时数据 100ms 刷新（readouts() 由实验实现）
 }
 
 /* ---------- 启动 ---------- */

@@ -171,5 +171,20 @@ export function mergeByMaterial(meshes) {
 }
 
 export function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+/* ---------- 右侧统计面板读数 ----------
+ * 统一入口：格式化到固定小数位，并把 NaN / ±Infinity / null 换成 '—'。
+ * 面板每 100ms 读一次、播放中数值每帧都在跳，任何一次透出 NaN 都会在界面上闪成 "NaN"，
+ * 所以格式化与兜底放在这里做一次，各实验只报原始量，不再各写各的 toFixed。
+ * digits=0 取整（压强、毫米汞柱这类大数用）。 */
+export function rd(label, value, unit, digits = 2) {
+  let v = value;
+  if (typeof v === 'number') {
+    v = Number.isFinite(v) ? (digits === 0 ? Math.round(v) : Number(v.toFixed(digits))) : '—';
+  } else if (v == null) {
+    v = '—';
+  }
+  return { label: label, value: v, unit: unit || '' };
+}
 export function lerp(a, b, t) { return a + (b - a) * t; }
 export { THREE };

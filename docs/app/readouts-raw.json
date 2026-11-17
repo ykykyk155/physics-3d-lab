@@ -1,0 +1,847 @@
+[
+  {
+    "id": "A1-incline-speed",
+    "dur": 0.9741859660984475,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "速度 v",
+        "value": 0.04,
+        "unit": "m/s"
+      },
+      {
+        "label": "位移 s",
+        "value": 0,
+        "unit": "m"
+      },
+      {
+        "label": "加速度 a",
+        "value": 2.89,
+        "unit": "m/s²"
+      },
+      {
+        "label": "摩擦力 f",
+        "value": 0.18,
+        "unit": "N"
+      },
+      {
+        "label": "已用时 t",
+        "value": 0.02,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "A2-newton-first",
+    "dur": 3.4,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "到坡底速度 v₀",
+        "value": 1.71,
+        "unit": "m/s"
+      },
+      {
+        "label": "所选材料 μ",
+        "value": 0.3,
+        "unit": ""
+      },
+      {
+        "label": "滑行距离 s",
+        "value": 0.5,
+        "unit": "m"
+      },
+      {
+        "label": "已用时 t",
+        "value": 0.04,
+        "unit": "s"
+      },
+      {
+        "label": "运动阶段",
+        "value": "坡上下滑",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "A3-friction",
+    "dur": 11.999999999999998,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "摩擦力 f",
+        "value": 0.8,
+        "unit": "N"
+      },
+      {
+        "label": "压力 N",
+        "value": 2,
+        "unit": "N"
+      },
+      {
+        "label": "摩擦因数 μ",
+        "value": 0.4,
+        "unit": ""
+      },
+      {
+        "label": "拖动位移 x",
+        "value": 0.01,
+        "unit": "m"
+      },
+      {
+        "label": "已用时 t",
+        "value": 0.08,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "A4-liquid-pressure",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "液体压强 p",
+        "value": 980,
+        "unit": "Pa"
+      },
+      {
+        "label": "深度 h",
+        "value": 10,
+        "unit": "cm"
+      },
+      {
+        "label": "液体密度 ρ",
+        "value": 1,
+        "unit": "g/cm³"
+      },
+      {
+        "label": "U 管液面差 Δh",
+        "value": 100,
+        "unit": "mm"
+      },
+      {
+        "label": "探头朝向",
+        "value": 0,
+        "unit": "°"
+      }
+    ]
+  },
+  {
+    "id": "A5-buoyancy",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "重力 G",
+        "value": 1.76,
+        "unit": "N"
+      },
+      {
+        "label": "浮力 F浮",
+        "value": 0.52,
+        "unit": "N"
+      },
+      {
+        "label": "测力计示数",
+        "value": 1.24,
+        "unit": "N"
+      },
+      {
+        "label": "浸没比例",
+        "value": 27,
+        "unit": "%"
+      },
+      {
+        "label": "浮沉状态",
+        "value": "下沉",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "A6-energy",
+    "dur": 6.21874067737446,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "摆角 θ",
+        "value": 19.1,
+        "unit": "°"
+      },
+      {
+        "label": "速度 v",
+        "value": 0.22,
+        "unit": "m/s"
+      },
+      {
+        "label": "动能 Ek",
+        "value": 0.005,
+        "unit": "J"
+      },
+      {
+        "label": "势能 Ep",
+        "value": 0.065,
+        "unit": "J"
+      },
+      {
+        "label": "周期 T",
+        "value": 1.55,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "A7-lever",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "左侧 F1·L1",
+        "value": 8,
+        "unit": "N·m"
+      },
+      {
+        "label": "右侧 F2·L2",
+        "value": 8,
+        "unit": "N·m"
+      },
+      {
+        "label": "力矩差 ΔM",
+        "value": 0,
+        "unit": "N·m"
+      },
+      {
+        "label": "梁倾角",
+        "value": 0,
+        "unit": "°"
+      },
+      {
+        "label": "状态",
+        "value": "平衡",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "D1-series-parallel",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "电源电压 U",
+        "value": 3,
+        "unit": "V"
+      },
+      {
+        "label": "总电阻 R",
+        "value": 30,
+        "unit": "Ω"
+      },
+      {
+        "label": "电流 I",
+        "value": 0.1,
+        "unit": "A"
+      },
+      {
+        "label": "连接方式",
+        "value": "串联",
+        "unit": ""
+      },
+      {
+        "label": "开关",
+        "value": "闭合",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "D2-resistance-factor",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "电阻 R",
+        "value": 0.57,
+        "unit": "Ω"
+      },
+      {
+        "label": "长度 L",
+        "value": 50,
+        "unit": "cm"
+      },
+      {
+        "label": "横截面积 S",
+        "value": 1,
+        "unit": "mm²"
+      },
+      {
+        "label": "电阻率 ρ",
+        "value": 1.1,
+        "unit": "×10⁻⁶Ω·m"
+      },
+      {
+        "label": "温度",
+        "value": 20,
+        "unit": "℃"
+      }
+    ]
+  },
+  {
+    "id": "D3-rheostat-lamp",
+    "dur": 0,
+    "n": 4,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "接入电阻 R",
+        "value": 0.5,
+        "unit": "Ω"
+      },
+      {
+        "label": "电流 I",
+        "value": 9,
+        "unit": "A"
+      },
+      {
+        "label": "滑片位置",
+        "value": 100,
+        "unit": "%"
+      },
+      {
+        "label": "规格",
+        "value": 20,
+        "unit": "Ω"
+      }
+    ]
+  },
+  {
+    "id": "D4-ohm-law",
+    "dur": 0,
+    "n": 4,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "电压 U",
+        "value": 2,
+        "unit": "V"
+      },
+      {
+        "label": "电流 I",
+        "value": 0.2,
+        "unit": "A"
+      },
+      {
+        "label": "电阻 R",
+        "value": 10,
+        "unit": "Ω"
+      },
+      {
+        "label": "电功率 P",
+        "value": 0.4,
+        "unit": "W"
+      }
+    ]
+  },
+  {
+    "id": "D5-power-joule",
+    "dur": 180,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "电功率 P",
+        "value": 0.45,
+        "unit": "W"
+      },
+      {
+        "label": "甲瓶温度",
+        "value": 20,
+        "unit": "℃"
+      },
+      {
+        "label": "乙瓶温度",
+        "value": 20,
+        "unit": "℃"
+      },
+      {
+        "label": "已通电",
+        "value": 0,
+        "unit": "s"
+      },
+      {
+        "label": "通电总时长",
+        "value": 180,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "D6-magnet-solenoid",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "电流 I",
+        "value": 1,
+        "unit": "A"
+      },
+      {
+        "label": "匝数 N",
+        "value": 60,
+        "unit": "匝"
+      },
+      {
+        "label": "磁性强弱",
+        "value": 3,
+        "unit": ""
+      },
+      {
+        "label": "磁芯",
+        "value": "无铁芯",
+        "unit": ""
+      },
+      {
+        "label": "磁感线方向",
+        "value": "正向",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "D7-motor-generator",
+    "dur": 9,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "转速 n",
+        "value": 200,
+        "unit": "r/min"
+      },
+      {
+        "label": "磁感应强度 B",
+        "value": 0.5,
+        "unit": "T"
+      },
+      {
+        "label": "电流 I",
+        "value": 1,
+        "unit": "A"
+      },
+      {
+        "label": "工作模式",
+        "value": "电动机",
+        "unit": ""
+      },
+      {
+        "label": "已用时 t",
+        "value": 0.09,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "B1-pinhole",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "物距 u",
+        "value": 20,
+        "unit": "cm"
+      },
+      {
+        "label": "像距 v",
+        "value": 20,
+        "unit": "cm"
+      },
+      {
+        "label": "像高",
+        "value": 10,
+        "unit": "cm"
+      },
+      {
+        "label": "孔径 d",
+        "value": 2,
+        "unit": "mm"
+      },
+      {
+        "label": "孔形",
+        "value": "圆形",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "B2-reflection",
+    "dur": 0,
+    "n": 4,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "入射角 i",
+        "value": 35,
+        "unit": "°"
+      },
+      {
+        "label": "反射角 r",
+        "value": 35,
+        "unit": "°"
+      },
+      {
+        "label": "光屏折转",
+        "value": 0,
+        "unit": "°"
+      },
+      {
+        "label": "反射类型",
+        "value": "镜面反射",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "B3-plane-mirror",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "物距",
+        "value": 8,
+        "unit": "cm"
+      },
+      {
+        "label": "像距",
+        "value": 8,
+        "unit": "cm"
+      },
+      {
+        "label": "替代蜡烛高",
+        "value": 5,
+        "unit": "cm"
+      },
+      {
+        "label": "与像等高",
+        "value": "是",
+        "unit": ""
+      },
+      {
+        "label": "像的性质",
+        "value": "正立等大虚像",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "B4-refraction",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "入射角 i",
+        "value": 30,
+        "unit": "°"
+      },
+      {
+        "label": "折射角 r",
+        "value": 41.7,
+        "unit": "°"
+      },
+      {
+        "label": "临界角 C",
+        "value": 48.8,
+        "unit": "°"
+      },
+      {
+        "label": "入射侧 n₁",
+        "value": 1.33,
+        "unit": ""
+      },
+      {
+        "label": "折射侧 n₂",
+        "value": 1,
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "B5-convex-lens",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "焦距 f",
+        "value": 10,
+        "unit": "cm"
+      },
+      {
+        "label": "物距 u",
+        "value": 30,
+        "unit": "cm"
+      },
+      {
+        "label": "像距 v",
+        "value": 15,
+        "unit": "cm"
+      },
+      {
+        "label": "放大率 m",
+        "value": 0.5,
+        "unit": "×"
+      },
+      {
+        "label": "像的性质",
+        "value": "倒立实像",
+        "unit": ""
+      }
+    ]
+  },
+  {
+    "id": "C1-sound-medium",
+    "dur": 6,
+    "n": 6,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "声速 v",
+        "value": 340,
+        "unit": "m/s"
+      },
+      {
+        "label": "响度",
+        "value": 66,
+        "unit": "dB"
+      },
+      {
+        "label": "气压",
+        "value": 101.3,
+        "unit": "kPa"
+      },
+      {
+        "label": "距声源",
+        "value": 1,
+        "unit": "m"
+      },
+      {
+        "label": "音叉频率",
+        "value": 512,
+        "unit": "Hz"
+      },
+      {
+        "label": "已用时 t",
+        "value": 0.08,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "C2-sound-chars",
+    "dur": 0,
+    "n": 5,
+    "changed": null,
+    "bad": [],
+    "sample": [
+      {
+        "label": "频率 f",
+        "value": 440,
+        "unit": "Hz"
+      },
+      {
+        "label": "波长 λ",
+        "value": 0.773,
+        "unit": "m"
+      },
+      {
+        "label": "振幅",
+        "value": 60,
+        "unit": "%"
+      },
+      {
+        "label": "钢尺基频",
+        "value": 567,
+        "unit": "Hz"
+      },
+      {
+        "label": "空气柱基频",
+        "value": 850,
+        "unit": "Hz"
+      }
+    ]
+  },
+  {
+    "id": "C3-noise-control",
+    "dur": 4,
+    "n": 6,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "回声时间 Δt",
+        "value": 0.294,
+        "unit": "s"
+      },
+      {
+        "label": "障碍物距离 s",
+        "value": 50,
+        "unit": "m"
+      },
+      {
+        "label": "接收响度",
+        "value": 57,
+        "unit": "dB"
+      },
+      {
+        "label": "降噪量",
+        "value": 3.2,
+        "unit": "dB"
+      },
+      {
+        "label": "控制环节",
+        "value": "传播路径",
+        "unit": ""
+      },
+      {
+        "label": "已用时 t",
+        "value": 0.08,
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "F1-melting-curve",
+    "dur": 600,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "当前温度 T",
+        "value": -9.8,
+        "unit": "℃"
+      },
+      {
+        "label": "已加热",
+        "value": 0,
+        "unit": "min"
+      },
+      {
+        "label": "熔点",
+        "value": 0,
+        "unit": "℃"
+      },
+      {
+        "label": "质量",
+        "value": 200,
+        "unit": "g"
+      },
+      {
+        "label": "加热功率",
+        "value": 150,
+        "unit": "W"
+      }
+    ]
+  },
+  {
+    "id": "F2-boiling",
+    "dur": 246.64323433243067,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "当前温度 T",
+        "value": 20.3,
+        "unit": "℃"
+      },
+      {
+        "label": "沸点",
+        "value": 99.99,
+        "unit": "℃"
+      },
+      {
+        "label": "加热功率",
+        "value": 180,
+        "unit": "W"
+      },
+      {
+        "label": "已加热",
+        "value": 1,
+        "unit": "s"
+      },
+      {
+        "label": "气压",
+        "value": 101.3,
+        "unit": "kPa"
+      }
+    ]
+  },
+  {
+    "id": "F3-heat-engine",
+    "dur": 1.2000000000000002,
+    "n": 5,
+    "changed": true,
+    "bad": [],
+    "sample": [
+      {
+        "label": "当前冲程",
+        "value": "吸气",
+        "unit": ""
+      },
+      {
+        "label": "曲轴角",
+        "value": 168,
+        "unit": "°"
+      },
+      {
+        "label": "热机效率 η",
+        "value": 30,
+        "unit": "%"
+      },
+      {
+        "label": "水温升 ΔT",
+        "value": 7.1,
+        "unit": "℃"
+      },
+      {
+        "label": "转速",
+        "value": 600,
+        "unit": "r/min"
+      }
+    ]
+  }
+]

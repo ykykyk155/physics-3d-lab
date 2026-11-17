@@ -1,5 +1,5 @@
 /* 热学 F1~F3 */
-import { THREE, COLORS, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, G } from './common.js';
+import { THREE, COLORS, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, G, rd } from './common.js';
 import { MATS, matClone, registerMaterials, engineFins, muffler, beaker, alcoholLamp, setLampFlame, thermometer, setThermometer, testTube } from './props.js';
 
 const C = COLORS.thermal;
@@ -475,6 +475,47 @@ const F3 = {
   },
   dispose() {},
 };
+
+/* ===================== 右侧统计面板读数 =====================
+ * 返回 [{ label, value, unit }]，每场景 3~6 项；热学数值随播放实时变化，播放前给初值。 */
+Object.assign(F1, {
+  readouts() {
+    const c = this.cfg ? this.cfg() : { mp: 0 };
+    const T = this.tempAt ? this.tempAt(this.t || 0) : (this.p.t0 || 0);
+    return [
+      rd('当前温度 T', T, '℃', 1),
+      rd('已加热', (this.t || 0) / 60, 'min', 1),
+      { label: '熔点', value: c.mp == null ? '无固定熔点' : rd('', c.mp, '', 0).value, unit: c.mp == null ? '' : '℃' },
+      rd('质量', this.p.mass || 0, 'g', 0),
+      rd('加热功率', this.p.power || 0, 'W', 0),
+    ];
+  },
+});
+Object.assign(F2, {
+  readouts() {
+    const T = this.T != null ? this.T : (this.p.t0 || 20);
+    return [
+      rd('当前温度 T', T, '℃', 1),
+      rd('沸点', this.Tb, '℃', 2),
+      rd('加热功率', this.P, 'W', 0),
+      rd('已加热', this.t, 's', 0),
+      rd('气压', this.p.pressure != null ? this.p.pressure : 101.3, 'kPa', 1),
+    ];
+  },
+});
+Object.assign(F3, {
+  readouts() {
+    const p720 = (((this.crankAngle || 0) % 720) + 720) % 720;
+    const names = ['吸气', '压缩', '做功', '排气'];
+    return [
+      { label: '当前冲程', value: names[Math.floor(p720 / 180)] || '—', unit: '' },
+      rd('曲轴角', p720, '°', 0),
+      rd('热机效率 η', this.eta == null ? 0 : this.eta, '%', 1),
+      rd('水温升 ΔT', this.dTwater, '℃', 1),
+      rd('转速', this.p.rpm || 0, 'r/min', 0),
+    ];
+  },
+});
 
 export const THERMAL = {
   'F1-melting-curve': F1,

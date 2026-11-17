@@ -1,5 +1,5 @@
 /* 电学 D1~D7 */
-import { THREE, COLORS, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, G } from './common.js';
+import { THREE, COLORS, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, G, rd } from './common.js';
 import { MATS, matClone, registerMaterials, battery, bulb, setBulbGlow, ammeter, setMeterNeedle, resistor, magnetBar, knifeSwitch, setSwitch, beaker, calorimeter, thermometer, setThermometer } from './props.js';
 
 const C = COLORS.electricity;
@@ -585,6 +585,8 @@ const D7 = {
     this.conductor = box(0.1, 1.2, 0.1, MATS.copper()); this.conductor.visible = false; ctx.scene.add(this.conductor);
     this.lbl = mkLabel('', C); this.lbl.position.set(0, 3.6, 0); ctx.scene.add(this.lbl);
     this.angle = 0;
+    this.t = 0;
+    this.duration = 9;          // build 期先给默认值（默认 200 r/min → 3 圈 9s），参数回灌后在 recompute 里再算
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -604,27 +606,127 @@ const D7 = {
     else txt = '切割磁感线：' + (this.p.moveDir === 'along' ? '沿磁感线→无电流' : this.p.moveDir === 'rev' ? '反向→指针反摆' : '→指针偏转') + ' · ' + n.toFixed(0);
     this.lbl.position.set(0, 3.6, 0); setLabel(this.lbl, txt);
     this.B = B; this.I = I; this.v = v;
+    // 时间轴：转速 0 → 线圈不转、指针不摆（没有过程）；否则整段时间正好走 3 圈，
+    // 转速越高所需时间越短（duration 变小 = 墙钟更快），改变电流/磁场能真实改变转动快慢。
+    // 取 3 圈而非 2 圈：整数圈会让「拖到半程」与起点位姿完全重合，看起来像没动。
+    if (mode === 'cut') this.duration = 6;
+    else this.duration = n > 0 ? clamp(1800 / n, 4, 12) : 0;
   },
   step(dt) {
-    if (dt <= 0) return;
+    if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
+    this.renderAt(this.t || 0);
+  },
+  // 时间轴：转角/位移都是 t 的闭式函数，seek 直接算
+  seek(t) {
+    this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
+    this.renderAt(this.t);
+  },
+  renderAt(t) {
     const mode = this.p.mode || 'motor';
-    const spd = clamp(this.n / 600, 0, 6);
-    if (mode === 'motor') {
-      if (this.p.commutator === 'off') { this.angle = Math.sin((this.angle || 0) + dt * 3) * 0.6; this.coilG.rotation.z = this.angle; }
-      else { this.angle = (this.angle || 0) + dt * spd; this.coilG.rotation.z = this.angle; }
-    } else if (mode === 'generator') {
-      this.angle = (this.angle || 0) + dt * spd; this.coilG.rotation.z = this.angle;
-    } else {
+    const d = Math.max(this.duration || 0, 1e-6);
+    if (mode === 'cut') {
+      // 导线一个往返：前半程去、后半程回
+      const x = Math.sin((t / d) * Math.PI * 2);
       const mv = this.p.moveDir;
-      let x = Math.sin(((this.angle = (this.angle || 0) + dt) % 10) * 1.5);
       if (mv === 'along') this.conductor.position.set(0, 1.6 + x * 0.5, 0.15);
       else if (mv === 'rev') this.conductor.position.set(-x * 2.0, 1.6, 0.15);
       else this.conductor.position.set(x * 2.0, 1.6, 0.15);
+      return;
+    }
+    const turns = (t / d) * Math.PI * 6;          // 3 圈 = 6π
+    if (mode === 'motor' && this.p.commutator === 'off') {
+      this.angle = Math.sin(turns) * 0.6;          // 无换向器：在平衡位置来回摆，不持续转
+      this.coilG.rotation.z = this.angle;
+    } else {
+      this.angle = turns; this.coilG.rotation.z = turns;
     }
   },
-  reset() { this.angle = 0; this.recompute(); },
+  reset() { this.t = 0; this.angle = 0; this.recompute(); if (this.renderAt) this.renderAt(0); },
   dispose() {},
 };
+
+/* ===================== 右侧统计面板读数 =====================
+ * 返回 [{ label, value, unit }]，每场景 3~6 项；电学量随参数/播放实时变化，断路或零转速时给 0 而不是 NaN。 */
+Object.assign(D1, {
+  readouts() {
+    return [
+      rd('电源电压 U', this.p.voltage || 0, 'V'),
+      rd('总电阻 R', this.Req, 'Ω', 1),
+      rd('电流 I', this.I, 'A', 2),
+      { label: '连接方式', value: this.p.mode === 'parallel' ? '并联' : '串联', unit: '' },
+      { label: '开关', value: this.p.switch === 'off' ? '断开' : '闭合', unit: '' },
+    ];
+  },
+});
+Object.assign(D2, {
+  readouts() {
+    return [
+      rd('电阻 R', this.R, 'Ω', 2),
+      rd('长度 L', this.p.len || 0, 'cm', 0),
+      rd('横截面积 S', this.p.area || 0, 'mm²'),
+      rd('电阻率 ρ', Number(this.p.mat) || 0, '×10⁻⁶Ω·m'),
+      rd('温度', this.p.temp != null ? this.p.temp : 20, '℃', 0),
+    ];
+  },
+});
+Object.assign(D3, {
+  readouts() {
+    return [
+      rd('接入电阻 R', this.R, 'Ω', 1),
+      rd('电流 I', this.I, 'A', 2),
+      rd('滑片位置', this.p.wiring === 'top' || this.p.wiring === 'bottom' ? 0 : (this.p.wiper != null ? this.p.wiper : 100), '%', 0),
+      rd('规格', Number(this.p.rating) || 20, 'Ω', 0),
+    ];
+  },
+});
+Object.assign(D4, {
+  readouts() {
+    const U = this.p.voltage || 0;
+    let R = Number(this.p.rfix) || 10;
+    if (this.p.dut === 'bulb') R = 5 + U * 3.5;
+    const I = R > 0 ? U / R : 0;
+    return [
+      rd('电压 U', U, 'V'),
+      rd('电流 I', I, 'A', 3),
+      rd('电阻 R', R, 'Ω', 1),
+      rd('电功率 P', U * I, 'W', 2),
+    ];
+  },
+});
+Object.assign(D5, {
+  readouts() {
+    const U = this.p.voltage || 0, R = this.p.r || 20;
+    return [
+      rd('电功率 P', R > 0 ? U * U / R : 0, 'W', 2),
+      rd('甲瓶温度', this.tA, '℃', 1),
+      rd('乙瓶温度', this.tB, '℃', 1),
+      rd('已通电', this.tSim, 's', 0),
+      rd('通电总时长', this.duration, 's', 0),
+    ];
+  },
+});
+Object.assign(D6, {
+  readouts() {
+    return [
+      rd('电流 I', this.p.current || 0, 'A'),
+      rd('匝数 N', this.p.turns || 0, '匝', 0),
+      rd('磁性强弱', this.strength, '', 0),
+      { label: '磁芯', value: this.p.core === 'iron' ? '有铁芯' : '无铁芯', unit: '' },
+      { label: '磁感线方向', value: this.p.dir === -1 ? '反向' : '正向', unit: '' },
+    ];
+  },
+});
+Object.assign(D7, {
+  readouts() {
+    return [
+      rd('转速 n', this.n, 'r/min', 0),
+      rd('磁感应强度 B', this.p.field || 0, 'T'),
+      rd('电流 I', this.p.current || 0, 'A'),
+      { label: '工作模式', value: ({ motor: '电动机', generator: '发电机', cut: '切割磁感线' }[this.p.mode || 'motor']), unit: '' },
+      rd('已用时 t', this.t, 's', 2),
+    ];
+  },
+});
 
 export const ELECTRICITY = {
   'D1-series-parallel': D1,

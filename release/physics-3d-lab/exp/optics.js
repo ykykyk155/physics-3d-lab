@@ -1,5 +1,5 @@
 /* 光学 B1~B5 */
-import { THREE, COLORS, DEG, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, fatLine, setFatLine, addGround, clamp, G } from './common.js';
+import { THREE, COLORS, DEG, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, fatLine, setFatLine, addGround, clamp, G, rd } from './common.js';
 import { MATS, matClone, registerMaterials, lens as mkLens, setLensAperture, screen as mkScreen, candle, opticalRail, railRider, planeMirror, laser, glassTank, testTube } from './props.js';
 
 const C = COLORS.optics;
@@ -176,12 +176,14 @@ const B3 = {
     this.img.visible = true;
     this.screen.visible = this.p.screen === 'on';
     this.screen.position.set(u, 1.0, 0.0);
-    // 镜后替代蜡烛：高度随 altHeight（cm→世界），与虚像等高时说明「像与物等大」
-    const altH = (this.p.altHeight || 5) / 10 * 1.2;      // 5cm≈物高1.2单位
+    // 镜后替代蜡烛：高度按「物高 5cm ↔ 当前蜡烛世界高度」线性换算（原式 /10*1.2 把 5cm 算成半高，
+    // 默认参数下会显示「像比物大」，与「等大虚像」这一教学点冲突）
+    const objH = (this.obj.userData && this.obj.userData.h) || 0.9;
+    const altH = (this.p.altHeight || 5) / 5 * objH;
     this.alt.visible = true; this.alt.scale.set(1, altH / 0.7, 1);
     this.alt.position.set(u + 0.5, 0.06, 0);
     this.altLbl.position.set(u + 0.5, altH + 0.3, 0);
-    const match = Math.abs(altH - 1.2) < 0.08;
+    const match = Math.abs(altH - objH) < 0.06;
     setLabel(this.altLbl, '替代蜡烛 ' + (this.p.altHeight || 5) + 'cm' + (match ? '（与像等高✓）' : ''));
     this.lbl.position.set(0, 3.2, 0);
     setLabel(this.lbl, '物距=像距=' + (this.p.objDist || 8) + 'cm · 等大虚像');
@@ -200,6 +202,9 @@ const B4 = {
     // 玻璃水槽：水面在 y=0，下方是水（分层：淡青玻璃壁 + 分层蓝水体）
     this.iface = box(8, 0.02, 8, matClone('waterBlue')); this.iface.position.y = 0.01; this.iface.castShadow = false; ctx.scene.add(this.iface);
     this.lower = box(8, 3, 8, matClone('waterBlue')); this.lower.position.y = -1.5; this.lower.castShadow = false; ctx.scene.add(this.lower);
+    // 水体透明度：材质默认 0.55，顶面+前面两层叠加后水下物体只剩 ~20%，
+    // 密→疏（水射向空气）时光源沉在水里，会淡到看不见。这里单独调清到 0.30。
+    this.iface.material.opacity = 0.30; this.lower.material.opacity = 0.30;
     // 槽壁（四片淡青玻璃，透明度 0.28）
     const walls = [];
     const wm = matClone('glassTube'); wm.opacity = 0.28;
@@ -209,8 +214,11 @@ const B4 = {
     });
     ctx.scene.add(mergeByMaterial(walls));
     this.normal = fatLine([new THREE.Vector3(0, -3.2, 0), new THREE.Vector3(0, 3.2, 0)], '#7b8aa3', 2, { dashed: true }); ctx.scene.add(this.normal);
-    // 激光笔（光源）
-    this.laserG = laser(); ctx.scene.add(this.laserG);
+    // 激光笔（光源）；密→疏时光笔沉在水里，深色小件在蓝水里几乎看不见，
+    // 另给出光口加一个自发光点，标清「光是从这里出来的」。
+    this.laserG = laser(); this.laserG.scale.setScalar(1.5); ctx.scene.add(this.laserG);
+    this.laserTip = sphere(0.1, mat('#ff5a5a', { emissive: '#ff3b3b', emissiveIntensity: 1.8 })); ctx.scene.add(this.laserTip);
+    this.lblLaser = mkLabel('激光笔', '#ff8a8a'); ctx.scene.add(this.lblLaser);
     // 三种生活情景的道具（scene 参数切换显隐）：筷子、鱼、光纤
     this.chop = new THREE.Group();
     const stick = cyl(0.05, 0.05, 3.4, '#d9a066', { roughness: 0.6 }); stick.rotation.z = Math.PI / 2.6; this.chop.add(stick);
@@ -245,21 +253,25 @@ const B4 = {
     if (this.ctx) this.ctx.emitReadout({ refr: tir ? '全反射' : rDeg });
     clearRays(this.rays);
     const O = new THREE.Vector3(0, 0, 0);
-    const inDir = new THREE.Vector3(Math.sin(i), -Math.cos(i), 0);
-    const start = O.clone().addScaledVector(inDir, -3.2);
+    // 光行进方向的竖直分量：疏→密（空气→水）向下 = -1；密→疏（水→空气）向上 = +1。
+    // 密→疏才存在临界角，此时光必须从界面下方射上来，否则画面会变成「光从空气射入水」却标着 48.8° 临界角。
+    const up = denseFirst ? 1 : -1;
+    const inDir = new THREE.Vector3(Math.sin(i), up * Math.cos(i), 0);
+    const start = O.clone().addScaledVector(inDir, -2.4);   // 入射段不宜过长：密→疏时激光笔会沉到水底看不见
     this.rays.push(fatLine([start, O], RAY, 2.8));
     if (this.laserG) {
       this.laserG.position.copy(start).addScaledVector(inDir, -0.02);
       this.laserG.rotation.z = Math.atan2(inDir.y, inDir.x);
     }
+    if (this.laserTip) this.laserTip.position.copy(start);
     if (!tir) {
       const r = rDeg * DEG;
-      // 折射进入下半（y<0）
-      const rdir = new THREE.Vector3(Math.sin(r), -Math.cos(r), 0);
+      // 折射光继续朝同侧前进：疏→密折向法线，密→疏远离法线
+      const rdir = new THREE.Vector3(Math.sin(r), up * Math.cos(r), 0);
       this.rays.push(fatLine([O, O.clone().addScaledVector(rdir, 3.2)], RAY, 2.8));
     } else {
-      // 全反射：反射回上半
-      const rdir = new THREE.Vector3(Math.sin(i), Math.cos(i), 0);
+      // 全反射：折回入射一侧
+      const rdir = new THREE.Vector3(Math.sin(i), -up * Math.cos(i), 0);
       this.rays.push(fatLine([O, O.clone().addScaledVector(rdir, 3.2)], '#f0abfc', 2.8));
     }
     this.rays.forEach(r => this.scene.add(r));
@@ -268,9 +280,10 @@ const B4 = {
     if (this.chop) this.chop.visible = scene === 'chopstick';
     if (this.fish) { this.fish.visible = scene === 'fish'; if (scene === 'fish') { this.fish.position.set(-1.6, -1.2, 0); } }
     if (this.fiber) this.fiber.visible = scene === 'fiber';
-    this.lblI.position.copy(start).add(new THREE.Vector3(0.2, 0.2, 0));
+    this.lblI.position.copy(start).lerp(O, 0.55).add(new THREE.Vector3(0.32, 0.05, 0));   // 标在入射段中段，别压在光源上
     setLabel(this.lblI, 'i=' + (this.p.incidence || 0) + '°');
-    this.lblR.position.set(1.4, -1.6, 0);
+    if (this.lblLaser) this.lblLaser.position.copy(start).add(new THREE.Vector3(-0.15, -0.42, 0));
+    this.lblR.position.set(1.4, up > 0 ? 1.6 : -1.6, 0);   // 出射线在哪一侧，标注就跟到哪一侧
     setLabel(this.lblR, tir ? '全反射 (临界角 ' + crit.toFixed(1) + '°)' : 'r=' + rDeg.toFixed(1) + '°');
     this.lbl.position.set(0, 3.4, 0);
     const sceneCn = { laser: '激光穿界面', chopstick: '筷子在水中折断', fish: '叉鱼瞄低（视深）', fiber: '光纤全反射' }[scene] || '';
@@ -404,6 +417,75 @@ const B5 = {
   reset() { this.recompute(); },
   dispose() { clearRays(this.rays); },
 };
+
+/* ===================== 右侧统计面板读数 =====================
+ * 返回 [{ label, value, unit }]，每场景 3~6 项；光学多为静态量，随参数变化、播放中保持不变。 */
+Object.assign(B1, {
+  readouts() {
+    return [
+      rd('物距 u', this.p.objDist || 0, 'cm', 0),
+      rd('像距 v', this.p.screenDist || 0, 'cm', 0),
+      rd('像高', (this.ih || 0) / 1.6 * 10, 'cm'),
+      rd('孔径 d', this.p.hole || 0, 'mm', 0),
+      { label: '孔形', value: ({ circle: '圆形', square: '方形', triangle: '三角形' }[this.p.shape || 'circle']), unit: '' },
+    ];
+  },
+});
+Object.assign(B2, {
+  readouts() {
+    return [
+      rd('入射角 i', this.p.incidence || 0, '°', 0),
+      rd('反射角 r', this.p.incidence || 0, '°', 0),
+      rd('光屏折转', this.p.plane || 0, '°', 0),
+      { label: '反射类型', value: this.p.kind === 'diffuse' ? '漫反射' : '镜面反射', unit: '' },
+    ];
+  },
+});
+Object.assign(B3, {
+  readouts() {
+    const objH = (this.obj && this.obj.userData && this.obj.userData.h) || 0.9;
+    const altH = (this.p.altHeight || 5) / 5 * objH;
+    return [
+      rd('物距', this.p.objDist || 0, 'cm', 0),
+      rd('像距', this.p.objDist || 0, 'cm', 0),
+      rd('替代蜡烛高', this.p.altHeight || 0, 'cm', 0),
+      { label: '与像等高', value: Math.abs(altH - objH) < 0.06 ? '是' : '否', unit: '' },
+      { label: '像的性质', value: '正立等大虚像', unit: '' },
+    ];
+  },
+});
+Object.assign(B4, {
+  readouts() {
+    const { n1, n2 } = this.pairN ? this.pairN() : { n1: 1, n2: 1.33 };
+    const i = this.p.incidence || 0;
+    let rVal = '—';
+    if (!this.tir) {
+      const s = n1 * Math.sin(i * DEG) / n2;
+      rVal = Math.asin(clamp(s, -1, 1)) / DEG;
+    }
+    return [
+      rd('入射角 i', i, '°', 0),
+      { label: '折射角 r', value: this.tir ? '全反射' : rd('', rVal, '', 1).value, unit: this.tir ? '' : '°' },
+      rd('临界角 C', n1 > n2 ? this.crit : '—', n1 > n2 ? '°' : '', 1),
+      rd('入射侧 n₁', n1, '', 2),
+      rd('折射侧 n₂', n2, '', 2),
+    ];
+  },
+});
+Object.assign(B5, {
+  readouts() {
+    const f = this.p.focal || 0, u = this.p.objDist || 0;
+    const vD = this.vD;
+    const mag = (isFinite(vD) && u) ? Math.abs(vD) / u : 0;
+    return [
+      rd('焦距 f', f, 'cm', 0),
+      rd('物距 u', u, 'cm', 0),
+      { label: '像距 v', value: isFinite(vD) ? rd('', vD, '', 1).value : '平行光不成像', unit: isFinite(vD) ? 'cm' : '' },
+      rd('放大率 m', mag, '×', 2),
+      { label: '像的性质', value: !isFinite(vD) ? '不成像' : (this.real ? '倒立实像' : '正立虚像'), unit: '' },
+    ];
+  },
+});
 
 export const OPTICS = {
   'B1-pinhole': B1,

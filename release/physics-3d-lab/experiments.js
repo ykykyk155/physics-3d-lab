@@ -58,6 +58,22 @@ for (const id in RAW) {
     // 时间轴接口：duration = 演示总时长（秒），0 表示无时间演化；
     // seek(t) 把状态设到 t 秒并重绘（确定性、可反复调用）
     seek(t) { if (typeof impl.seek === 'function') impl.seek(t); },
+    // 右侧统计面板：[] 不是 null，外壳可以无脑遍历；NaN/Infinity 在这里兜成 '—'，
+    // 免得某个实验漏了一条分支就在界面上闪出 "NaN"。
+    // 面板每 100ms 拉一次，所以这里只读状态、绝不许有副作用。
+    readouts() {
+      const f = impl.readouts;
+      if (typeof f !== 'function') return [];
+      let rows;
+      try { rows = f.call(impl); } catch (e) { return []; }
+      if (!Array.isArray(rows)) return [];
+      return rows.filter(r => r && r.label).slice(0, 6).map(r => {
+        let v = r.value;
+        if (typeof v === 'number') v = Number.isFinite(v) ? v : '—';
+        else if (v == null) v = '—';
+        return { label: String(r.label), value: v, unit: r.unit == null ? '' : String(r.unit) };
+      });
+    },
   };
   // duration 由实验在 recompute 里按参数算；用 getter 实时取值。
   // Infinity（无界过程）必须原样透出，不能被 Number.isFinite 折成 0——那会误判成「无时间演化」
