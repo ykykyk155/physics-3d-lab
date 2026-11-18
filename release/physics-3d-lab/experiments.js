@@ -95,6 +95,9 @@ for (const id in RAW) {
   const impl = RAW[id];
   const cam = CAM[id];
   const api = {
+    // 调试/探针只读句柄：拿到场景实现实例本身（api 只暴露公共接口，位姿等内部状态在 impl 上）。
+    // 只读约定：探针不许通过它改状态；场景代码也不该用它当后门。
+    _impl: impl,
     build(ctx) {
       impl.build(ctx);
       _ctx = ctx;

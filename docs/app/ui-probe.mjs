@@ -25,12 +25,17 @@ await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 const browser = await puppeteer.launch({
   executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', headless: true,
   args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--disable-gpu', '--no-sandbox',
-         '--autoplay-policy=no-user-gesture-required'],
+         '--autoplay-policy=no-user-gesture-required',
+         '--js-flags=--max-old-space-size=4096', '--disable-dev-shm-usage'],
 });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 900 });
+// 惰性加载断言的取证：记录 ammo.js 本体的网络请求（bridge 文件不算引擎下载）
+const netLog = [];
+await page.on('request', r => { if (/vendor\/ammo\/ammo\.js/i.test(r.url())) netLog.push(r.url()); });
 await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'load' });
 await page.waitForFunction('window.__LAB && window.__LAB.ready', { timeout: 60000 });
+const atBoot = netLog.length;                          // 首屏基线：此刻必须为 0（引擎未注入）
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const frames = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 
@@ -410,9 +415,141 @@ const audioRes = await page.evaluate(async () => {
   return out;
 });
 if (audioRes.ok) {
-  md += `- 音频引擎：开关开/关+localStorage 记忆 ✅；非声学场景返回 null 静音 ✅；C2 tone（freq 跟音调 ${audioRes.c2.freqA}→${audioRes.c2.freqB}）✅；C1 pulse（interval ${audioRes.c1.ivA}→${audioRes.c1.ivB} 随介质）✅；C3 noise（gain ${audioRes.c3.gA}→${audioRes.c3.gB}、filterHz ${audioRes.c3.fA}→${audioRes.c3.fB} 随隔声材料）✅。\n`;
+  md += `- 音频引擎：开关开/关+localStorage 记忆 ✅；非声学场景返回 null 静音 ✅；C2 tone（freq 跟音调 ${audioRes.c2.freqA}→${audioRes.c2.freqB}）✅；C1 pulse（interval ${audioRes.c1.ivA}→${audioRes.c1.ivB} 随介质）✅；C3 noise（gain ${audioRes.c3.gA}→${audioRes.c3.gB}、filterHz ${audioRes.c3.fA}→${audioRes.c3.fB} 隔声材料）✅。\n`;
 } else {
   md += `- 音频引擎：❌ ${JSON.stringify(audioRes)}\n`;
+}
+// ammo.js 惰性加载：首屏不下载；默认路径解析式场景（A1/A3/A6）切换不触发；刚体场景（A7/A2）共享一次注入；
+// 缓存复用（两个刚体场景合计注入 ≤1）；全新页面首进刚体场景有遮罩且会消失
+const rigidIds = ['A7-lever', 'A2-newton-first'];
+const pre = netLog.length;
+for (const id of ['A1-incline-speed', 'A3-friction', 'A6-energy']) {   // 默认路径解析式：硬断言 0 新增
+  await page.evaluate(i => window.__LAB.switch(i), id); await sleep(700);
+}
+const analyticDelta = netLog.length - pre;
+for (const id of rigidIds) { await page.evaluate(i => window.__LAB.switch(i), id); await sleep(1200); }
+const overlayGone = await page.evaluate(() => { const o = document.getElementById('ammoLoad'); return !o || o.style.display === 'none'; });
+const viaHook = await page.evaluate(() => window.__LAB.ammoRequests ? window.__LAB.ammoRequests() : null);
+// 全新页面（清缓存语义）首进刚体场景：遮罩必须出现→消失（headless 下 asm.js 可能秒解析，遮罩一闪而过；
+// 以「注入恰好发生在进入刚体场景之后」为硬证据，遮罩 seen 记录但不否决——防空转等待把加载期错过）
+const ovFirst = await (async () => {
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction('window.__LAB && window.__LAB.ready', { timeout: 60000 });
+  const bootAfterReload = await page.evaluate(() => window.__LAB.ammoRequests());
+  let seen = false;
+  const switchP = page.evaluate(() => window.__LAB.switch('A2-newton-first'));
+  for (let i = 0; i < 20; i++) { seen = await page.evaluate(() => { const o = document.getElementById('ammoLoad'); return !!o && o.style.display !== 'none'; }); if (seen) break; await sleep(60); }
+  await switchP; await sleep(600);
+  const gone = await page.evaluate(() => { const o = document.getElementById('ammoLoad'); return !o || o.style.display === 'none'; });
+  return { seen, gone, injects: await page.evaluate(() => window.__LAB.ammoRequests()), bootAfterReload };
+})();
+const lazyOK = atBoot === 0 && analyticDelta === 0 && viaHook <= 1 && ovFirst.gone && ovFirst.injects === 1 && ovFirst.bootAfterReload === 0;
+if (lazyOK) {
+  md += `- ammo.js 惰性加载：首屏 ${atBoot} 次（应为 0）、默认路径 A1/A3/A6 切换新增 ${analyticDelta} 次（应为 0）、刚体场景 ${rigidIds.join('/')} 合计注入 ${viaHook} 次（≤1，缓存复用）、全新页面首进 A2 遮罩出现→消失=${ovFirst.seen}→${ovFirst.gone}（headless 秒解析时 seen 允许为 false），✅。\n`;
+} else {
+  md += `- ammo.js 惰性加载：❌ 首屏 ${atBoot}、默认路径新增 ${analyticDelta}、注入 ${viaHook}、遮罩出现=${ovFirst.seen} 消失=${ovFirst.gone}、刷新后注入 ${ovFirst.injects}/首屏 ${ovFirst.bootAfterReload}（${netLog.join(', ') || '无 URL 记录'}）\n`;
+}
+// 刚体确定性（外壳侧）：进 A2 后 seek(0)→seek(duration) 连做两轮，末态小车世界位姿必须逐位一致。
+// 正好覆盖 bridge reset() 还原不完整（丢初速/休眠标志）这类缺陷——还原不完整时第二轮末态必漂移。
+const det = await page.evaluate(async () => {
+  const L = window.__LAB;
+  await L.switch('A2-newton-first');
+  await new Promise(r => setTimeout(r, 1500));           // 等引擎就绪（首次含解析）
+  const pose = () => { const c = L.current().exp; const b = c && (c.block || c.cartG || (c._impl && (c._impl.block || c._impl.cartG))); if (!b) return null;
+    const p = b.position, q = b.quaternion; return [p.x, p.y, p.z, q.x, q.y, q.z, q.w].map(v => +v.toFixed(6)).join(','); };
+  if (!pose()) return { ok: false, note: 'no cart root' };
+  const d = L.current().exp.duration;
+  if (!Number.isFinite(d) || d <= 0) return { ok: false, note: 'duration ' + d };
+  await L.current().exp.seek(0);
+  await new Promise(r => setTimeout(r, 100));
+  await L.current().exp.seek(d); await new Promise(r => setTimeout(r, 150));
+  const a1 = pose();
+  await L.current().exp.seek(0);
+  await new Promise(r => setTimeout(r, 100));
+  await L.current().exp.seek(d); await new Promise(r => setTimeout(r, 150));
+  const a2 = pose();
+  return { ok: a1 === a2, a1, a2 };
+});
+if (det.ok) {
+  md += `- A2 刚体确定性（外壳侧）：seek(0)→seek(duration) 两轮末态位姿逐位一致（${(det.a1 || '').slice(0, 40)}…），✅。\n`;
+} else {
+  md += `- A2 刚体确定性（外壳侧）：❌ ${det.note || ('末态漂移：' + det.a1 + ' vs ' + det.a2)}\n`;
+}
+// 刚体物理量通用门禁（CEO 定，不特指 A2）：seek 到末态后，「刚体实测停止距离」与解析式 v0²/(2μg) 偏差必须 ≤5%。
+// 引擎只能让画面更真，不能把物理量做错；摩擦 combine 错误（默认相乘致 μ 减半）这类 bug 在此必红。
+// 刚体物理量通用门禁（CEO 定，不特指 A2）：seek 到末态后，「刚体实测停止距离」与解析式 v0²/(2μg) 比对。
+// 容差口径（CEO 定）：|实测−理论| ≤ max(5%×理论, 0.03m)——0.03m 吸收 Bullet 60Hz 离散步长与初始穿透地板；
+// 真 bug（如摩擦 combine 错误 Δ=1.09m、零点错位 Δ=0.1m）远超此容差，照样报红。
+const physGate = await page.evaluate(async () => {
+  const L = window.__LAB;
+  const c = L.current().exp;
+  const e = c && (c._impl || c);                        // 实例字段（sel/t/duration）在 impl 上，公共接口只有方法
+  if (!e || L.store.experimentId !== 'A2-newton-first') return { skip: true };
+  const Gc = 9.8;
+  const h = L.store.params.height != null ? L.store.params.height : 0.15;
+  const v0 = Math.sqrt(2 * Gc * h);
+  const mu = e.sel ? e.sel.mu : null;
+  if (mu == null || mu <= 1e-6) return { skip: true, note: 'surface mu=' + mu };
+  const th = v0 * v0 / (2 * mu * Gc);
+  await c.seek(c.duration); await new Promise(r => setTimeout(r, 200));
+  const ro = c.readouts().reduce((m, it) => (m[it.label] = it.value, m), {});
+  const dist = ro['当前位移 s'];
+  if (typeof dist !== 'number') return { skip: true, note: 's readout missing' };
+  const tol = Math.max(0.05 * th, 0.03);
+  const dev = Math.abs(dist - th);
+  return { ok: dev <= tol, th: +th.toFixed(3), dist: +dist.toFixed(3), dev: +dev.toFixed(4), tol: +tol.toFixed(3) };
+});
+if (physGate.skip) {
+  md += `- 刚体物理量门禁（位移 vs 解析式）：${physGate.note || '当前场景未启用刚体门禁'}，跳过。\n`;
+} else if (physGate.ok) {
+  md += `- 刚体物理量门禁（位移 vs 解析式）：停止距离 ${physGate.dist}m vs v0²/2μg=${physGate.th}m，|Δ|=${physGate.dev}m ≤ max(5%×理论, 0.03)=${physGate.tol}m，✅。\n`;
+} else {
+  md += `- 刚体物理量门禁（位移 vs 解析式）：❌ 停止距离 ${physGate.dist}m vs ${physGate.th}m，|Δ|=${physGate.dev}m > ${physGate.tol}m（摩擦 combine / 零点 / 参数错）\n`;
+}
+// A2 三档统一口径（CEO 定）：同一份代码、同一轮探针跑完，三组停止距离一次报全（毛巾/棉布/木板）。
+const threeSurf = await page.evaluate(async () => {
+  const L = window.__LAB;
+  const c = L.current().exp;
+  const e = c && (c._impl || c);
+  if (!e || L.store.experimentId !== 'A2-newton-first') return { skip: true };
+  const Gc = 9.8;
+  const h = L.store.params.height != null ? L.store.params.height : 0.15;
+  const v0 = Math.sqrt(2 * Gc * h);
+  const surf = { '毛巾': 0.60, '棉布': 0.30, '木板': 0.12 };
+  const out = [];
+  const selPid = 'surface';
+  const meta = L.DATA().byId['A2-newton-first'];
+  const opt = v => meta.params.find(p => p.id === selPid).options.find(o => Math.abs(o.value - v) < 1e-9);
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+  for (const [label, mu] of Object.entries(surf)) {
+    const o = opt(mu); if (!o) return { skip: true, note: 'option missing ' + mu };
+    const blk = document.querySelector('.param-block[data-pid="surface"]');
+    const btn = [...blk.querySelectorAll('.seg button'), ...blk.querySelectorAll('.dropdown li')].find(el => el.dataset.oid === String(o.value));
+    if (!btn) return { skip: true, note: 'control missing ' + o.value };
+    btn.click(); await new Promise(r => setTimeout(r, 400));
+    await c.seek(c.duration); await new Promise(r => setTimeout(r, 250));
+    const ro = c.readouts().reduce((m, it) => (m[it.label] = it.value, m), {});
+    const dist = ro['当前位移 s'];
+    const th = v0 * v0 / (2 * mu * Gc);
+    const d = Math.abs(dist - th);
+    out.push({ label, mu, dist: +dist.toFixed(3), th: +th.toFixed(3), d: +d.toFixed(4),
+      ok: d <= Math.max(0.05 * th, 0.03) });
+  }
+  // 恢复默认棉布
+  const def = meta.params.find(p => p.id === selPid).default;
+  const blk = document.querySelector('.param-block[data-pid="surface"]');
+  const btn = [...blk.querySelectorAll('.seg button'), ...blk.querySelectorAll('.dropdown li')].find(el => el.dataset.oid === String(def));
+  if (btn) btn.click();
+  return { rows: out, gaps: out.length === 3 ? [
+    { pair: out[0].label + '→' + out[1].label, pct: +(((out[1].dist - out[0].dist) / Math.max(out[0].dist, 1e-9)) * 100).toFixed(1) },
+    { pair: out[1].label + '→' + out[2].label, pct: +(((out[2].dist - out[1].dist) / Math.max(out[1].dist, 1e-9)) * 100).toFixed(1) } ] : null };
+});
+if (threeSurf.skip) {
+  md += `- A2 三档统一口径（同一轮）：${threeSurf.note || '当前非 A2'}，跳过。\n`;
+} else {
+  const line = threeSurf.rows.map(r => `${r.label} μ${r.mu} ${r.dist}m（理论 ${r.th}m，|Δ|=${r.d}m ${r.ok ? '✅' : '❌'}）`).join('；');
+  const gaps = threeSurf.gaps ? `，两两差距 ${threeSurf.gaps.map(g => g.pair + ' +' + g.pct + '%').join('、')}` : '';
+  md += `- A2 三档统一口径（同一轮）：${line}${gaps}。\n`;
 }
 fs.writeFileSync(path.join(ROOT, 'ui-probe-report.md'), md, 'utf8');
 console.log(`total=${total} delivered=${delivered}`);

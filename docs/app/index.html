@@ -185,6 +185,13 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 #audioBtn{position:absolute;top:16px;right:16px;z-index:7;width:36px;height:36px;border-radius:var(--radius-full);background:rgba(16,24,40,.85);backdrop-filter:blur(8px);border:1px solid var(--color-border);color:var(--color-text-secondary);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-2)}
 #audioBtn:hover{color:var(--color-text)}
 #audioBtn.on{background:var(--color-primary);border-color:var(--color-primary);color:var(--color-text)}
+#audioBtn:disabled{opacity:.5;cursor:default}
+
+/* ---------- 物理引擎加载遮罩（首次进入刚体场景时出现） ---------- */
+#ammoLoad{position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:var(--color-bg);opacity:.94;flex-direction:column;text-align:center}
+#ammoLoad .boot-ring{width:34px;height:34px;border-radius:50%;border:3px solid rgba(148,163,184,.22);border-top-color:var(--color-primary);animation:bootspin .9s linear infinite;margin:0 auto 16px}
+#ammoLoad .boot-title{color:var(--color-text);font:500 15px/1.5 var(--font-sans)}
+#ammoLoad .boot-sub{color:var(--color-text-secondary);font:400 12px/1.6 var(--font-sans);margin-top:6px;max-width:360px;padding:0 24px}
 
 /* ---------- 移动端：底部抽屉 ---------- */
 @media (max-width:767px){
@@ -752,6 +759,44 @@ function paintAudioBtn(on){
   b.setAttribute('aria-label', b.title);
 }
 
+/* ---------- ammo.js 惰性加载器（外壳统一管：单飞缓存 + 加载遮罩）；bridge 只调 loadAmmo()，不自己注入 script ---------- */
+let ammoPromise = null;
+let ammoReqCount = 0;                                   // 网络注入次数（探针断言用：重复进入不得二次下载）
+function showAmmoOverlay(show){
+  let ov = $('#ammoLoad');
+  if(show){
+    if(!ov){
+      ov = el('div'); ov.id = 'ammoLoad';
+      ov.innerHTML = '<div class="boot-ring"></div><div class="boot-title">正在加载物理引擎…</div><div class="boot-sub">首次进入刚体实验需下载约 0.3 MB，之后不再重复</div>';
+      viewport.appendChild(ov);
+    }
+    ov.style.display = 'flex';
+  }else if(ov){ ov.style.display = 'none'; }
+}
+function loadAmmo(){
+  if(ammoPromise) return ammoPromise;                   // 单飞：并发/重复进入共享同一次下载与解析
+  ammoPromise = new Promise((resolve, reject) => {
+    showAmmoOverlay(true);
+    ammoReqCount++;
+    const s = document.createElement('script');
+    s.src = './vendor/ammo/ammo.js';
+    s.onload = () => {
+      try{
+        const A = window.Ammo;
+        if(typeof A === 'function'){                    // 新式构建：工厂函数返回 Promise
+          Promise.resolve(A()).then(lib => { showAmmoOverlay(false); resolve(lib); })
+            .catch(e => { showAmmoOverlay(false); reject(e); });
+        }else{                                          // 经典 UMD 构建（当前 vendor 这份）：同步库对象
+          showAmmoOverlay(false); resolve(A);
+        }
+      }catch(e){ showAmmoOverlay(false); reject(e); }
+    };
+    s.onerror = () => { ammoPromise = null; showAmmoOverlay(false); reject(new Error('ammo.js 加载失败')); };
+    document.head.appendChild(s);
+  });
+  return ammoPromise;
+}
+
 const paramEls = {};
 function renderParams(meta){
   const box = $('#paramsArea'); box.innerHTML = '';
@@ -1150,6 +1195,8 @@ window.__LAB = {                                        // 验收/调试钩子�
   current: () => current,
   switch: id => switchExperiment(id),
   pendingKeys: () => [...pending],
+  loadAmmo,                                             // bridge/探针共用；重复调用不二次下载
+  ammoRequests: () => ammoReqCount,
 };
 boot().then(() => { window.__LAB.ready = true; });
 </script>

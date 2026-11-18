@@ -145,7 +145,23 @@ if ($hashOk) {
     Write-Host "  [FAIL] table copies differ - source/app/release must match" -ForegroundColor Red
 }
 
-$pass = ($missing.Count -eq 0) -and $fetchOk -and (-not $badRef) -and $importOk -and $jsonOk -and $hashOk -and ($scenes -eq 25)
+# --- ammo.js size budget: engine is lazy-loaded, must stay within the agreed gzip ceiling ---
+$ammoPath = Join-Path $app 'vendor\ammo\ammo.js'
+$ammoOK = $false
+if (Test-Path $ammoPath) {
+    $ammoBytes = [System.IO.File]::ReadAllBytes($ammoPath)
+    $ms = New-Object System.IO.MemoryStream
+    $gz = New-Object System.IO.Compression.GZipStream($ms, [System.IO.Compression.CompressionLevel]::Optimal)
+    $gz.Write($ammoBytes, 0, $ammoBytes.Length); $gz.Flush(); $gz.Dispose()
+    $ammoGzip = $ms.ToArray().Length          # PS 5.1: disposed MemoryStream 的 Length 属性读不到，用 ToArray()
+    Write-Host ("  [INFO] ammo.js raw {0} KB, gzip {1} KB (lazy-loaded: costs first view of a rigid-body scene only)" -f [math]::Round($ammoBytes.Length/1KB), [math]::Round($ammoGzip/1KB))
+    if ($ammoGzip -le 409600) { $ammoOK = $true }
+    else { Write-Host "  [FAIL] ammo.js gzip exceeds 400 KB ceiling" -ForegroundColor Red }
+} else {
+    Write-Host "  [WARN] vendor/ammo/ammo.js not present - rigid-body scenes will fail to load engine" -ForegroundColor Yellow
+}
+
+$pass = ($missing.Count -eq 0) -and $fetchOk -and (-not $badRef) -and $importOk -and $jsonOk -and $hashOk -and ($scenes -eq 25) -and ((-not (Test-Path $ammoPath)) -or $ammoOK)
 Write-Host ""
 if ($pass) { Write-Host "RELEASE READY" -ForegroundColor Green; exit 0 }
 else { Write-Host "RELEASE BLOCKED" -ForegroundColor Red; exit 1 }

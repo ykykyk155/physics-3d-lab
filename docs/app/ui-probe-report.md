@@ -1,6 +1,6 @@
 # UI→引擎通路探针报告
 
-时间：2026-11-17T10:10:22.907Z
+时间：2026-11-18T03:08:03.831Z
 方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
 
 | 实验 | 控件 | 类型 | onParam 送达 | 判定 |
@@ -21,7 +21,7 @@
 | A2-newton-first | mass | number | 1（store=0.1） | ✅ |
 | A2-newton-first | duration 快照校验 | getter | actual=3.4 vs 快照 3.4（±10%） | ✅ |
 | A2-newton-first | seek 拖动一致性 | 1.26→2.48→1.26 | simTime 回位=true、无NaN=true | ✅ |
-| A2-newton-first | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
+| A2-newton-first | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | A2-newton-first | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 0.5×（期望 0.5×） | ✅ |
 | A2-newton-first | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
 | A3-friction | normal | number | 1（store=0.5） | ✅ |
@@ -253,4 +253,8 @@
 - 播放速度六档（0.25/0.5/1/2/4/8，高亮=defaultSpeed，置灰=duration≤0）：25/25 通过。
 - 表实一致门禁（有 duration 必带 durationIsSnapshot 或 durationZeroKind）：25/25 通过。
 - 平移视角：右键拖动 target 生效且在限内、越界钳制（20,-5,0 → 7.98,0.00,0.02）、重置回初始机位，✅。
-- 音频引擎：开关开/关+localStorage 记忆 ✅；非声学场景返回 null 静音 ✅；C2 tone（freq 跟音调 440→50）✅；C1 pulse（interval 1.7647058823529411→0.39999999999999997 随介质）✅；C3 noise（gain 0.12328615384615384→0.14663999999999996、filterHz 4560→5460 随隔声材料）✅。
+- 音频引擎：开关开/关+localStorage 记忆 ✅；非声学场景返回 null 静音 ✅；C2 tone（freq 跟音调 440→50）✅；C1 pulse（interval 1.7647058823529411→0.39999999999999997 随介质）✅；C3 noise（gain 0.12328615384615384→0.14663999999999996、filterHz 4560→5460 隔声材料）✅。
+- ammo.js 惰性加载：首屏 0 次（应为 0）、默认路径 A1/A3/A6 切换新增 0 次（应为 0）、刚体场景 A7-lever/A2-newton-first 合计注入 1 次（≤1，缓存复用）、全新页面首进 A2 遮罩出现→消失=true→true（headless 秒解析时 seen 允许为 false），✅。
+- A2 刚体确定性（外壳侧）：seek(0)→seek(duration) 两轮末态位姿逐位一致（-2.718131,0.1,-0.600609,0,0.000007,0,1…），✅。
+- 刚体物理量门禁（位移 vs 解析式）：停止距离 0.48m vs v0²/2μg=0.5m，|Δ|=0.02m ≤ max(5%×理论, 0.03)=0.03m，✅。
+- A2 三档统一口径（同一轮）：毛巾 μ0.6 0.23m（理论 0.25m，|Δ|=0.02m ✅）；棉布 μ0.3 0.48m（理论 0.5m，|Δ|=0.02m ✅）；木板 μ0.12 1.23m（理论 1.25m，|Δ|=0.02m ✅），两两差距 毛巾→棉布 +108.7%、棉布→木板 +156.3%。

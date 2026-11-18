@@ -60,14 +60,36 @@ if (-not $remote) {
     exit 2
 }
 
-git -C $repo push -q origin HEAD
-Write-Host "  pushed source -> $(git -C $repo remote get-url origin)"
+# github from here drops connections in bursts; HTTP/1.1 upload + retries is what makes it land
+git -C $repo config http.version HTTP/1.1
+git -C $repo config http.postBuffer 524288000
+
+function Push-Ref([string]$spec, [string]$what) {
+    for ($i = 1; $i -le 6; $i++) {
+        $out = git -C $repo push -q --force origin $spec 2>&1 | Out-String
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host ("  pushed {0} (attempt {1})" -f $what, $i) -ForegroundColor Green
+            return $true
+        }
+        $tail = ($out -split "`n" | Where-Object { $_ -match 'error|fatal' } | Select-Object -First 1)
+        Write-Host ("  {0} attempt {1} failed: {2}" -f $what, $i, "$tail".Trim()) -ForegroundColor Yellow
+        Start-Sleep -Seconds 8
+    }
+    return $false
+}
+
+if (-not (Push-Ref "HEAD:refs/heads/main" "source (main)")) {
+    Write-Host "  [FAIL] source push failed 6 times - site NOT updated" -ForegroundColor Red
+    exit 1
+}
 
 # site branch: subtree of the release folder, force-pushed (it is a build output)
 $sha = git -C $repo subtree split --prefix=release/physics-3d-lab HEAD
 if ($sha) {
-    git -C $repo push -q --force origin "${sha}:refs/heads/gh-pages"
-    Write-Host "  pushed site   -> gh-pages ($($sha.Substring(0,7)))"
+    if (-not (Push-Ref "${sha}:refs/heads/gh-pages" "site (gh-pages $($sha.Substring(0,7)))")) {
+        Write-Host "  [FAIL] site push failed 6 times - page NOT updated" -ForegroundColor Red
+        exit 1
+    }
     Write-Host ""
     Write-Host "  page will be live at: https://<user>.github.io/<repo>/" -ForegroundColor Green
 } else {

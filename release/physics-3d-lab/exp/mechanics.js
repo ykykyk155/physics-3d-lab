@@ -1,6 +1,7 @@
 /* 力学 A1~A7 */
 import { THREE, COLORS, DEG, G, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, rd } from './common.js';
 import { MATS, matClone, registerMaterials, cart, rollCart, woodBlock, metalBlock, beaker, springScale, setSpringScale, slottedMass } from './props.js';
+import { loadAmmo, createWorld, disposeWorld, STEP } from './ammo-bridge.js';
 
 const C = COLORS.mechanics;
 
@@ -155,6 +156,11 @@ const A2 = {
     { mu: 0.02, label: '冰面', color: '#CFE8F2' },
     { mu: 0.00, label: '理想光滑', color: '#2E4A6B' },
   ],
+  // 引擎实测偏离解析式的比例（μ → 实测/理论，h=0.15 实测：0.227/0.25=0.908、0.482/0.50=0.964、1.230/1.25=0.984）。
+  // CEO 拍板 A：图例/标记条统一显示【实测值】→ 标尺与引擎车停在同一位，不再打架。
+  // 偏差来自 Bullet 60Hz 离散步 + 初始穿透的固定 ~0.02m 沉降，随 v0² 缩放，故修正因子乘理论值即可，
+  // 非验收材料（冰面/理想）无实测，保留理论值 1.0。
+  MEASURED_C: { 0.6: 0.908, 0.3: 0.964, 0.12: 0.984 },
   build(ctx) {
     this.scene = ctx.scene; this.ctx = ctx;
     registerMaterials(ctx);
@@ -162,12 +168,57 @@ const A2 = {
     this.base = box(11.0, 0.06, 3.0, '#2a3448', { roughness: 0.95 });
     this.base.position.y = -0.03; this.base.receiveShadow = true; this.base.userData.noFit = true; ctx.scene.add(this.base);
     this.tracksG = new THREE.Group(); ctx.scene.add(this.tracksG);
-    // 实验小车（车身 + 四轮 + 车轴）：五条不同粗糙度的轨道上各跑一次
+    // 实验小车（车身 + 四轮 + 车轴）：刚体驱动，滑行+摩擦+停住
     this.cartG = cart({ len: 0.52, wid: 0.36, wheelR: 0.09 });
+    this.cartG.name = 'A2-cart';
     this.block = this.cartG; ctx.scene.add(this.cartG);
     this.makeLegend();
-    this.duration = 3.4;        // 在 build 期就有值：外壳切场景时会立刻读 duration，不能等到参数回灌
+    this.duration = 3.4;        // 在 build 期就有值：外壳切场景时会立刻读 duration
     this.t = 0;
+    this._phys = null; this._physReady = false; this._physPromise = null;
+    this._cartB = null;
+    this._bootPhys();
+  },
+  _bootPhys() {
+    if (this._physPromise) return this._physPromise;
+    this._physPromise = (async () => {
+      try {
+        await loadAmmo();
+        this._physReady = true;
+        this._rebuildPhys();
+        this._render(this.t || 0);
+      } catch (e) { console.error('[A2 ammo]', e); this._physReady = false; }
+    })();
+    return this._physPromise;
+  },
+  _cartZ() {
+    const idx = this.list ? Math.max(0, this.list.indexOf(this.sel)) : 1;
+    const n = this.SURFACES.length, ZSP = 0.6;
+    return -((n - 1) / 2) * ZSP + idx * ZSP;
+  },
+  // 释放点（坡脚，滑行位移的真正零点）：小车从这里以 v0 出发开始滑行
+  startX() { return this.XF0 + 0.1; },
+  _rebuildPhys() {
+    const w = createWorld({ gravity: [0, -9.8, 0] });
+    this._phys = w;
+    const z = this._cartZ();
+    const mu = this.sel ? this.sel.mu : 0.3;
+    // 选中轨道：静态盒体（顶面 = 滑行面；x 覆盖整个跑道）。
+    // 摩擦两侧固定 1.0：Bullet 默认把两碰撞体摩擦相乘，轨道侧若是默认 0.5，有效摩擦 = 0.5×μ，
+    // 会把木板 0.12 拉到 ≈0.06、实测距离翻倍（之前 2.34m 而非理论 1.25m 即此因）。
+    // 轨道侧 1.0 → 有效摩擦 = 1.0×μ = μ，读数与 v0²/(2μg) 对齐。
+    w.addBox(null, { mass: 0, halfExtents: [this.BL / 2, 0.04, 0.22], pos: [this.XF0 + this.BL / 2, 0, z], friction: 1.0 });
+    // 小车：动态盒体，从坡脚出发，初速 v0 指向 +x，摩擦 = 选中材料
+    const fr = mu > 1e-6 ? mu : 0;
+    const mass = clamp(this.p.mass || 0.4, 0.1, 1.0);
+    // 小车：动态盒体，从坡脚出发，初速 v0 指向 +x，摩擦 = 选中材料。
+    // dampingLin=0：平面滑行的减速必须纯粹由 μg 提供（解析式没有额外线性阻尼），
+    // 否则高 μ（短距离）受同量级阻尼影响占比更大，实测会系统性偏短。
+    this._cartB = w.addBox(this.cartG, { mass: mass, halfExtents: [0.26, 0.06, 0.18], pos: [this.startX(), 0.05, z], friction: fr, dampingLin: 0, dampingAng: 1 });
+    // 设初速：v0 由释放高度 h 导出（能量法）。用 bridge 的 setLinearVelocity() 记录初速，
+    // 这样 seek 重放时能还原（自己 set 不会记进 rec.initVel，seek 会把车清零停在起点）
+    const v0 = this.v0 || 0;
+    if (v0 > 0 && this._cartB) w.setLinearVelocity(this._cartB, [v0, 0, 0]);
   },
   onParam(k, v) {
     this.p[k] = v;
@@ -199,10 +250,16 @@ const A2 = {
   recompute() {
     const h = this.p.height || 0.15;
     this.v0 = Math.sqrt(2 * G * h);
-    // 质量不改变滑行距离（v0 由高度决定，s=v0²/(2μg) 与 m 无关）——这正是教学点。
+    // 质量不改变滑行距离（v0 由高度决定）
     const ms = clamp(this.p.mass || 0.4, 0.1, 1.0);
     this.syncWeights(ms);
-    const list = this.SURFACES.map(o => ({ mu: o.mu, label: o.label, color: o.color, s: o.mu > 0 ? (this.v0 * this.v0) / (2 * o.mu * G) : Infinity }));
+    const list = this.SURFACES.map(o => {
+      // CEO 拍板 A：图例/标记条显示实测值。修正因子上乘理论值（无实测档 = 理论 1.0）。
+      const c = this.MEASURED_C[o.mu] || 1.0;
+      const sTheory = o.mu > 0 ? (this.v0 * this.v0) / (2 * o.mu * G) : Infinity;
+      return { mu: o.mu, label: o.label, color: o.color, s: isFinite(sTheory) ? sTheory * c : Infinity };
+    });
+    list.forEach(o => { if (isFinite(o.s)) o.s = Math.min(o.s, this.BL - 0.6); });
     const finite = list.filter(o => isFinite(o.s)).map(o => o.s);
     const finMax = finite.length ? Math.max.apply(null, finite) : 1;
     this.scale = 7 / Math.max(finMax, 0.4);
@@ -214,24 +271,15 @@ const A2 = {
     this.BL = 7.0; this.XF0 = -3.3; this.RL = 1.5;
     this.H_ramp = clamp(0.42 + h * 2.0, 0.5, 1.05);
     this.theta = Math.atan(this.H_ramp / this.RL);
-    this.Tramp = clamp(1.15 - h * 2.0, 0.45, 1.1);   // 坡上零摩擦，仅用于呈现下滑动画
-    const tfStop = this.sel.mu > 0 ? this.v0 / (this.sel.mu * G) : 6;
-    // 时长口径（CEO 定）：有终点的小过程 3.4s 呈现；理想光滑是无限过程 → duration = Infinity（禁拖、不自动暂停）
-    if (isFinite(this.s)) {
-      this.physTrip = this.Tramp + tfStop;
-      this.duration = 3.4;
-      this.kTime = this.physTrip / this.duration;
-    } else {
-      const xmNeed = (this.BL - 0.3) / Math.max(this.scale, 1e-6);   // 滑到板子右端所需的物理距离
-      this.physTrip = this.Tramp + xmNeed / this.v0;
-      this.duration = Infinity;
-      this.kTime = this.physTrip / 20;               // 约 20s 滑到板端，之后继续匀速滑出画面（不循环）
-    }
+    // 时长口径（CEO 定）：有终点 3.4s 呈现；理想光滑是无限过程 → duration = Infinity（禁拖、不自动暂停）
+    if (isFinite(this.s)) this.duration = 3.4;
+    else this.duration = Infinity;
     if (this.ctx) this.ctx.emitReadout({ slide: isFinite(this.s) ? this.s : '理想光滑：永不停止' });
     this.buildTracks();
     this.t = 0;
     this.updateLegend();
-    this.draw();
+    if (this._physReady) this._rebuildPhys();
+    this._render(this.t);
   },
   // 配重块：质量越大，车上摞的砝码越多（外形不变、载重变，学生看得见「更重」）
   syncWeights(ms) {
@@ -258,7 +306,7 @@ const A2 = {
     });
   },
   buildTracks() {
-    // 清场：几何必释放；私有材质（非 shared）也释放，避免切材料累积
+    // 清场
     while (this.tracksG.children.length) {
       const c = this.tracksG.children[0];
       this.tracksG.remove(c);
@@ -273,17 +321,14 @@ const A2 = {
     this.list.forEach((o, idx) => {
       const z = -((n - 1) / 2) * ZSP + idx * ZSP;
       const isSel = (o === this.sel);
-      // 等长平直跑道（选中亮、其余压暗去饱和）
       const bar = new THREE.Mesh(new THREE.BoxGeometry(BL, 0.08, 0.44), this.mkBoardMat(isSel, o.color));
       bar.position.set(XF0 + BL / 2, 0.04, z); bar.userData.noFit = true; bar.receiveShadow = true; bar.castShadow = false;
       this.tracksG.add(bar);
-      // 滑行距离标记条 + 终点刻度（数据元素，力学识别色；细条不抢画面）
       const sW = isFinite(o.s) ? clamp(o.s * this.scale, 0.15, BL - 0.05) : BL - 0.05;
       const mk = box(sW, 0.015, 0.075, '#F59E0B', { emissive: '#F59E0B', emissiveIntensity: 0.7, transparent: true, opacity: 0.85, depthWrite: false });
       mk.position.set(XF0 + sW / 2, 0.085, z); mk.castShadow = false; marks.push(mk);
       const tk = box(0.04, 0.012, 0.34, '#FDE68A', { transparent: true, opacity: 0.85, depthWrite: false });
       tk.position.set(XF0 + sW, 0.085, z); tk.castShadow = false; marks.push(tk);
-      // 只有选中材料才有释放坡（随材料平移）；坡用浅木色，和小车（深木色）分得开
       if (isSel) {
         const rp = box(this.RL / Math.cos(this.theta), 0.05, 0.44, MATS.woodLight());
         rp.position.set(XF0 - this.RL / 2, 0.08 + this.H_ramp / 2, z); rp.rotation.z = -this.theta; ramps.push(rp);
@@ -294,54 +339,59 @@ const A2 = {
     if (marks.length) { const mg = mergeByMaterial(marks); mg.children.forEach(c => { c.castShadow = false; c.receiveShadow = false; }); this.tracksG.add(mg); }
     if (ramps.length) this.tracksG.add(mergeByMaterial(ramps));
   },
-  // 三段运动：ramp（零摩擦能量法）→ flat（μg 减速）→ stopped
-  // 入参 t 是「呈现时间」（0~duration），内部按 kTime 换成物理时间，纯解析式、确定性
-  stateAt(tPres) {
-    const t = tPres * (this.kTime || 1);
-    const XF0 = this.XF0, RL = this.RL, H = this.H_ramp, th = this.theta, Y = 0.08;
-    if (t < this.Tramp) {
-      const p = t / this.Tramp, u = p * p;                 // 加速下滑（零摩擦，v=√(2g·已下落高度)）
-      const f = 0.16 + u * 0.84;                           // 起点略离坡顶，车身不悬空
-      return { x: (XF0 - RL) + f * RL, y: Y + H * (1 - f), rot: -th, roll: (f * RL / Math.cos(th)), phase: 'ramp' };
+  _render(t) {
+    const tt = t == null ? 0 : t;
+    if (this._physReady) {
+      // 每次新建干净世界再重放：reset() 无法完全清掉 Body 在碰撞/接触中的求解器残留
+      // （A7 是这样解决 NaN 与漂移的），A2 带初速更必须如此，否则连续 seek 末态会漂（实测差 0.018m）。
+      // A2 只 3.4s、build 阶段几十个刚体+约束，重建毫秒级，可接受。
+      this._rebuildPhys();
+      this._phys.stepTo(tt);
+      this._rollWheels();
+    } else {
+      this._drawFallback(tt);
     }
-    const tf = t - this.Tramp, mu = this.sel.mu, v0 = this.v0;
-    if (!isFinite(this.s)) {
-      const xm = v0 * tf;
-      return { x: XF0 + xm * this.scale, y: Y, rot: 0, roll: (RL / Math.cos(th)) + xm * this.scale, phase: 'flat', over: xm * this.scale > this.BL - 0.25 };
-    }
-    const tfStop = mu > 0 ? v0 / (mu * G) : Infinity;   // 平面段停下的时刻
-    let xm = (tf >= tfStop) ? this.s : (v0 * tf - 0.5 * mu * G * tf * tf);
-    if (!(xm >= 0)) xm = 0;
-    if (xm > this.s) xm = this.s;
-    const still = tf < tfStop;
-    return { x: XF0 + xm * this.scale, y: Y, rot: 0, roll: (RL / Math.cos(th)) + xm * this.scale, phase: still ? 'flat' : 'stopped' };
+  },
+  _rollWheels() {
+    if (!this.cartG) return;
+    const x = this.cartG.position.x;
+    rollCart(this.cartG, Math.max(0, (x - this.XF0)) / 0.09);
+  },
+  // 加载期间的解析式 fallback：v0 初速 + μg 匀减速
+  _drawFallback(t) {
+    if (!this.list) return;
+    const v0 = this.v0, mu = this.sel.mu;
+    const z = this._cartZ();
+    const d = this.duration;
+    const tt = Number.isFinite(d) ? clamp(t, 0, d) : t;
+    if (mu <= 1e-6) { this.cartG.position.set(this.XF0 + v0 * tt, 0.05, z); rollCart(this.cartG, (v0 * tt) / 0.09); return; }
+    let xm = v0 * tt - 0.5 * mu * G * tt * tt;
+    if (xm < 0) xm = 0;
+    if (isFinite(this.s) && xm > this.s) xm = this.s;
+    this.cartG.position.set(this.XF0 + xm, 0.05, z);
+    rollCart(this.cartG, xm / 0.09);
   },
   step(dt) {
-    if (dt <= 0) { this.draw(); return; }
+    if (dt <= 0) return;
     const d = this.duration;
-    this.t = Number.isFinite(d) ? clamp(this.t + dt, 0, d) : Math.max(0, this.t + dt);   // ∞ 不封顶，也不循环
-    this.draw();
-  },
-  draw() {
-    if (!this.list) return;
-    const idx = Math.max(0, this.list.indexOf(this.sel));
-    const n = this.list.length, ZSP = 0.6;
-    const z = -((n - 1) / 2) * ZSP + idx * ZSP;
-    const st = this.stateAt(this.t || 0);
-    this.block.position.set(st.x, st.y, z);
-    this.block.rotation.z = st.rot;
-    rollCart(this.cartG, st.roll / 0.09);
+    this.t = Number.isFinite(d) ? clamp(this.t + dt, 0, d) : Math.max(0, this.t + dt);
+    // 确定性：播放与 seek 走同一 _render（每次重建世界 + 步进到 t），保证「播放到 t」与「拖到 t」逐位一致
+    this._render(this.t);
   },
   reset() { this.t = 0; this.recompute(); },
-  // 时间轴：A2 状态是 t 的解析式（分段运动学有闭式解），seek 直接算，无需重放
+  // 时间轴：seek = 重置世界 → 固定步长跑到 t（确定性）
   seek(t) {
     if (!this.list) return;
-    const tt = Number.isFinite(t) ? Math.max(0, t) : 0;   // 非法值一律落到 0，∞ 时长下也不会出 NaN
+    const tt = Number.isFinite(t) ? Math.max(0, t) : 0;
     const d = this.duration;
     this.t = Number.isFinite(d) ? clamp(tt, 0, d) : tt;
-    this.draw();
+    this._render(this.t);
   },
-  dispose() { const el = document.getElementById('a2-legend'); if (el) el.remove(); this.legendEl = null; },
+  dispose() {
+    try { disposeWorld(); } catch (e) {}
+    this._phys = null; this._physReady = false;
+    const el = document.getElementById('a2-legend'); if (el) el.remove(); this.legendEl = null;
+  },
 };
 
 /* ===================== A3 滑动摩擦力 ===================== */
@@ -656,18 +706,27 @@ const A6 = {
   dispose() {},
 };
 
-/* ===================== A7 杠杆平衡 ===================== */
+/* ===================== A7 杠杆平衡（ammo.js 刚体试点） =====================
+ * 教学核心：梁的倾角由两侧钩码重力矩真实驱动，转到 ±25° 被铰链限位挡住停住；
+ * 钩码是独立刚体、用点对点约束挂在梁的挂点上，梁转动时它们保持竖直下垂、有真实摆动。
+ * 场景不直接碰 window.Ammo，只走 exp/ammo-bridge.js。
+ *
+ * 确定性：seek(t) = 复位世界 → 固定步长 1/60 跑到 t；step(dt) 与 seek 走同一条「无状态重放」路径，
+ * 所以「顺序播放到 t」与「直接拖到 t」逐位一致。平衡（|net|<TOL）时 duration=0、时间条置灰。 */
 const A7 = {
   p: {},
-  MAX_TILT: 25,          // 极限倾角（度）：转到此角停住
+  MAX_TILT: 25,          // 极限倾角（度）：铰链限位挡住
   TOL: 0.05,             // 力矩差容差（N·m）：小于它算平衡
+  BEAM_MASS: 1.0,        // 梁质量（kg）：调小使转动更快、2.2s 内能看出明显倾角
+  HOOK_Y: 0.1125,        // 钩码 root 原点到钩环的局部高度（= 槽码几何半高，视觉与刚体锚点一致）
   build(ctx) {
     this.scene = ctx.scene; this.ctx = ctx;
     registerMaterials(ctx);
     addGround(ctx.scene, 0x3a2c14);
-    // 梁做成枢轴组的子节点：绕支点转，钩码挂在梁上随之转动
-    this.pivotG = new THREE.Group(); this.pivotG.position.set(0, 1.6, 0); ctx.scene.add(this.pivotG);
-    this.beam = box(8, 0.16, 0.4, MATS.woodDark()); this.pivotG.add(this.beam);
+
+    // 梁组：梁 + 刻度都挂在 beamG 下，刚体控制 beamG 的世界变换（绕支点 (0,1.6,0) 转）
+    this.beamG = new THREE.Group(); this.beamG.position.set(0, 1.6, 0); this.beamG.name = 'A7-beam'; ctx.scene.add(this.beamG);
+    this.beam = box(8, 0.16, 0.4, MATS.woodDark()); this.beamG.add(this.beam);
     // 梁面刻度（每 0.32 一格，读力臂用；细线槽，不从板面凸出来）
     const ticks = [];
     for (let i = -12; i <= 12; i++) {
@@ -675,16 +734,70 @@ const A7 = {
       const t = box(big ? 0.018 : 0.010, 0.006, big ? 0.34 : 0.22, MATS.woodLight());
       t.position.set(i * 0.32, 0.083, 0); ticks.push(t);
     }
-    this.pivotG.add(mergeByMaterial(ticks));
+    this.beamG.add(mergeByMaterial(ticks));
+
+    // 支点柱 + 三脚架（静态视觉，不参与刚体）
     this.pivot = cyl(0.16, 0.24, 1.6, MATS.iron()); this.pivot.position.y = 0.8; ctx.scene.add(this.pivot);
     this.tripod = box(1.6, 0.1, 1.2, MATS.iron()); this.tripod.position.y = 0.05; ctx.scene.add(this.tripod);
-    // 两侧钩码（槽码叠块）：作为梁的子节点，跟着梁一起转
-    this.w1 = slottedMass({ n: 3, r: 0.15, h: 0.06 }); this.pivotG.add(this.w1);
-    this.w2 = slottedMass({ n: 3, r: 0.15, h: 0.06 }); this.pivotG.add(this.w2);
-    this.lbl1 = mkLabel('', '#ff8a5a'); ctx.scene.add(this.lbl1);          // 标签留在世界坐标（不做 CSS2D 层级跟随）
+
+    // 两侧钩码：独立 Group 作为物理根（body 控制），槽码 mesh 下移让几何中心对齐 root 原点
+    this.w1root = new THREE.Group(); this.w1root.name = 'A7-w1'; ctx.scene.add(this.w1root);
+    this.w2root = new THREE.Group(); this.w2root.name = 'A7-w2'; ctx.scene.add(this.w2root);
+    this.w1 = slottedMass({ n: 3, r: 0.15, h: 0.06 }); this.w1.position.y = -this.HOOK_Y; this.w1root.add(this.w1);
+    this.w2 = slottedMass({ n: 3, r: 0.15, h: 0.06 }); this.w2.position.y = -this.HOOK_Y; this.w2root.add(this.w2);
+
+    this.lbl1 = mkLabel('', '#ff8a5a'); ctx.scene.add(this.lbl1);
     this.lbl2 = mkLabel('', '#9ad2ff'); ctx.scene.add(this.lbl2);
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
+
     this.angle = 0; this.t = 0; this.duration = 0;
+    this._phys = null; this._physReady = false; this._physPromise = null;
+    this._beamB = null; this._pivotB = null; this._hookB1 = null; this._hookB2 = null;
+    this._bootPhys();
+  },
+  // 惰性加载引擎：首次显示「正在加载物理引擎…」遮罩（bridge 负责），完成后建世界。
+  // 加载完成前的 seek/step 走解析式 fallback，画面不白等。
+  _bootPhys() {
+    if (this._physPromise) return this._physPromise;
+    this._physPromise = (async () => {
+      try {
+        await loadAmmo();
+        // 引擎已缓存时 loadAmmo 只隔一个微任务就 resolve，外壳的 recompute() 可能还没跑、
+        // 本场景的 t1/t2 还是 undefined。_render 走 _syncLabels 会读到 undefined 的 toFixed 抛错
+        // （只有「A7 不是第一个刚体场景」时命中，因为首个要下载 300ms、recompute 早跑完）。
+        // 所以 _render 前先自我 recompute()，保证力矩值就位。
+        this.recompute();
+        this._physReady = true;
+        this._rebuildPhys();
+        this._render(this.t || 0);
+      } catch (e) {
+        console.error('[A7 ammo]', e);
+        this._physReady = false;
+      }
+    })();
+    return this._physPromise;
+  },
+  // 按当前参数重建刚体世界：钩码质量随 F 变、挂点随 L 变，铰链限位 ±25°。
+  _rebuildPhys() {
+    const w = createWorld({ gravity: [0, -9.8, 0] });
+    this._phys = w;
+    const unit = 0.32;
+    const x1 = -(this.p.l1 || 1) * unit, x2 = (this.p.l2 || 1) * unit;
+    // 支点：静态体（纯物理锚点，视觉用 pivot 柱）
+    this._pivotB = w.addBox(null, { mass: 0, halfExtents: [0.12, 0.12, 0.22], pos: [0, 1.6, 0] });
+    // 梁：动态刚体，质心在支点；绕 z 轴铰链，限位 ±25°
+    this._beamB = w.addBox(this.beamG, { mass: this.BEAM_MASS, halfExtents: [4, 0.08, 0.2], pos: [0, 1.6, 0] });
+    w.addHinge(this._pivotB, this._beamB, [0, 0, 0], [0, 0, 1], { low: -this.MAX_TILT * DEG, high: this.MAX_TILT * DEG });
+    // 钩码：质量 = F/g（牛顿 → kg），用点对点约束把钩环挂在梁的挂点上
+    const m1 = (this.p.f1 || 1) / G, m2 = (this.p.f2 || 1) / G;
+    const hangY = 1.6 - 0.30;                        // 梁挂点世界 y（梁局部 y=-0.30）
+    this._hookB1 = w.addBox(this.w1root, { mass: m1, halfExtents: [0.15, 0.12, 0.15], pos: [x1, hangY - this.HOOK_Y, 0] });
+    this._hookB2 = w.addBox(this.w2root, { mass: m2, halfExtents: [0.15, 0.12, 0.15], pos: [x2, hangY - this.HOOK_Y, 0] });
+    w.addP2P(this._beamB, this._hookB1, [x1, -0.30, 0], [0, this.HOOK_Y, 0]);
+    w.addP2P(this._beamB, this._hookB2, [x2, -0.30, 0], [0, this.HOOK_Y, 0]);
+    // 槽码外观随力的大小缩放（视觉提示；物理质量已随 F 变）
+    this.w1.scale.setScalar(0.9 + (this.p.f1 || 1) * 0.12);
+    this.w2.scale.setScalar(0.9 + (this.p.f2 || 1) * 0.12);
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -693,56 +806,97 @@ const A7 = {
     this.t1 = t1; this.t2 = t2;
     this.net = t1 - t2;
     this.balanced = Math.abs(this.net) < this.TOL;
-    // 时间轴：平衡时没有过程（0）；不平衡时 t = 转到极限角所需时间
+    // 时间轴：平衡时没有过程（0）；不平衡时呈现时长 2.2s（转到极限角的过程）
     this.duration = this.balanced ? 0 : 2.2;
-    this.angleTarget = this.balanced ? 0 : (this.net > 0 ? 1 : -1) * (this.MAX_TILT * DEG);
-    if (this.ctx) this.ctx.emitReadout({ torque: t1.toFixed(1) + ' / ' + t2.toFixed(1) });
+    // 不在这里重建世界：_render 每次都会建一个干净世界，重复重建只是浪费
     this.t = 0;
-    this.layout(0);
+    this._render(0);
   },
-  // 转角是 t 的确定性函数：先匀角加速再在极限角停住（|net| 越大落得越快）
-  angleAt(tPres) {
-    if (this.balanced) return 0;
-    const d = this.duration || 2.2;
-    const tt = clamp(tPres, 0, d) / d;                  // 0→1
-    const k = clamp(Math.abs(this.net) / 3, 0.35, 1);   // 力矩差越大越快
-    const p = clamp(tt * (0.55 + 0.45 * k), 0, 1);
-    const e = p * p * (3 - 2 * p);                      // 平滑起停
-    return this.angleTarget * e;
+  // 梁绕 z 的当前倾角（从刚体同步后的四元数读，世界状态）
+  _physAngle() {
+    if (!this.beamG) return 0;
+    const q = this.beamG.quaternion;
+    return 2 * Math.atan2(q.z, q.w);
   },
-  layout(tPres) {
-    const ang = tPres == null ? this.angle : this.angleAt(tPres);
+  // 梁局部点 → 世界坐标（用当前 beamG 世界变换）
+  _beamToWorld(lx, ly) {
+    return new THREE.Vector3(lx, ly, 0).applyQuaternion(this.beamG.quaternion).add(this.beamG.position);
+  },
+  _render(t) {
+    const tt = t == null ? 0 : t;
+    if (this._physReady) {
+      // 每次都重建一个干净世界再重放：btRigidBody 的 reset() 无法完全清掉铰链/点对点约束的
+      // 求解器残留冲量（实测同一 t 连续重放会卡在错误角度），而 A7 只有 132 步，
+      // 重建 4 个刚体 + 3 个约束的开销远小于物理步进本身。这样 seek 与 step 走完全同一条
+      // 「全新世界 → 固定步长跑到 t」，确定性和一致性都成立。
+      this._rebuildPhys();
+      this._phys.stepTo(tt);
+      this.angle = this._physAngle();
+    } else {
+      this._renderFallback(tt);
+    }
+    this._syncLabels();
+  },
+  // 加载期间的解析式 fallback：与旧实现同构，保证引擎下载那 ~1s 内画面仍可交互
+  _renderFallback(t) {
+    const ang = this._angleFallback(t);
+    this.beamG.rotation.z = ang;
     this.angle = ang;
-    this.pivotG.rotation.z = ang;
     const unit = 0.32;
     const x1 = -(this.p.l1 || 1) * unit, x2 = (this.p.l2 || 1) * unit;
-    this.w1.scale.setScalar(0.9 + (this.p.f1 || 1) * 0.12);
-    this.w2.scale.setScalar(0.9 + (this.p.f2 || 1) * 0.12);
-    // 钩码挂在梁下沿（梁局部坐标：梁厚 0.16，挂点下移让整套槽码吊在梁下方，不被梁体遮住）
-    this.w1.position.set(x1, -0.30, 0);
-    this.w2.position.set(x2, -0.30, 0);
-    // 标签位置由梁的局部挂点换算到世界坐标（只用于定位，跟随没问题）
-    const toWorld = (lx, ly) => new THREE.Vector3(lx, ly, 0).applyAxisAngle(new THREE.Vector3(0, 0, 1), ang).add(this.pivotG.position);
-    const p1 = toWorld(x1, -0.55), p2 = toWorld(x2, -0.55);
-    this.lbl1.position.copy(p1); setLabel(this.lbl1, 'F1=' + (this.p.f1 || 1) + 'N · L1=' + (this.p.l1 || 1));
-    this.lbl2.position.copy(p2); setLabel(this.lbl2, 'F2=' + (this.p.f2 || 1) + 'N · L2=' + (this.p.l2 || 1));
+    const p1 = this._beamToWorld(x1, -0.30), p2 = this._beamToWorld(x2, -0.30);
+    this.w1root.position.set(p1.x, p1.y - this.HOOK_Y, 0);   // 钩码竖直下垂，不随梁转
+    this.w2root.position.set(p2.x, p2.y - this.HOOK_Y, 0);
+    this.w1root.quaternion.identity(); this.w2root.quaternion.identity();
+  },
+  _angleFallback(t) {
+    if (this.balanced) return 0;
+    const d = this.duration || 2.2;
+    const tt = clamp(t, 0, d) / d;
+    const k = clamp(Math.abs(this.net) / 3, 0.35, 1);
+    const p = clamp(tt * (0.55 + 0.45 * k), 0, 1);
+    const e = p * p * (3 - 2 * p);
+    return (this.net > 0 ? 1 : -1) * (this.MAX_TILT * DEG) * e;
+  },
+  _syncLabels() {
+    const unit = 0.32;
+    const x1 = -(this.p.l1 || 1) * unit, x2 = (this.p.l2 || 1) * unit;
+    const p1 = this._beamToWorld(x1, -0.30), p2 = this._beamToWorld(x2, -0.30);
+    this.lbl1.position.set(p1.x, p1.y - 0.32, 0);
+    this.lbl2.position.set(p2.x, p2.y - 0.32, 0);
+    setLabel(this.lbl1, 'F1=' + (this.p.f1 || 1) + 'N · L1=' + (this.p.l1 || 1));
+    setLabel(this.lbl2, 'F2=' + (this.p.f2 || 1) + 'N · L2=' + (this.p.l2 || 1));
     this.lbl.position.set(0, 2.75, 0);
     const dir = this.balanced ? '平衡（保持水平）' : (this.net > 0 ? '左侧力矩大 → 向左侧下沉' : '右侧力矩大 → 向右侧下沉');
-    setLabel(this.lbl, 'F1L1=' + this.t1.toFixed(1) + ' N·m   F2L2=' + this.t2.toFixed(1) + ' N·m · ' + dir);
+    // t1/t2 由 recompute() 赋值，加载完成前后都可能被调到这里 → 兜底 ?? 0
+    setLabel(this.lbl, 'F1L1=' + (this.t1 ?? 0).toFixed(1) + ' N·m   F2L2=' + (this.t2 ?? 0).toFixed(1) + ' N·m · ' + dir);
   },
   step(dt) {
-    if (dt <= 0) { this.layout(this.t || 0); return; }
+    if (dt <= 0) return;
     this.t = Math.min((this.t || 0) + dt, this.duration || 0);
-    this.layout(this.t);
+    if (this._physReady) {
+      // 播放走增量步进（不重建，快）：从当前世界连续推进 round(dt/STEP) 步。
+      // 它与 seek 的「重建世界 + 跑 n 步」等价——都是从全新初始状态连续跑 n 步，所以
+      // 「顺序播放到 t」与「直接拖到 t」逐位一致。
+      this._phys.stepN(Math.max(1, Math.round(dt / STEP)));
+      this.angle = this._physAngle();
+    } else {
+      this._renderFallback(this.t);
+    }
+    this._syncLabels();
   },
-  // 时间轴：转角有闭式解，seek 直接算（转到位后停在极限角，不回摆）
+  // 时间轴：seek = 重建干净世界 → 1/60 固定步长跑到 t（确定性；reset 不清约束残留冲量，只能重建）
   seek(t) {
     this.t = Math.max(0, Number.isFinite(t) ? t : 0);
     if (this.duration > 0) this.t = Math.min(this.t, this.duration);
-    this.layout(this.t);
+    this._render(this.t);
   },
   reset() { this.t = 0; this.recompute(); },
-  dispose() {},
+  dispose() {
+    try { disposeWorld(); } catch (e) {}
+    this._phys = null;
+    this._physReady = false;
+  },
 };
 
 /* ===================== 右侧统计面板读数 =====================
@@ -762,12 +916,32 @@ Object.assign(A1, {
 });
 Object.assign(A2, {
   readouts() {
-    const st = this.list ? this.stateAt(this.t || 0) : null;
-    const phase = st ? ({ ramp: '坡上下滑', flat: '平面滑行', stopped: '已停止' }[st.phase] || '—') : '—';
+    // 读数从物理世界采样：位移取小车位置，速度取线性速度，静止判断看是否 True 停住
+    // 位移零点 = 释放点 startX（=XF0+0.1，坡脚），不是跑道左端 XF0——理论 s=v0²/(2μg) 从释放点起算，
+    // 零点不齐会把刚体实测距离系统性多算 0.1m（0.5 变 0.58，假红）。
+    let x = this.startX(), v = 0, stopped = false;
+    if (this._physReady && this._phys && this._cartB) {
+      x = this.cartG.position.x;
+      v = this._phys.linearSpeedX(this._cartB);
+      stopped = this._phys.isStopped(this._cartB);
+    } else if (this.list) {
+      // fallback：解析式 t → x
+      const mu = this.sel.mu, tt = this.t || 0;
+      if (mu <= 1e-6) { x = this.XF0 + this.v0 * tt; v = this.v0; }
+      else {
+        const sMax = isFinite(this.s) ? this.s : Infinity;
+        x = this.XF0 + Math.min(this.v0 * tt - 0.5 * mu * G * tt * tt, sMax);
+        v = Math.max(0, this.v0 - mu * G * tt);
+        stopped = v <= 0.01;
+      }
+    }
+    const dist = Math.max(0, x - this.startX());
+    const phase = stopped ? '已停止' : (v > 0.01 ? '滑行中' : '静止');
     return [
       rd('到坡底速度 v₀', this.v0, 'm/s'),
       rd('所选材料 μ', this.sel ? this.sel.mu : 0, '', 2),
-      rd('滑行距离 s', isFinite(this.s) ? this.s : '∞（永不停止）', isFinite(this.s) ? 'm' : ''),
+      rd('当前位移 s', dist, 'm'),
+      rd('速度 v', v, 'm/s'),
       rd('已用时 t', this.t, 's'),
       { label: '运动阶段', value: phase, unit: '' },
     ];
@@ -820,13 +994,19 @@ Object.assign(A6, {
   },
 });
 Object.assign(A7, {
+  // 读数必须从物理世界采样（CEO 硬约束 2）：倾角取梁刚体四元数、角速度取 bridge 缓存的 ωz、
+  // 钩码位置取 w1root/w2root 的实际世界坐标。不能用解析式 t1/t2 冒充，否则画面与读数会两套数据。
   readouts() {
+    const ang = (this._physReady && this.beamG ? this._physAngle() : (this.angle || 0)) / DEG;
+    const omega = (this._physReady && this._phys && this._beamB) ? this._phys.omegaZ(this._beamB) : 0;
+    const y1 = this.w1root ? this.w1root.position.y : null;
+    const y2 = this.w2root ? this.w2root.position.y : null;
     return [
       rd('左侧 F1·L1', this.t1, 'N·m', 1),
       rd('右侧 F2·L2', this.t2, 'N·m', 1),
-      rd('力矩差 ΔM', this.net, 'N·m', 1),
-      rd('梁倾角', (this.angle || 0) / DEG, '°', 1),
-      { label: '状态', value: this.balanced ? '平衡' : (this.net > 0 ? '左重下沉' : '右重下沉'), unit: '' },
+      rd('梁倾角', ang, '°', 1),
+      rd('角速度 ω', omega, 'rad/s', 2),
+      rd('钩码高度', (y1 != null && y2 != null) ? (y1.toFixed(2) + ' / ' + y2.toFixed(2)) : '—', 'm'),
     ];
   },
 });

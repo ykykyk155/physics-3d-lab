@@ -8,7 +8,7 @@
     "sample": [
       {
         "label": "速度 v",
-        "value": 0.04,
+        "value": 0.05,
         "unit": "m/s"
       },
       {
@@ -57,7 +57,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.04,
+        "value": 0.05,
         "unit": "s"
       },
       {
@@ -96,7 +96,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.08,
+        "value": 0.1,
         "unit": "s"
       }
     ]
@@ -221,19 +221,19 @@
         "unit": "N·m"
       },
       {
-        "label": "力矩差 ΔM",
-        "value": 0,
-        "unit": "N·m"
-      },
-      {
         "label": "梁倾角",
         "value": 0,
         "unit": "°"
       },
       {
-        "label": "状态",
-        "value": "平衡",
-        "unit": ""
+        "label": "角速度 ω",
+        "value": 0,
+        "unit": "rad/s"
+      },
+      {
+        "label": "钩码高度",
+        "value": "1.19 / 1.19",
+        "unit": "m"
       }
     ]
   },
@@ -271,7 +271,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.07,
+        "value": 0.08,
         "unit": "s"
       }
     ]
@@ -465,7 +465,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.08,
+        "value": 0.07,
         "unit": "s"
       }
     ]
@@ -669,7 +669,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.07,
+        "value": 0.05,
         "unit": "s"
       }
     ]
@@ -708,7 +708,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.09,
+        "value": 0.05,
         "unit": "s"
       }
     ]
@@ -747,7 +747,7 @@
       },
       {
         "label": "已用时 t",
-        "value": 0.07,
+        "value": 0.05,
         "unit": "s"
       }
     ]
@@ -761,7 +761,7 @@
     "sample": [
       {
         "label": "当前温度 T",
-        "value": -9.7,
+        "value": -9.9,
         "unit": "℃"
       },
       {
@@ -795,7 +795,7 @@
     "sample": [
       {
         "label": "当前温度 T",
-        "value": 20.3,
+        "value": 20.2,
         "unit": "℃"
       },
       {
@@ -810,7 +810,7 @@
       },
       {
         "label": "已加热",
-        "value": 1,
+        "value": 0,
         "unit": "s"
       },
       {
@@ -834,7 +834,7 @@
       },
       {
         "label": "曲轴角",
-        "value": 169,
+        "value": 135,
         "unit": "°"
       },
       {
