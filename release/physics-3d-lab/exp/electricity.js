@@ -7,7 +7,7 @@ const WIRE = '#c23b3b';      // 导线皮：教学功能色红（黄只留给电
 
 function electrons(n, color) {
   const geo = new THREE.SphereGeometry(0.07, 8, 6);
-  const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(color || '#FACC15'), emissive: new THREE.Color(color || '#FACC15'), emissiveIntensity: 0.6 });
+  const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(color || C), emissive: new THREE.Color(color || C), emissiveIntensity: 0.6 });
   const inst = new THREE.InstancedMesh(geo, m, n);
   inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   return inst;
@@ -282,7 +282,7 @@ const D4 = {
     ctx.scene.add(this.dotMesh);
     this.curMesh = new THREE.InstancedMesh(
       new THREE.SphereGeometry(0.09, 16, 12),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color('#f0abfc'), emissive: new THREE.Color('#f0abfc'), emissiveIntensity: 1 }),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(COLORS.altPink), emissive: new THREE.Color(COLORS.altPink), emissiveIntensity: 1 }),
       1,
     );
     this.curMesh.castShadow = false; this.curMesh.receiveShadow = false;
@@ -471,7 +471,7 @@ const D6 = {
   drawField(lay) {
     this.fieldLines.forEach(f => { f.geometry.dispose(); this.scene.remove(f); }); this.fieldLines = [];
     const dir = this.p.dir === -1 ? -1 : 1;               // 电流方向：反向时磁场反向
-    const color = dir === -1 ? '#F0ABFC' : '#A78BFA';
+    const color = dir === -1 ? COLORS.altPink : COLORS.currentFwd;
     const arrowSign = dir;                                 // 磁感线 N→S 方向翻转
     const barLike = (lay === 'bar' || lay === 'repel' || lay === 'attract');
     // 铁屑板只在条形磁铁布局下可见（它就是磁感线的实物载体）

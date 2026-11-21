@@ -7,15 +7,32 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
+/* 色彩 token 单一来源（附录 B.2 / B.8）：
+ * - 五科识别色：UI 经 moduleColor() 注入 --tab-c/--tab-rgb，3D 数据元素直接读；
+ * - bg/primary：与 :root CSS 变量同值双载体，外壳启动时自检防漂移；
+ * - 教学功能色：白名单语义 token，个别值与识别色巧合相同，语义独立、禁止互相引用；
+ * - 局部一次性材质色（木纹/金属/液体区分等）留在各文件材质表（props.js MATS），不入此表。 */
 export const COLORS = {
   mechanics: '#F59E0B',
   electricity: '#FACC15',
   optics: '#A78BFA',
   acoustics: '#34D399',
   thermal: '#FB7185',
-  neutral: '#5B6B85',
-  ink: '#E6EDF7',
+  bg: '#0B1120',          // 场景背景与雾色；= :root --color-bg
+  primary: '#3B82F6',     // 模块色缺失时兜底；= :root --color-primary
+  neutral: '#5B6B85',     // 中性参考线/结构件（2026-11 提亮后上限放宽）
+  ink: '#E6EDF7',         // 3D 标签默认文字色
+  energyEk: '#34D399',    // A6 动能条（与声学绿同值，语义独立）
+  energyEp: '#60A5FA',    // A6 势能条
+  altPink: '#F0ABFC',     // 次级数据粉：次级光路 / 反向电流 / 图线动点 / 焦点标记
+  currentFwd: '#A78BFA',  // D7 正向电流（与光学紫同值，语义独立）
 };
+
+/* hex → rgba 字符串：DOM 叠加层引用同源背景色用（如 A2 图例） */
+export function rgba(hex, a){
+  const h = hex.replace('#','');
+  return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16) + ',' + a + ')';
+}
 
 export const DEG = Math.PI / 180;
 export const G = 9.8;

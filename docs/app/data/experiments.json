@@ -4,7 +4,7 @@
     "textbook": "人教版 PEP 2024秋八上 / 2025春八下 / 2025秋九年级全一册",
     "priority": "P0 首批必做 25 个场景；P1 二期扩展 11 个见文末 backlog",
     "note": "params[] 每一项直接对应设计总裁规范里的一个滑杆区块：id 作 state key，label 显示名，min/max/step/default 生成 input[type=range]，unit 拼在数值后；type=enum 的项不做滑杆，2~4 档用分段按钮、5~6 档用下拉。result 是滑杆旁实时显示的计算量（公式驱动，禁止硬编码）；公式存在分段条件时（如 μ≥tanθ 静止），读数区显示状态词替代数值。",
-    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 14 个（A1/A2/A3/A6/A7/C1/C2/C3/D1/D5/D7/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（A4、A5、B1~B5、D2~D4、D6 共 11 个，duration 恒 0，断言「任何参数下必须为 0」；判据＝拖到 t=0.5×duration 画面与 t=0 逐像素相同——注意签名必须覆盖父节点旋转、InstancedMesh 实例矩阵与 Line2 顶点数据，且取样步长避开 3 的倍数，C2/D1 曾因只读变换矩阵被误判静止）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的场景不带此字段，外壳用默认句「本实验无时间演化」。", "moduleColors": { "mechanics": "#F59E0B", "electricity": "#FACC15", "optics": "#A78BFA", "acoustics": "#34D399", "thermal": "#FB7185" }
+    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 14 个（A1/A2/A3/A6/A7/C1/C2/C3/D1/D5/D7/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（A4、A5、B1~B5、D2~D4、D6 共 11 个，duration 恒 0，断言「任何参数下必须为 0」；判据＝拖到 t=0.5×duration 画面与 t=0 逐像素相同——注意签名必须覆盖父节点旋转、InstancedMesh 实例矩阵与 Line2 顶点数据，且取样步长避开 3 的倍数，C2/D1 曾因只读变换矩阵被误判静止）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的场景不带此字段，外壳用默认句「本实验无时间演化」。"
   },
   "experiments": [
     {
@@ -22,12 +22,12 @@
       "phenomenon": "θ↑ → v–t 斜率变大、s–t 曲线更陡；μ ≥ tanθ 时小车静止；改质量而速度不变（破除“重的快”）；上半程平均速度 < 全程 < 下半程"
     },
     {
-      "id": "A2-newton-first", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 3.4,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：正常分支返回 3.4（呈现时长，与 defaultSpeed 自洽——倍速只改 step 时间倍率、不改 duration）；理想光滑 μ=0 为无界分支 → **getter 返回真正的 Infinity**（CEO 口径：给它有限窗口会在时间轴上造出「到头了」的假终点，与「永不停」这一教学重点矛盾）。外壳表现：时间条禁拖、读数 `t / ∞ s`、播放不自动暂停但可手动停止。静止/无界都是**参数级分支**，不设场景级常量字段（CEO 口径：「有没有过程」取决于参数，标成场景常量会让默认参数下能滑的 A1 永远置灰）。A2 无返回 0 的分支，故不标 durationZeroKind；∞ 分支只由运行期判定，不要去 JSON 里找标记字段", 
+      "id": "A2-newton-first", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 2.9,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：呈现时长 = 斜坡下滑时间 tRamp + 摩擦段滑到停时间 tFlat + 0.4s 余量（clamp 1.2~12s）。tRamp=√(2·pathL/(g·sinθ))、tFlat=v0/(μg)、v0=√(2gh)、θ=atan(h/RL)、pathL=Lstr+R·θ（直线斜坡长+圆弧弧长）、RL=2.0、R=0.3。摩擦输入经标定 k(μ)=0.945μ−0.19μ²（单调、过原点；引擎有效摩擦比标称高约3%~23%，用 k 补偿后实测≈理论，全量程0.02~0.7每点偏差≤5%，有常驻探针断言兜底，换 ammo 版本或改子步会报错）。默认 h=0.35、棉布 μ=0.3 → tRamp≈1.56 + tFlat≈0.89 + 0.4 ≈ 2.85 → 快照 2.9；换材料 duration 随之变（木板 μ0.12 最长≈4.2s）。理想光滑 μ=0 为无界分支 → **getter 返回真正的 Infinity**（CEO 口径：有限窗口会造出「到头」假终点，与「永不停」教学重点矛盾；外壳表现：时间条禁拖、读数 `t / ∞ s`、不自动暂停但可手停；物理上 200m 轨道 + 渐隐延伸，车不出轨不坠落）。A2 无返回 0 的分支，不标 durationZeroKind；∞ 分支只由运行期判定，不要在 JSON 里找标记字段", 
       "name": "阻力对物体运动的影响（牛顿第一定律）", "chapter": "八下 第八章 第1节 牛顿第一定律",
       "quantities": ["v0", "mu", "s"],
       "params": [
         { "id": "surface", "label": "表面材料", "type": "enum", "options": [ { "label": "毛巾", "value": 0.6 }, { "label": "棉布", "value": 0.3 }, { "label": "木板", "value": 0.12 }, { "label": "冰面", "value": 0.02 }, { "label": "理想光滑", "value": 0 } ], "default": 0.3, "unit": "" },
-        { "id": "height", "label": "释放高度 h", "min": 0.05, "max": 0.3, "step": 0.01, "default": 0.15, "unit": "m" },
+        { "id": "height", "label": "释放高度 h", "min": 0.05, "max": 0.5, "step": 0.01, "default": 0.35, "unit": "m" },
         { "id": "mass", "label": "小车质量", "min": 0.1, "max": 1.0, "step": 0.1, "default": 0.4, "unit": "kg" }
       ],
       "formula": "v0 = √(2gh) ; s = v0²/(2μg)",

@@ -58,6 +58,14 @@ html,body{height:100%}
 body{font-family:var(--font-sans);background:var(--color-bg);color:var(--color-text);overflow:hidden}
 button{font-family:inherit}
 
+/* 焦点环（附录 B.5 按钮通用态：outline 2px primary + glow）。
+ * 用 :focus-visible 而非 :focus：鼠标点击不显环，键盘 Tab 才显，避免满屏蓝框。
+ * :where() 零特异度，不覆盖任何组件自己的描边/底色。 */
+:where(button,input,select,textarea,a[href],[tabindex]):focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;box-shadow:var(--shadow-glow)}
+/* 滑杆拇指另加一圈：轨道细，只给 input 画环看不出拇指在哪 */
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(0,0,0,.35),var(--shadow-glow)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:var(--shadow-glow)}
+
 #app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:minmax(0,1fr);height:100vh;height:100dvh}
 @media (min-width:768px) and (max-width:1023px){ #app{grid-template-columns:280px 1fr} }
 
@@ -205,9 +213,23 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   .p-header{padding-top:0}
   .app-name,.app-sub{display:none}
   .tabs{margin-top:0}
-  .tab{font-size:13px}
-  .tab .tlabel{display:none}
+  .tab{font-size:13px;height:40px}                      /* 抽屉全宽，五格各 ~70px，容得下「力学」+计数；触控目标 ≥40px（B.7） */
   .timebar{bottom:68px}                                 /* <768px：上移到播放工具条上方 8px */
+}
+/* ---------- 断点补齐（附录 B.7）：宽屏 360px 面板 / 矮视口抽屉 45vh ---------- */
+@media (min-width:1600px){ #app{grid-template-columns:360px 1fr} }
+@media (max-width:767px) and (max-height:599px){ #panel{height:45vh} }
+
+/* ---------- 减弱动效（附录 B.6 无障碍承诺落地） ----------
+ * 原则：空间移动（滑行、旋转、缩放）直接到位；颜色与透明度过渡保留——
+ * 场景交叉淡入 #fade、toast 淡入淡出、启动遮罩淡出都是 opacity，不在降级之列。 */
+@media (prefers-reduced-motion: reduce){
+  #panel{transition:none}                               /* 抽屉不再上滑，开合直接到位 */
+  #stats{transition:none}
+  .stats-toggle svg,.drawer-handle svg{transition:none} /* chevron 翻转改为瞬时 */
+  input[type=range]::-webkit-slider-thumb{transition:none}   /* 拇指放大保留、过渡去掉 */
+  .btn{transition:filter var(--dur-fast)}               /* 按压 scale 保留，但不补间 */
+  #toast{transform:translate(-50%,0);transition:opacity var(--dur-base)}  /* 去上移 8px，留淡入淡出 */
 }
 </style>
 </head>
@@ -292,6 +314,17 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from './vendor/addons/renderers/CSS2DRenderer.js';
+import { COLORS } from './exp/common.js';
+
+/* 色彩同源自检（附录 B.8）：:root 基础色与 COLORS 常量表是同一 token 的双载体，
+ * 任一侧改动而另一侧没跟上，启动即告警，不等视觉走样才发现。 */
+{
+  const cs = getComputedStyle(document.documentElement);
+  for(const [k, v] of [['--color-bg', COLORS.bg], ['--color-primary', COLORS.primary]]){
+    const css = cs.getPropertyValue(k).trim();
+    if(css.toLowerCase() !== v.toLowerCase()) console.warn('[token drift] ' + k + ': CSS ' + css + ' ≠ COLORS ' + v);
+  }
+}
 
 /* ---------- 小工具 ---------- */
 const $ = s => document.querySelector(s);
@@ -516,8 +549,8 @@ function switchExperiment(id, opts = {}){
     labelRoot.firstChild && (labelRoot.firstChild.innerHTML = '');   // 清 CSS2D 标签
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0B1120);
-    scene.fog = new THREE.Fog(0x0B1120, 18, 60);
+    scene.background = new THREE.Color(COLORS.bg);
+    scene.fog = new THREE.Fog(COLORS.bg, 18, 60);
     addLights(scene);
     camera.position.set(6, 4.5, 8);
     controls.target.set(0, 1, 0);
@@ -567,7 +600,7 @@ function viewportError(msg){
 }
 
 /* ---------- 左侧面板渲染 ---------- */
-function moduleColor(mid){ return DATA.meta.moduleColors[mid] || '#3B82F6'; }
+function moduleColor(mid){ return COLORS[mid] || COLORS.primary; }   // 识别色单一来源 = common.js COLORS（JSON 不再带 moduleColors）
 function renderTabs(){
   const box = $('#tabs'); box.innerHTML = '';
   MODULES.forEach(m => {
@@ -958,11 +991,26 @@ function syncSlider(id){
   pe.val.textContent = fmtNum(store.params[id]);
 }
 
-/* ---------- 重置：300ms 补间回教材默认值 ---------- */
+/* ---------- 重置：300ms 补间回教材默认值（减弱动效下直接到位） ---------- */
 let resetToken = 0;
+const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
 function resetAll(){
   const meta = DATA.byId[store.experimentId];
   if(!meta) return;
+  if(REDUCE_MOTION.matches){                             // 不做补间：一步写默认值，收尾与补间末帧一致
+    meta.params.forEach(p => { store.params[p.id] = p.default; pending.add(p.id); });
+    meta.params.forEach(p => { if(p.type === 'enum') paintEnum(p.id); else syncSlider(p.id); });
+    clampFollows();
+    if(current.exp && current.exp.reset){ try{ current.exp.reset(); }catch(e){ console.error('[reset]', e); } }
+    const c0 = current.cam0;
+    if(c0){ camera.position.copy(c0.pos); controls.target.copy(c0.tgt); controls.update(); }
+    renderer.shadowMap.needsUpdate = true;
+    store.simTime = 0;
+    seekPending = null;
+    updateTimebarValue();
+    toast('已恢复教材默认参数');
+    return;
+  }
   const tok = ++resetToken;
   const t0 = performance.now(), D = 300;
   const from = Object.assign({}, store.params);
@@ -1194,6 +1242,7 @@ window.__LAB = {                                        // 验收/调试钩子�
   camera: () => camera, controls: () => controls, renderer: () => renderer,
   current: () => current,
   switch: id => switchExperiment(id),
+  reset: () => resetAll(),                               // 验收钩子：走与「重置」按钮同一条路径
   pendingKeys: () => [...pending],
   loadAmmo,                                             // bridge/探针共用；重复调用不二次下载
   ammoRequests: () => ammoReqCount,

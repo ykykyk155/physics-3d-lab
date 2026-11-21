@@ -232,7 +232,7 @@ const F3 = {
     // 左侧：三材质升温条
     this.mats = [
       { c: 4.2, color: '#3b82f6', label: '水' },
-      { c: 2.1, color: '#f59e0b', label: '煤油' },
+      { c: 2.1, color: '#f59e0b', label: '煤油' },   // 液体区分色（白名单）：与力学识别色同值纯属巧合，语义独立，勿收敛为 COLORS.mechanics
       { c: 0.92, color: '#a16207', label: '砂石' },   // 教材表原值 0.92×10³（教材用词「砂石」）
     ];
     this.bars = []; this.qlabels = [];
@@ -318,7 +318,7 @@ const F3 = {
     // 活塞运动方向箭头
     this.moveArrow = mkArrow('#cfd8e6'); ctx.scene.add(this.moveArrow);
     this.lbl = mkLabel('', C); this.lbl.position.set(EX, 3.55, 0); ctx.scene.add(this.lbl);
-    this.lblEta = mkLabel('', '#f0abfc'); this.lblEta.position.set(-3.0, 3.35, 0); ctx.scene.add(this.lblEta);
+    this.lblEta = mkLabel('', COLORS.altPink); this.lblEta.position.set(-3.0, 3.35, 0); ctx.scene.add(this.lblEta);
     this.lblQ = mkLabel('', '#ffd479'); this.lblQ.position.set(-2.2, 3.3, 0); ctx.scene.add(this.lblQ);
     this.lblIn = mkLabel('进气门 · 闭', '#22c55e'); this.lblIn.position.set(EX - 0.86, cylTop + 0.82, 0); ctx.scene.add(this.lblIn);
     this.lblEx = mkLabel('排气门 · 闭', '#ef4444'); this.lblEx.position.set(EX + 0.86, cylTop + 0.82, 0); ctx.scene.add(this.lblEx);

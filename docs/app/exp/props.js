@@ -41,7 +41,6 @@ export const MATERIALS = {
   dark:        mat('#22283a', { roughness: 0.80, metalness: 0.05 }),
   water:       mat('#3b82f6', { roughness: 0.12, metalness: 0.02, transparent: true, opacity: 0.30, depthWrite: false }),
   flame:       mat('#ffb020', { roughness: 0.40, metalness: 0.00, emissive: '#ff8a00', emissiveIntensity: 1, transparent: true, opacity: 0.95 }),
-  wire:        mat('#FACC15', { roughness: 0.55, metalness: 0.05 }),
   band:        mat('#d9a066', { roughness: 0.60, metalness: 0.10 }),   // 电阻色环
   needleRed:   mat('#C23B3B', { roughness: 0.40, metalness: 0.10 }),   // 表针 / 指示针
   candleWax:   mat('#f2e6cc', { roughness: 0.62, metalness: 0.02 }),   // 蜡身

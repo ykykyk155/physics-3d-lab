@@ -266,7 +266,7 @@ renderer.shadowMap.autoUpdate = false;   // 只在参数变化/切场景时置 n
 | 温度—时间曲线、热流箭头、火焰、热机活塞 | 热学 `#FB7185` |
 | 选中/焦点/激活态 | 主色 `#3B82F6` |
 
-注意：中性结构件（地面、支架、刻度尺、桌面）一律用低饱和中性灰（`#2A3648`–`#475467`），不要染模块色——否则满屏彩色，识别色就失去意义了。识别色只给"物理量本身"和"选中态"。
+注意：中性结构件（地面、支架、刻度尺、桌面）一律用低饱和中性灰（2026-11 提亮后放宽为 `#22283A`–`#5B6B85`，参考线取 `COLORS.neutral`），不要染模块色——否则满屏彩色，识别色就失去意义了。识别色只给"物理量本身"和"选中态"。各模块场景地面允许带极暗的低饱和学科色调暗示（力学 `#3A2C14`、光学 `#2A2340`、声学 `#143027`、电学 `#3A3514`、热学 `#3A1C22`），这是氛围底色不是识别色，不得提亮到识别色明度。
 
 ### 器材必须做成实物，不能是积木
 
@@ -562,47 +562,53 @@ const Tboil = 1730.63 / (8.07131 - Math.log10(mmHg)) - 233.426;
 - 右视区叠加层：左上「当前实验」chip；左下播放/速度悬浮工具条；右下首次操作提示（5s 后淡出）。
 - 面板与视区之间 1px `--color-border` 分隔线；面板投影 `--shadow-panel`。
 
-## B.2 色彩 Token（暗色主题）
+## B.2 色彩 Token（暗色主题，2026-11 提亮后实值，2026-11-21 回写）
 
-| Token | 值 | 用途 |
-|---|---|---|
-| `--color-bg` | `#0B1120` | 应用底色 / 3D 场景背景与雾色 |
-| `--color-panel` | `#101828` | 左面板底色 |
-| `--color-surface` | `#1A2233` | 卡片、列表项、次级按钮底 |
-| `--color-surface-hover` | `#232E47` | hover 底 / 滑杆未填充轨道 |
-| `--color-border` | `#2A3648` | 分隔线、描边 |
-| `--color-text-primary` | `#F2F5FA` | 主文字 |
-| `--color-text-secondary` | `#98A2B3` | 说明、单位、刻度、章节副标 |
-| `--color-primary` | `#3B82F6` | 全局选中、主按钮、焦点环 |
-| `--color-primary-hover` | `#60A5FA` | 主按钮 hover |
-| `--accent-mechanics` | `#F59E0B` | 力学识别色（橙） |
-| `--accent-electricity` | `#FACC15` | 电学识别色（黄） |
-| `--accent-optics` | `#A78BFA` | 光学识别色（紫） |
-| `--accent-acoustics` | `#34D399` | 声学识别色（绿） |
-| `--accent-thermal` | `#FB7185` | 热学识别色（红） |
-| `--color-danger` | `#F04438` | 重置警示、错误态 |
-| `--color-success` | `#12B76A` | 成功反馈 |
+**双载体、同一 token**：外壳基础色板落 `index.html` 的 `:root` CSS 变量；五科识别色与 3D 侧 token 落 `exp/common.js` 的 `COLORS` 常量表（**单一来源**）。外壳启动时自检 `--color-bg`/`--color-primary` 与 `COLORS.bg`/`COLORS.primary` 一致，漂移即告警 `[token drift]`。**禁止第三份色表**——JSON 的 `moduleColors` 字段已删除。
 
-对比度：主文字/面板 ≈ 13:1，次级文字/面板 ≈ 7:1，五科识别色作文字使用时均 ≥ 4.5:1，达 WCAG AA。
+| Token | 值 | 载体 | 用途 |
+|---|---|---|---|
+| `--color-bg` / `COLORS.bg` | `#0B1120` | :root + COLORS | 应用底色 / 3D 场景背景与雾色 |
+| `--color-panel` | `#26324A` | :root | 左面板 / 统计面板 / 抽屉底色（比视区亮一档） |
+| `--color-surface` | `#323F5C` | :root | 卡片、列表项、次级按钮底 |
+| `--color-surface-hover` | `#3C4A6B` | :root | hover 底 / 滑杆未填充轨道 |
+| `--color-border` | `#46557A` | :root | 分隔线、描边 |
+| `--color-text` | `#FFFFFF` | :root | 主文字（实现时由 --color-text-primary 更名） |
+| `--color-text-secondary` | `#B4C0D4` | :root | 说明、单位、刻度、章节副标 |
+| `--color-primary` / `COLORS.primary` | `#3B82F6` | :root + COLORS | 全局选中、主按钮、焦点环、时间条已播放段、模块色兜底 |
+| `COLORS.mechanics` | `#F59E0B` | COLORS → 运行时 --tab-c | 力学识别色（橙） |
+| `COLORS.electricity` | `#FACC15` | 同上 | 电学识别色（黄） |
+| `COLORS.optics` | `#A78BFA` | 同上 | 光学识别色（紫） |
+| `COLORS.acoustics` | `#34D399` | 同上 | 声学识别色（绿） |
+| `COLORS.thermal` | `#FB7185` | 同上 | 热学识别色（红） |
+| `COLORS.neutral` | `#5B6B85` | COLORS | 中性参考线 / 结构件 |
+| `COLORS.ink` | `#E6EDF7` | COLORS | 3D 标签默认文字色 |
+
+识别色**没有静态 CSS 变量**：`renderTabs()` 把当前模块的 `COLORS` 值注入 `--tab-c` / `--tab-rgb`（root 与每个 Tab / 场景卡），Tab、场景卡、滑杆填充、分段按钮全部消费这两个变量。`--color-primary-hover` / `--color-danger` / `--color-success` 预留未落地：主按钮 hover 用 `filter:brightness(1.15)`，错误态用 `.err-chip` 自带底色。
+
+**教学功能色**（白名单，语义独立，不染模块识别色）：`COLORS.energyEk #34D399` / `energyEp #60A5FA`（A6 能量条）、`altPink #F0ABFC`（次级光路 / 反向电流 / 图线动点 / 焦点标记）、`currentFwd #A78BFA`（D7 正向电流）；导线红黑、磁极 N 红 S 蓝、液体区分色、火焰发光、水银柱等器材功能色集中落 `props.js` 的 `MATS` 材质表。个别功能色与识别色**同值纯属巧合，语义独立、禁止互相引用**（如煤油橙 `#f59e0b` 是液体区分色，不是力学识别色）。
+
+对比度（提亮后面板 `#26324A`）：主文字 ≈ 12.8:1，次级文字 ≈ 7:1，五科识别色作文字使用均 ≥ 4.5:1，达 WCAG AA。
 
 ## B.3 字体与字号
 
 - `--font-sans`: `-apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif`
 - `--font-mono`: `"JetBrains Mono", "SF Mono", Consolas, monospace` —— **所有物理量数值专用**，等宽保证拖动滑杆时数字不抖版
+- 字号以**字面 px 落地**（单文件外壳，未引 `--text-*` 变量）；下表是字号阶梯，不是变量名。
 
-| Token | 值 | 用途 |
+| 字号 | 值 | 用途 |
 |---|---|---|
-| `--text-xs` | 12px / 18 | 单位、刻度、教材章节副标 |
-| `--text-sm` | 13px / 20 | 列表项、滑杆标签；数值读数用 13px mono + 字重 600 |
-| `--text-base` | 14px / 22 | 按钮文字、正文 |
-| `--text-lg` | 16px / 24 | 分组标题、场景标题 |
-| `--text-xl` | 20px / 28 | 应用名 |
+| xs | 12px / 18 | 单位、刻度、教材章节副标、分组标题 |
+| sm | 13px / 20 | 滑杆标签、读数（mono + 字重 600）；场景卡为 13px / 18 |
+| base | 14px / 22 | 按钮文字、正文 |
+| lg | 16px / 24 | 预留（当前未用） |
+| xl | 20px / 28 | 应用名 |
 
 字重：400 常规 / 500 标签与按钮 / 600 标题与数值。
 
 ## B.4 间距、圆角、阴影、动效
 
-间距（4px 基线）：`--space-1` 4px、`-2` 8px、`-3` 12px、`-4` 16px、`-5` 20px、`-6` 24px。
+间距（4px 基线，字面 px 落地，未引 `--space-*` 变量）：4 / 8 / 12 / 16 / 20 / 24px。
 用法：面板内边距 16px；分组间 24px；参数区块间 12px；列表项内边距 10×12px；按钮内边距 8×16px。
 
 圆角：`--radius-sm` 4px（单位 chip）、`--radius-md` 8px（按钮、输入框、滑杆轨道）、`--radius-lg` 12px（卡片、列表项）、`--radius-full` 999px（模块 Tab、悬浮胶囊）。
@@ -619,171 +625,173 @@ const Tboil = 1730.63 / (8.07131 - Math.log10(mmHg)) - 233.426;
 
 动效：`--dur-fast` 120ms（hover、按压）、`--dur-base` 200ms（面板内状态切换）、`--dur-slow` 300ms（场景切换、抽屉、重置补间）；`--ease-out` `cubic-bezier(.16,1,.3,1)`（进场、展开）、`--ease-in-out` `cubic-bezier(.65,0,.35,1)`（补间、双向过渡）。
 
-## B.5 组件规范
+## B.5 组件规范（2026-11-21 按实现回写）
 
-**1. 模块 Tab（五科分组）**：等宽 5 格药丸组（`--radius-full`），高 36px，图标 16px + 文字 13px（320px 面板下每格约 58px，「力学」二字可容纳；<768px 抽屉态可只留图标）。默认文字 secondary；选中态底 = 识别色 15% 透明、文字 = 识别色、内描边 1px 识别色 40%。切换时下方场景列表 200ms 淡入 + 上移 8px。
+**1. 模块 Tab（五科分组）**：等宽 5 格药丸组（`--radius-full`），高 36px（抽屉态 40px），文字 13px + 场景计数 mono 12px（**无图标**）。默认文字 secondary；选中态底 = 识别色 15% 透明、文字 = 识别色、内描边 1px 识别色 40%。识别色由 `renderTabs()` 运行时注入 `--tab-c`/`--tab-rgb`。切换时下方场景列表**即时重建，无进场动画**（避免快速连点时动画累积延迟）。
 
-**2. 场景列表**：项高 44px、`--radius-lg`、内边距 10×12px。结构：左起 4px 识别色竖条（仅选中显示）→ 图标 20px → 名称 13px/500 → 副行教材章节 12px secondary（如「人教版八下 · 11.2」）。选中态底 = 识别色 12% 透明 + 名称变 primary；hover `--color-surface-hover` 120ms。
+**2. 场景卡片（2 列网格）**：`repeat(2,1fr)`、gap 8px；卡片 `--radius-lg`、内边距 8×10×12px、min-height 56px、max-height 88px，**文字溢出走卡片内部滚动（scrollbar-width:thin），不缩字号**。结构：名称 13px/18/500 + 副行教材章节 12px secondary（如「人教版八下 · 11.2」），无图标。选中态底 = 识别色 12% 透明 + 内描边识别色 35% + 左侧 4px 识别色竖条（inset box-shadow）；hover `--color-surface-hover` 120ms。
 
-**3. 参数滑杆（核心控件）**，每参数一区块、区块间距 12px，三行：
-- 行 1：参数名 13px/500 左对齐；右侧数值读数 mono 13px/600 + 单位 12px secondary chip（`--radius-sm`，底 surface）
-- 行 2：轨道高 4px、`--radius-full`、未填充底 `--color-surface-hover`；已填充段用当前模块识别色；拇指 16px 正圆 + 白描边 2px；hover/拖拽放大 1.25 倍 + `--shadow-glow`
-- 行 3：min / max 数值 12px secondary 分列两端
-- 行为：拖拽时数值实时刷新；3D 更新走 rAF 每帧合并（不逐事件渲染）；松手不回弹
-- 键盘：Tab 聚焦后 ←/→ 单步、Shift+方向 ×10、Home/End 到端点
+**3. 参数滑杆（核心控件）**，每参数一区块、区块间距 12px，两行：
+- 行 1：参数名 13px/500 左对齐；右侧数值读数 mono 13px/600 + 单位 12px secondary chip（`--radius-sm`，底 surface-hover；无单位时 chip 隐藏）
+- 行 2：轨道高 4px、`--radius-full`、未填充底 `--color-surface-hover`；已填充段用当前模块识别色（`--tab-c`）；拇指 16px 正圆 + 白描边 2px；hover/拖拽放大 1.25 倍 + `--shadow-glow`
+- min/max 端点行**未落地**：范围由 JSON 声明与键盘 Home/End 传达，面板不加第三行
+- 行为：拖拽时数值实时刷新；3D 更新走 rAF 每帧合并（`pending` Set，不 debounce、不逐事件渲染）；松手不回弹
+- 键盘：原生 range 行为——Tab 聚焦后 ←/→ 单步、Home/End 到端点；Shift×10 未落地
 - **离散档位不做滑杆**：JSON 里 `type:"enum"` 的参数（表面材料、介质组合、接线柱接法这类教材本身分档的量），2~4 档用**分段按钮**（选中态与模块 Tab 同款视觉语言：识别色 15% 透明底 + 同色文字 + 内描边），5~6 档用**自定义下拉**（原生 `select` 样式不可控）；`options` 直接取 JSON 的 `label`。
-- **滑杆联动约束**：参数之间存在依赖时（如 F3 的 `W有` 不得大于 `Q总`），被约束滑杆的 `max` 实时跟随 `min(声明上限, 依赖参数当前值)`，**超限时静默夹紧而不是弹提示**。需要系数时（如 `Q ≤ 82.8·m`）必须在 JSON 里**显式声明 `maxFactor`**，由 UI 计算 `min(声明上限, maxFactor × 依赖参数值)`；`maxRule` 只作人类可读说明，**禁止从它的中文描述里正则解析数字**——改一句措辞就会静默失效。这是通用规则，后续任何实验有联动都照此实现。
+- **滑杆联动约束**：参数之间存在依赖时（如 F3 的 `W有` 不得大于 `Q总`），被约束滑杆的 `max` 实时跟随 `min(声明上限, 依赖参数当前值)`，**超限时静默夹紧而不是弹提示**。依赖键用 `maxFollow` 显式声明；需要系数时（如 `Q ≤ 82.8·m`）必须在 JSON 里**显式声明 `maxFactor`**，由 UI 计算 `min(声明上限, maxFactor × 依赖参数值)`，无 `maxFactor` 即系数 1；`maxRule` 只作人类可读说明，**禁止从它的中文描述里正则解析数字**——改一句措辞就会静默失效。这是通用规则，后续任何实验有联动都照此实现。
 
-**4. 数值显示**：全部物理量读数统一 mono、右对齐；单位 12px secondary。数值变化瞬间 120ms 从 primary 色渐回正常色，提示「刚变了」。JSON 的 `result` 字段（由公式算出的结果量）渲染在滑杆区顶部的**独立卡片**里；公式存在分段条件时该位显示状态词（如「静止」）替代数值。**分母为 0 或无定义时显示「—」**，禁止出现 `NaN`、`Infinity`、`0%` 这类无效读数。
+**4. 数值显示**：全部物理量读数统一 mono、右对齐；单位 12px secondary。数值变化瞬间 120ms 从 primary 色渐回正常色，提示「刚变了」。JSON 的 `result` 字段（由公式算出的结果量）渲染为**独立读数卡**（标签 + mono 数值 + 单位 chip）；公式存在分段条件时该位显示状态词（如「静止」）替代数值。**分母为 0 或无定义时显示「—」**，禁止出现 `NaN`、`Infinity`、`0%` 这类无效读数。读数卡同时镜像进右侧统计面板（组件 9）。
 **次级读数**：`secondaryResult` 是可选字段，只有 F3（比热容 + 四冲程双段场景）用到。渲染规则——同款卡片、放在主卡下方 8px、数值降为 13px/500，**主次靠顺序表达，不加标签**；没有该字段的场景不渲染、不留空卡。它是通用卡片渲染器的一次普通调用，不是特例通道。
 
-**5. 按钮**：重置（次级）底 `--color-surface` + 1px `--color-border`、文字 14px/500，点击后所有参数 300ms 补间回教材默认值并同步驱动 3D，toast「已恢复教材默认参数」；全屏（主）底 `--color-primary` 白字、高 36px、`--radius-md`，对整个应用容器调 `requestFullscreen`（面板保留），退出后文案变「退出全屏」。通用态：hover 提亮 120ms、按压 scale 0.97、disabled 40% 透明、焦点 outline 2px primary + `--shadow-glow`。
+**5. 按钮**：重置（次级）底 `--color-surface` + 1px `--color-border`、文字 14px/500，点击后所有参数 300ms 补间回教材默认值并同步驱动 3D（**减弱动效下一步到位**），相机连回场景初始机位、时间轴归零，toast「已恢复教材默认参数」；全屏（主）底 `--color-primary` 白字、高 36px、`--radius-md`，对整个应用容器调 `requestFullscreen`（面板保留），退出后文案变「退出全屏」。通用态：hover `filter:brightness(1.15)` 120ms、按压 scale 0.97、disabled 35% 透明、**键盘焦点 `:focus-visible` outline 2px primary + `--shadow-glow`（鼠标点击不显环）**。
 
-**6. 播放工具条**：视区左下悬浮胶囊，底 `rgba(16,24,40,.85)` + `backdrop-filter: blur(8px)` + `--radius-full` + `--shadow-2`。内容：播放/暂停按钮 + 速度分段控件。**全实验只做一套，档位统一为 0.5× / 1× / 2× / 4× / 8×**，由实验的 `speedOptions` 声明、`defaultSpeed` 决定预选项（热学 F1/F2 预选 8×）。行为约束见正文第六节「播放控制」。
+**6. 播放工具条 + 时间条**：播放条为视区左下悬浮胶囊，底 `rgba(16,24,40,.85)` + `backdrop-filter: blur(8px)` + `--radius-full` + `--shadow-2`。内容：播放/暂停按钮 + 速度分段控件。**全实验只做一套，全局六档 0.25× / 0.5× / 1× / 2× / 4× / 8×**（0.25× 供短场景慢放 A1/F3，4/8× 保住长过程快进 F1/F2），由实验的 `defaultSpeed` 决定预选项（A1/F3=0.25，F1/F2=8）。倍速档只改 step 的时间倍率、不改 duration。时间条为视区底部居中独立胶囊（宽 `clamp(280px,40%,560px)`，轨道 3px，已播放段用 `--color-primary` 而非识别色，**DOM 控件不进 3D 场景**），键盘 ←/→ 0.5s、Shift×4、Home/End 到端点；`duration=0` 时整体置灰，置灰文案取 JSON `zeroHint`（branch）或默认句「本实验无时间演化」（static）。窄屏时间条上移到播放条上方。行为约束见正文第六节「播放控制」。
 
-**7. 视区叠加层**：左上当前实验 chip（图标 + 名称，半透明底 + blur，12px）；右下首次提示「拖拽旋转 · 滚轮缩放 · 右键平移」，显示 5s 后淡出且不再出现。
+**7. 视区叠加层**：左上当前实验 chip（识别色圆点 + 名称 + 章节，半透明底 + blur，12px）；右下首次提示「拖拽旋转 · 滚轮缩放 · 右键平移」，显示 5s 后淡出且不再出现；右上音频开关（默认静音，36px 圆钮，开启态 primary 底）。
 
-**8. 反馈**：Toast 右下角、2s 自动消失；场景切换超过 150ms 显示 24px spinner（primary）居中。
+**8. 反馈**：Toast **顶部居中**、2s 自动消失，淡入淡出 + 上移 8px（减弱动效下只留淡入淡出）；场景切换用 `#fade` 交叉淡入（见 B.6），**无独立 spinner**；启动遮罩（boot-ring 旋转 + 加载文案，ready 后淡出、淡出期即放行点击，模块加载失败给可读提示而非白屏）；物理引擎（ammo）加载遮罩在首次进入刚体场景（A2/A7）时显示，缓存命中不再出现。
 
-## B.6 交互动效总表
+**9. 统计面板（实时物理量）**：视区右上悬浮（音频钮下方），宽 236px、`--color-panel` 底 + `--radius-lg` + `--shadow-2`；标题栏点击收起/展开（chevron 翻转，宽度 200ms 补间），内容镜像当前实验读数（12px 标签 + 13px mono 数值），max-height 限制 + 内部滚动；数据走 `exp.readouts()` 通道、100ms 刷新、按 label 签名重建。**窄屏默认收起**并随断点自动切换。
+
+## B.6 交互动效总表（2026-11-21 按实现回写）
 
 | 场景 | 动效 |
 |---|---|
 | hover / 按压 | 120ms / scale 0.97 |
-| 模块切换 | 场景列表 200ms 淡入 + 上移 8px |
-| 选中场景 | 3D 交叉淡入共 300ms（淡入 150ms → 构建新场景 → 淡出 150ms → 延迟 dispose 旧场景），避免黑屏闪烁 |
+| 模块切换 | 场景列表即时重建（无进场动画） |
+| 选中场景 | `#fade` 交叉淡入：淡入 150ms → 等 160ms → 释放旧场景 → 构建新场景 → 淡出 150ms；遮罩撤掉即 `ready=true`，无黑屏闪烁 |
 | 参数拖拽 | 拇指 scale 1.25 + glow，数值即时刷新 |
-| 重置 | 参数 300ms 补间回默认，同步驱动 3D |
+| 重置 | 参数 300ms 补间回默认，同步驱动 3D + 相机回位 + 时间轴归零；减弱动效下一步到位 |
 | 进入/退出全屏 | 视区 300ms 铺满过渡 |
 | 光标 | 视区 grab、拖拽中 grabbing |
+| 键盘焦点 | `:focus-visible` outline 2px primary + glow；鼠标点击不显环 |
 
-无障碍：全部动效遵守 `prefers-reduced-motion`；焦点环不省略；文字对比度均达 AA。
+### 减弱动效（prefers-reduced-motion: reduce，已实现）
 
-## B.7 响应式断点
+- **空间移动直接到位**：抽屉滑移、chevron 翻转、拇指缩放过渡、按钮按压过渡全部移除；重置的 300ms 补间在 JS 侧经 `matchMedia` 改为一步写默认值，收尾状态与补间末帧完全一致。
+- **透明度过渡保留**：场景交叉淡入 `#fade`、toast 淡入淡出、启动遮罩淡出——它们是状态反馈不是空间运动，保留不引起前庭不适。
+- **加载旋转保留**：boot-ring 是功能性加载指示，遮罩数秒内整体消失，不属于装饰性持续动画。
+- **3D 仿真不受此开关影响**：物理过程是教学内容本身；播放条提供暂停（WCAG 2.2.2 暂停机制），任何用户都可随时停下画面。
+- 焦点环不省略；文字对比度均达 AA。
+
+## B.7 响应式断点（已实现）
 
 | 断点 | 布局 |
 |---|---|
 | ≥ 1600px | 面板 360px |
 | 1024–1599px | 面板 320px（主布局） |
-| 768–1023px | 面板 280px，可收起为 56px 图标栏 |
-| < 768px | 上下结构：3D 全屏铺底，面板变**底部抽屉**——收起露 64px 把手条（当前实验名 + chevron），上滑展开至 55vh；视口高 < 600px 时 45vh |
+| 768–1023px | 面板 280px（可收起 56px 图标栏未落地，预留） |
+| < 768px | 上下结构：3D 全屏铺底，面板变**底部抽屉**——收起露 64px 把手条（当前实验名 + chevron），上滑展开至 55vh；**视口高 < 600px 时 45vh** |
 
-移动端补充：抽屉态模块 Tab **只留图标**（20px、触控目标 ≥40px），去掉文字；单指旋转、双指缩放；抽屉收起时 3D 区域照常可拖拽；全屏按钮保留。
+移动端补充：抽屉态模块 Tab **保留文字 + 计数**（抽屉全宽、五格各约 70px，容得下「力学」二字；原「只留图标」方案取消——图标从未落地，只藏文字会剩计数数字、学科不可辨认），高 40px 保证触控目标；单指旋转、双指缩放；抽屉收起时 3D 区域照常可拖拽；全屏按钮保留；统计面板默认收起；时间条上移到播放条上方。
 
-## B.8 与 3D 层的对接口径
+## B.8 与 3D 层的对接口径（色彩单一来源）
 
-- Token 直接落成 `:root` CSS 变量，并同时导出**一份 TS 常量表**给 three.js 用（场景背景、雾色、五科识别色），保证视区与面板视觉同源。
-- UI 层只发「场景 ID + 参数对象 + 播放状态」，3D 层只读渲染、**不回写 UI 状态**；具体通道（事件总线 / store）以附录 C 架构为准。
+- **色彩单一来源 = `exp/common.js` 的 `COLORS` 常量表**：五科识别色、`bg`（背景/雾）、`primary`（兜底）、`neutral`、`ink`、教学功能色（`energyEk`/`energyEp`/`altPink`/`currentFwd`）。外壳基础色板落 `index.html` `:root` CSS 变量，与 `COLORS.bg`/`COLORS.primary` 同值双载体，**启动自检、漂移即告警**（`[token drift]`）。
+- 识别色无静态 CSS 变量：`renderTabs()` 把当前模块值注入 `--tab-c`/`--tab-rgb`（root + 每个 Tab/卡片），Tab、场景卡、滑杆填充、分段按钮消费这两个变量。**JSON 不再携带 `moduleColors`**（2026-11-21 删除，消除第三份色表）。
+- 3D 侧：场景背景与雾读 `COLORS.bg`；力矢量/光路/波形/电流粒子读所属科识别色（各实验文件 `const C = COLORS.<module>`）；DOM 叠加层需要背景色时用 `rgba(COLORS.bg, α)` 助手。局部一次性材质色（木纹/金属/液体区分/标签辅助色）留在各文件，器材材质集中 `props.js` `MATS`——这是「器材用材质本色」的白名单 allowance，不是漂移源。
+- UI 层只发「场景 ID + 参数对象 + 播放状态」，3D 层只读渲染、不回写 UI 状态；**唯一例外**：F3 四冲程枚举随曲轴角推进，走 `ctx.ui.setEnum/setParamValue` 程序化反向同步通道（rAF 合并），见附录 C.4。
 
-# 附录 C：工程架构
+# 附录 C：工程架构（2026-11-21 按实现回写）
 
-## C.1 技术栈与版本（2026-11 查证 npm latest）
+> 原方案（Vite 8 + TypeScript 7 + vitest + 按目录分包）**未采纳**。最终实现是**无构建单文件外壳**：纯静态、离线自包含、双击启动器即用、GitHub Pages 直接发布。本附录记录 as-built 口径；原方案存档于 `工程架构-网页搭建.md`。
+
+## C.1 技术栈
 
 | 依赖 | 版本 | 说明 |
 |---|---|---|
-| three | 0.187.0 | 纯 ESM；OrbitControls 从 `three/addons/controls/OrbitControls.js` 引入 |
-| vite | 8.3.8 | 要求 Node `^20.19.0 \|\| >=22.12.0`；rolldown 内核 |
-| typescript | 7.0.2（原生编译器） | 若编辑器插件未就绪可回退 `^5.9` |
-| Node | >=22.12 LTS | `devEngines` 固定，避免环境漂移 |
-| vitest | ^4 | `math/` 物理纯函数单测 |
-| playwright | latest | 冒烟测试：切换实验、拖拽、截图基线 |
-| eslint + prettier | flat config | 代码规范 |
+| three | 0.187.0 | 本地 vendor 包（`docs/app/vendor/`），纯 ESM；importmap 映射 `three` 与 `three/addons/` |
+| 外壳 | 原生 ES Module + 内联 CSS | `index.html` 单文件：`:root` token、面板/视区全部样式与 UI/引擎逻辑；无框架、无构建、无 TS |
+| 刚体引擎 | ammo.js | `vendor/ammo/ammo.js` 惰性注入（A2/A7 首次进入时），`loadAmmo` 缓存 Promise 只加载一次；固定步长 1/60 确定性重放 |
+| 验收 | puppeteer-core + headless Edge | `docs/app/*.mjs` 脚本群：smoke25 / acceptance / verify-a11y / 参数探针等，SwiftShader 软件渲染 |
+| 发布 | PowerShell + git | `tools/publish.ps1` 一键：出包 → 无头验收 → commit → 推 main + gh-pages |
 
-**UI 层不引入 Vue/React**：面板就是列表 + 滑杆 + 按钮，原生 TypeScript + CSS Variables 足够，包体最小、无框架升级负担。目录已按 `ui/` 与 `core/` 分离留好边界，后续若面板复杂度暴涨再迁 Vue 3。
+**不引 Vue/React，不引 Vite/TS**：面板就是列表 + 滑杆 + 按钮，原生 JS + CSS Variables 足够；`modulepreload` 压平最深 5 跳的模块依赖链、首屏并行预载，无需分包。
 
-## C.2 目录结构
+## C.2 目录结构（as-built）
 
 ```
-physics-3d-lab/
-├── index.html                  # 左右分栏骨架
-├── vite.config.ts / tsconfig.json / package.json
-├── public/favicon.svg
-├── src/
-│   ├── main.ts                 # 入口：装配 store / UI / engine
-│   ├── core/
-│   │   ├── engine.ts           # renderer·scene·camera·rAF 循环
-│   │   ├── sceneManager.ts     # 实验注册、切换、dispose、防竞态
-│   │   ├── registry.ts         # import.meta.glob 聚合全部实验（懒加载）
-│   │   └── types.ts            # Experiment / ParamSchema / ExperimentContext
-│   ├── store/
-│   │   ├── createStore.ts      # ~40 行发布-订阅 store（唯一事实来源）
-│   │   └── appStore.ts         # AppState
-│   ├── experiments/            # 每个实验一个文件，实验即插件
-│   │   ├── mechanics/  electricity/  optics/  acoustics/  thermal/
-│   ├── math/                   # 纯函数物理公式，100% 可单测
-│   │   ├── kinematics.ts  circuits.ts  optics.ts  waves.ts
-│   ├── ui/
-│   │   ├── panel.ts  moduleNav.ts  sceneList.ts
-│   │   ├── paramSliders.ts     # 按 ParamSchema 动态生成滑杆
-│   │   ├── readouts.ts         # 数值实时显示（100ms 节流）
-│   │   └── toolbar.ts          # 重置 / 全屏 / 播放
-│   └── styles/
-│       ├── tokens.css          # 附录 B 的 token 1:1 落成 CSS 变量
-│       └── base.css  panel.css  responsive.css
-└── tests/
-    ├── unit/math/*.test.ts
-    └── e2e/smoke.spec.ts
+DshBot/
+├── docs/
+│   ├── app/
+│   │   ├── index.html            # 外壳：:root token + 全部样式 + UI/引擎逻辑（约 1270 行）
+│   │   ├── experiments.js        # 25 个实验的注册表（id → 实现映射）
+│   │   ├── exp/
+│   │   │   ├── common.js         # COLORS 单一来源 / 材质几何工具 / 标签箭头粗线 / addGround / rgba 助手
+│   │   │   ├── props.js          # 共享器材工厂 + MATS 材质表（器材必须实物化）
+│   │   │   ├── mechanics.js  optics.js  acoustics.js  electricity.js  thermal.js
+│   │   │   └── ammo-bridge.js    # ammo 刚体桥（A2/A7），场景侧不直接接触 window.Ammo
+│   │   ├── vendor/               # three r187 本地包 + 所需 addons + ammo
+│   │   ├── data/experiments.json # 运行时数据源（附录 A 的镜像）
+│   │   └── *.mjs                 # 验收/探针/截图脚本群（含 verify-a11y.mjs）
+│   ├── threejs-physics-prompt.md # 本规范（正文 + 附录 A/B/C）
+│   ├── 附录A-实验清单.json
+│   └── 工程架构-网页搭建.md       # 原方案存档（顶部有 as-built 说明）
+├── tools/                        # make-release / verify-release / publish
+└── release/physics-3d-lab/       # 构建产物（gh-pages 推送源；由 make-release 重新生成，不手改）
 ```
 
-## C.3 状态管理（自研发布-订阅，不引 Redux/Zustand）
+## C.3 状态管理（plain object + rAF 合并，无发布-订阅库）
 
-```ts
-interface PlaybackState { playing: boolean; speed: number; }
-
-interface AppState {
-  module: ModuleId;
-  experimentId: string | null;
-  params: Record<string, number | string>;    // 用户滑杆值 + 枚举档位
-  playback: PlaybackState;
-  readouts: Record<string, number | string>;  // 实验写入，UI 订阅显示
-}
+```js
+const store = {
+  module, experimentId,
+  params: {},                     // id -> number | enum 原始 value
+  playback: { playing, speed },
+  simTime: 0,                     // 统一仿真时钟：播放推进、切场景归零、拖时间条 seek
+  readouts: {},                   // 实验写入，UI 节流显示
+};
+const pending = new Set();        // 待合并到下一帧的 onParam key（rAF 合并，不 debounce）
 ```
 
-- 单向数据流：UI 操作 → `store.setState` → 订阅者各自响应，禁止反向直改 UI。
-- 选择器订阅：组件只订阅自己关心的切片（如 `readouts.t`），避免全量刷新。
-- 读数显示 100ms 节流合并写 DOM，防止每帧 `textContent` 抖动。
+- 单向数据流：UI 写 `store.params` 并 `pending.add(key)`，帧循环统一 flush 给 `exp.onParam`；禁止反向直改 UI（程序化同步例外见 C.4）。
+- 读数 `scheduleReadout()` 100ms 节流合并写 DOM，防止每帧 `textContent` 抖动。
+- `switchToken` / `resetToken` 自增令牌防竞态：快速连点场景、补间中途切场景，旧操作作废。
 
-## C.4 UI ↔ three.js 通信（全部走 store，不散布事件总线）
+## C.4 UI ↔ three.js 通信
 
 ```
-用户拖滑杆 → paramSliders 写 store.params / 工具条写 store.playback
-                ↓ store 订阅
-engine ── params 变化 ──→ ctx.onParam(key, value) → 模型实时更新
-engine ── experimentId 变化 ──→ sceneManager.switchTo(id)（懒加载 + dispose 旧的）
-engine ── playback 变化 ──→ 仿真时钟启停 / 步长乘 speed（帧循环不停）
-experiment ── emitReadout ──→ engine 写 store.readouts ──→ readouts.ts 显示
+用户拖滑杆 → setParam 写 store.params + pending.add
+                 ↓ 帧循环 flush
+exp.onParam(key, value) → 模型实时更新
+卡片/Tab 点击 → switchExperiment(id)（#fade 交叉淡入 + dispose 旧 + build 新）
+播放工具条 → store.playback → 仿真时钟启停 / 步长乘 speed（帧循环不停）
+exp.step → ctx.emitReadout → store.readouts → scheduleReadout → 读数卡
+exp.readouts() → 统计面板（100ms 刷新，按 label 签名重建）
 ```
 
-- 引擎对 UI 只暴露五个方法：`mount / setExperiment / setParams / setPlayback / reset`，全部由 store 订阅驱动，**引擎不回写任何控制状态**。
-- readouts 是**单向显示数据**，只能被 UI 读取展示，绝不参与控制流，杜绝 UI↔3D 循环依赖。`emitReadout` 的键即读数卡标题字段，UI 按 JSON 的 `result` / `secondaryResult` 取数渲染，键缺失时显示「—」。
-- **数据源约定**：`docs/附录A-实验清单.json` 即运行时 `experiments.json`，UI 元数据（模块分组、场景名、章节、参数、读数卡）全部由它自动渲染，**实验代码里不写任何 UI**。
-- **高频例外**：OrbitControls 直接绑在 `renderer.domElement` 上消费 pointer/触摸事件，不经过 store（每帧 60 次的事件不进全局状态）。
-- 重置：UI 侧做 300ms 补间、逐帧写 `store.params`；引擎 `reset()` 负责清仿真内部状态。两边分工，UI 不感知引擎内部。
-- 切换实验时 `playing` 重置 `true`、`speed` 保留上次选择；色彩 token 由 `styles/tokens.css` 单一来源下发，3D 侧只读不另定。
+- **程序化反向同步（唯一例外）**：F3 四冲程枚举随曲轴角推进，`ctx.ui.setEnum/setParamValue` 写回 store 并重绘控件（rAF 合并）。除此之外引擎不回写任何控制状态。
+- readouts 是**单向显示数据**，绝不参与控制流；键即 JSON 的 `result`/`secondaryResult` 字段，键缺失显示「—」，禁止 NaN/Infinity。
+- **数据源约定**：`docs/附录A-实验清单.json` 与运行时 `data/experiments.json` 互为镜像，UI 元数据（模块分组、场景名、章节、参数、读数卡、zeroHint）全部由它自动渲染，**实验代码里不写任何 UI**。色彩 token 不在 JSON（见 B.8）。
+- **高频例外**：OrbitControls 直接绑 `renderer.domElement`（右键/中键平移 + 目标点钳制），不经过 store。
+- 重置分工：UI 侧 300ms 补间逐帧写 `store.params`（减弱动效一步到位），引擎 `reset()` 清仿真内部状态；相机回 `cam0` 初始机位（含面板补偿）、时间轴归零。
+- 帧循环 `renderer.setAnimationLoop`，dt 限幅 ≤0.05s 防 tab 切回物理跳变；暂停只停仿真时间累加，渲染循环照常。
+- `ctx.keep(...)` 登记常驻资源（共享材质/纹理/几何），切场景释放时跳过，防误杀。
 
-## C.5 场景切换与防竞态
+## C.5 场景切换与 GPU 释放（as-built 时序）
 
-1. **切换令牌**（自增 id）防竞态：快速连点场景列表，旧切换未完成则作废其结果。
-2. 时序：淡入 150ms → `import()` 拉 chunk → `build(ctx)` → 相机归位 → 淡出 150ms → 延迟 300ms 释放旧场景。
-3. 旧实验释放：暂停 step → `reset()` 不调 → `dispose()`（实验清自己的内部引用）→ `disposeObject3D(root)` 遍历释放几何体/材质/每个贴图槽位 → `renderer.renderLists.dispose()`。
-4. 资源池共享资源走引用计数，不在此销毁。
+1. `switchToken` 自增防竞态；旧切换的 Promise 被接管时 `resolve(false)`，不再代表最终状态。
+2. 时序：`#fade.on`（opacity 150ms）→ 等 160ms → `audioFadeOut`（50ms 内淡出）→ 旧实验 `dispose()` + `disposeObject(scene)` 遍历释放（几何/材质/每个贴图槽位）+ 清 CSS2D 标签 → `build(ctx)` 新场景 → 相机归位 → 按 JSON 默认值全量 `onParam` 一轮 → `#fade.off`（150ms）→ `ready=true`。
+3. 旧场景在新场景构建前**立即释放**（无延迟释放）；验收实测 3 轮 × 25 场景内存增幅 1.11%、shader programs 不增长、共享几何/纹理不重建，通过。
+4. `playing` 重置 true、`speed` 取实验 `defaultSpeed`；`duration` 是 **getter（时间轴秒数，非墙钟秒）**，零值三态 static / branch / Infinity 的判据与置灰文案见 JSON `durationSemantics`。
 
-## C.6 构建与部署
+## C.6 发布链路（无构建）
 
-- `pnpm dev`（Vite 8 HMR）/ `pnpm build`（tsc 类型检查 + vite build）/ `pnpm preview`。
-- 分包：three 单独 vendor chunk；每个实验按目录自动成 chunk（`import.meta.glob` 懒加载）。
-- `base: './'` 相对路径，产物纯静态，可放 Nginx / GitHub Pages / Vercel / 校内网任意静态服务器，**无需后端**。
-- CI（GitHub Actions）：install → typecheck → vitest → build → 上传 dist artifact。
+1. `tools/make-release.ps1`：生成 `release/physics-3d-lab/`，逐个点名 19 个必需文件，缺一个拒绝出包。
+2. `tools/verify-release.mjs`：本地服务器 + 无头浏览器，逐个切换 25 场景，断言 0 个 404、0 个报错、绘制预算（calls ≤60 / tris <200k）；**不通过就不推送**。
+3. `tools/publish.ps1 -Message "..."`：出包 → 验收 → commit → 推 main + 强推 gh-pages，GitHub Pages 自动重新发布。`-SkipVerify` 只建议改文档时用。
+4. 离线：启动器双击即用（本地静态服务器）；ES Module 禁止 `file://` 双击打开 index.html。
 
-## C.7 工程验收表
+## C.7 工程验收表（as-built 口径）
 
 | # | 类别 | 标准 |
 |---|---|---|
-| 1 | 功能 | 覆盖五大模块共 25 个 P0 实验（以附录 A 为准）；滑杆拖动实时生效；重置恢复默认；全屏可用 |
-| 2 | 交互 | 见正文第四节 |
-| 3 | 性能 | 见正文第八节 |
-| 4 | 内存 | 连续切换全部实验 3 轮，内存增幅 ≤10%，无 WebGL 泄漏告警 |
-| 5 | 包体 | 首屏 JS gzip ≤250KB；单实验 chunk gzip ≤15KB |
+| 1 | 功能 | 25 个 P0 实验（以附录 A 为准）；滑杆实时生效；重置恢复默认 + 相机回位 + 时间轴归零；全屏可用 |
+| 2 | 交互 | 鼠标拖拽旋转/滚轮缩放/右键平移；触摸单指旋转、双指缩放 |
+| 3 | 性能 | 稳态 draw calls ≤60、tris <200k（实测峰值 37 / 13,006）；`setPixelRatio(min(dpr,2))` |
+| 4 | 内存 | 3 轮 × 25 场景增幅 ≤10%（实测 1.11%）；无 WebGL 泄漏告警；programs/geometries/textures 不增长 |
+| 5 | 加载 | modulepreload 压平依赖链；启动遮罩覆盖首屏等待，ready 语义 = 可交互（淡出期即放行点击） |
 | 6 | 兼容 | Chrome/Edge ≥100、Firefox ≥100、Safari ≥15.4；WebGL2 检测，不支持时给引导页 |
-| 7 | 质量 | `pnpm typecheck` 零错误；`math/` 单测覆盖率 ≥80%；ESLint 零 error |
-| 8 | 响应式 | <768px 左面板变底部抽屉 |
+| 7 | 质量 | 验收脚本群零报错：smoke25（25 场景）+ acceptance（内存/shader/预算）+ verify-a11y（动效降级/焦点环/断点/色彩同源，25 项断言）+ 参数探针 |
+| 8 | 响应式 | <768px 底部抽屉（55vh / 矮视口 45vh）；≥1600px 面板 360px |
+| 9 | 无障碍 | prefers-reduced-motion 降级；:focus-visible 焦点环；文字对比度 AA；抽屉态 Tab 文字可辨认、触控目标 ≥40px |

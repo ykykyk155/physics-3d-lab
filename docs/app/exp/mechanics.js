@@ -1,5 +1,5 @@
 /* 力学 A1~A7 */
-import { THREE, COLORS, DEG, G, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, rd } from './common.js';
+import { THREE, COLORS, DEG, G, mat, box, cyl, sphere, torus, decor, mergeByMaterial, mkLabel, setLabel, mkArrow, setArrow, fatLine, setFatLine, addGround, clamp, rd, rgba } from './common.js';
 import { MATS, matClone, registerMaterials, cart, rollCart, woodBlock, metalBlock, beaker, springScale, setSpringScale, slottedMass } from './props.js';
 import { loadAmmo, createWorld, disposeWorld, STEP } from './ammo-bridge.js';
 
@@ -37,9 +37,9 @@ const A1 = {
     this.rampGroup.add(this.cartG);
 
     // 力矢量统一用力学识别色 #F59E0B（附录 B）
-    this.aG = mkArrow('#F59E0B'); this.aN = mkArrow('#F59E0B'); this.aF = mkArrow('#F59E0B');
+    this.aG = mkArrow(C); this.aN = mkArrow(C); this.aF = mkArrow(C);
     ctx.scene.add(this.aG, this.aN, this.aF);
-    this.lG = mkLabel('G', '#F59E0B'); this.lN = mkLabel('N', '#F59E0B'); this.lF = mkLabel('f', '#F59E0B');
+    this.lG = mkLabel('G', C); this.lN = mkLabel('N', C); this.lF = mkLabel('f', C);
     ctx.scene.add(this.lG, this.lN, this.lF);
 
     this.lAngle = mkLabel('θ', C); this.group.add(this.lAngle);
@@ -156,11 +156,10 @@ const A2 = {
     { mu: 0.02, label: '冰面', color: '#CFE8F2' },
     { mu: 0.00, label: '理想光滑', color: '#2E4A6B' },
   ],
-  // 引擎实测偏离解析式的比例（μ → 实测/理论，h=0.15 实测：0.227/0.25=0.908、0.482/0.50=0.964、1.230/1.25=0.984）。
-  // CEO 拍板 A：图例/标记条统一显示【实测值】→ 标尺与引擎车停在同一位，不再打架。
-  // 偏差来自 Bullet 60Hz 离散步 + 初始穿透的固定 ~0.02m 沉降，随 v0² 缩放，故修正因子乘理论值即可，
-  // 非验收材料（冰面/理想）无实测，保留理论值 1.0。
-  MEASURED_C: { 0.6: 0.908, 0.3: 0.964, 0.12: 0.984 },
+  // 引擎实测/理论比值（标定后 h=0.35 实测：毛0.584/0.583≈1.002、棉1.169/1.167≈1.002、木2.943/2.917≈1.009）。
+  // 加了摩擦标定 k(μ) 后实测≈理论（Δ≤0.03m），此因子≈1，仅用于让标记条严格贴到车的真实停点。
+  // CEO 拍板 A：图例/标记条显示实测值。
+  MEASURED_C: { 0.6: 1.002, 0.3: 1.002, 0.12: 1.009 },
   build(ctx) {
     this.scene = ctx.scene; this.ctx = ctx;
     registerMaterials(ctx);
@@ -168,15 +167,20 @@ const A2 = {
     this.base = box(11.0, 0.06, 3.0, '#2a3448', { roughness: 0.95 });
     this.base.position.y = -0.03; this.base.receiveShadow = true; this.base.userData.noFit = true; ctx.scene.add(this.base);
     this.tracksG = new THREE.Group(); ctx.scene.add(this.tracksG);
-    // 实验小车（车身 + 四轮 + 车轴）：刚体驱动，滑行+摩擦+停住
-    this.cartG = cart({ len: 0.52, wid: 0.36, wheelR: 0.09 });
-    this.cartG.name = 'A2-cart';
+    // 实验小车（车身 + 四轮 + 车轴）：刚体驱动，从坡顶释放 → 滑行+摩擦+停住。
+    // 视觉整体向下偏 0.06：物理盒半高 0.06、轮底在原点，刚体静止时盒心在轨道顶面上方 0.06，
+    // 向下偏 0.06 让四轮正好落在轨道顶面（物理盒与视觉对齐，不再悬空或陷进轨道）。
+    this.cartG = new THREE.Group(); this.cartG.name = 'A2-cart';
+    this.cartVis = cart({ len: 0.52, wid: 0.36, wheelR: 0.09 });
+    this.cartVis.position.y = -0.06;
+    this.cartG.add(this.cartVis);
     this.block = this.cartG; ctx.scene.add(this.cartG);
     this.makeLegend();
     this.duration = 3.4;        // 在 build 期就有值：外壳切场景时会立刻读 duration
     this.t = 0;
     this._phys = null; this._physReady = false; this._physPromise = null;
     this._cartB = null;
+    this._subSteps = 4;         // A2 用 4 子步：接触/摩擦更准、能量守恒更好（默认 1，不动 A7）
     this._bootPhys();
   },
   _bootPhys() {
@@ -196,29 +200,88 @@ const A2 = {
     const n = this.SURFACES.length, ZSP = 0.6;
     return -((n - 1) / 2) * ZSP + idx * ZSP;
   },
-  // 释放点（坡脚，滑行位移的真正零点）：小车从这里以 v0 出发开始滑行
-  startX() { return this.XF0 + 0.1; },
+  // 释放点/滑行位移零点 = 坡脚圆弧落点（=摩擦段起点 XF0）。
+  // 理论 s=v0²/(2μg) 从坡脚起算；坡上+圆弧不计滑行距离。
+  startX() { return this._sx != null ? this._sx : this.XF0; },
+  // 斜坡+圆弧过渡几何（物理与视觉共用，世界坐标 x、y）。
+  // 直线斜坡从坡顶 T 下来，到 A 点与半径 R 的圆弧相切；圆弧在 B=(XF0,0) 与水平段相切（切线连续）。
+  // R 取 0.3（CEO 定的 0.15~0.3 上界，过渡更平缓）；NA 为圆弧分段数。
+  _geometry() {
+    const H = this.H_ramp, RL = this.RL, XF0 = this.XF0, R = 0.3;
+    const theta = Math.atan(H / RL), sinT = Math.sin(theta), cosT = Math.cos(theta);
+    const Ax = XF0 - R * sinT, Ay = R * (1 - cosT);       // 弧顶（与直线相切）
+    const rise = H - Ay, Lstr = rise / sinT;              // 直线斜坡长度
+    const Tx = Ax - Lstr * cosT, Ty = H;                  // 坡顶
+    return { R, theta, sinT, cosT, Ax, Ay, Tx, Ty, Lstr, NA: 8, XF0 };
+  },
+  // ===== 摩擦输入标定 k(μ)（方案 B，CEO 定）=====
+  // 为什么需要：Bullet 的接触是离散穿透求解，车在平面上滑行时**有效摩擦比输入值偏高**，且越高 μ 越明显
+  // （全量程实测：输入 0.02→有效 1.03×、0.30→1.09×、0.60→1.19×、0.70→1.23×），导致停止距离系统性偏短
+  // （√(2gh) 理论对实测的偏差从低 μ 的 −7% 到高 μ 的 −22%）。这是引擎数值偏差，不是物理。
+  // 做法：给引擎的摩擦「输入量程」乘一条标定曲线 k(μ)，让**有效摩擦回到标称 μ**，车仍全程由引擎推走——
+  // 相当于给仪器校表，不改中途速度、不改答案。
+  // 曲线由同一份引擎(ammo/子步=4/球体)一次全量程扫描拟合：k(μ)=0.945·μ − 0.19·μ²，单调、过原点。
+  //   · 过原点：k(0)=0 → μ=0 理想光滑严格无残余摩擦。
+  //   · 单调：k'(μ)=0.945−0.38μ >0（μ<2.48），量程 0~0.7 内单调递增。
+  //   · 三档材料(0.12/0.30/0.60)只是这条曲线上的采样点，不单独手调。
+  // ⚠ 若换 ammo 版本或改子步数，有效摩擦会变、此标定失效——常驻探针「标定后全量程≤5%」会立刻报红。
+  _calibFriction(mu) {
+    return Math.max(0, 0.945 * mu - 0.19 * mu * mu);
+  },
   _rebuildPhys() {
     const w = createWorld({ gravity: [0, -9.8, 0] });
     this._phys = w;
+    if (this._subSteps) w.subSteps = this._subSteps;
     const z = this._cartZ();
-    const mu = this.sel ? this.sel.mu : 0.3;
-    // 选中轨道：静态盒体（顶面 = 滑行面；x 覆盖整个跑道）。
-    // 摩擦两侧固定 1.0：Bullet 默认把两碰撞体摩擦相乘，轨道侧若是默认 0.5，有效摩擦 = 0.5×μ，
-    // 会把木板 0.12 拉到 ≈0.06、实测距离翻倍（之前 2.34m 而非理论 1.25m 即此因）。
-    // 轨道侧 1.0 → 有效摩擦 = 1.0×μ = μ，读数与 v0²/(2μg) 对齐。
-    w.addBox(null, { mass: 0, halfExtents: [this.BL / 2, 0.04, 0.22], pos: [this.XF0 + this.BL / 2, 0, z], friction: 1.0 });
-    // 小车：动态盒体，从坡脚出发，初速 v0 指向 +x，摩擦 = 选中材料
-    const fr = mu > 1e-6 ? mu : 0;
+    const mu = this._testMu != null ? this._testMu : (this.sel ? this.sel.mu : 0.3);
+    const g = this._geo = this._geometry();
+    const { R, theta, sinT, cosT, Tx, Ty, NA, XF0 } = g;
+
+    // ===== 斜坡 + 圆弧过渡：一条 2D 轮廓（顶面 = 直线斜坡 → 圆弧 → 水平切点）沿 z 挤出成三角网格 =====
+    // 为什么用圆弧：车是滑动体（锁旋转），下到坡脚时速度方向要从沿斜面（倾斜 θ）转到水平；
+    // 折角会让它一次性受法向冲击掉速（离散步长下更甚）。补一段切线连续的圆弧，法向力始终垂直于速度、
+    // 不做功，车平滑转入水平段 —— 这才是真实器材「斜坡底部有圆弧过渡」的样子。
+    // 摩擦 0：斜坡/圆弧段无摩擦，材料摩擦只作用在水平段（标准实验形态）。
+    const prof = [[Tx, Ty]];
+    for (let i = 0; i <= NA; i++) { const phi = theta * (1 - i / NA); prof.push([XF0 - R * Math.sin(phi), R * (1 - Math.cos(phi))]); }
+    const W = 0.22, verts = [], idx = [];
+    for (const [x, y] of prof) { verts.push(x, y, z - W, x, y, z + W); }
+    for (let i = 0; i < prof.length - 1; i++) { const Li = 2 * i, Ri = 2 * i + 1, Li1 = 2 * (i + 1), Ri1 = 2 * (i + 1) + 1; idx.push(Li, Ri, Ri1, Li, Ri1, Li1); }
+    w.addTriMesh(null, { vertices: verts, indices: idx, friction: 0 });
+
+    // ===== 摩擦段：一整块连续板，顶面 y=0，从 XF0 向左垫一点（藏在弧下）一直向右 200m（无接缝）=====
+    // 轨道侧 friction=1.0，与车 μ 相乘（Bullet 默认 combine=multiply）→ 有效摩擦 = 车 μ。
+    const EXT = 200;
+    this._sx = XF0;                                     // 滑行位移零点 = 坡脚（圆弧落点）
+    {
+      const xL = XF0 - 0.2, xR = XF0 + EXT;
+      w.addBox(null, { mass: 0, halfExtents: [(xR - xL) / 2, 0.04, W], pos: [(xL + xR) / 2, -0.04, z], friction: 1.0 });
+    }
+
+    // ===== 小车：从坡顶 T 静止释放（无初速、真下滑），光滑球体（点接触、横向天然居中）与坡面接触 =====
+    // 球心沿法向偏 r 贴住坡面（零初始穿透），lockRot 锁旋转纯滑行。
+    // 摩擦输入走标定 k(μ)（见 _calibFriction）：车始终由引擎推着走，只把「摩擦输入量程」校准到使
+    // 引擎的有效摩擦等于标称 μ（Bullet 离散穿透导致有效摩擦比输入偏高，越高 μ 越明显）。
+    const fr = mu > 1e-6 ? (this._rawFric ? mu : this._calibFriction(mu)) : 0;
     const mass = clamp(this.p.mass || 0.4, 0.1, 1.0);
-    // 小车：动态盒体，从坡脚出发，初速 v0 指向 +x，摩擦 = 选中材料。
-    // dampingLin=0：平面滑行的减速必须纯粹由 μg 提供（解析式没有额外线性阻尼），
-    // 否则高 μ（短距离）受同量级阻尼影响占比更大，实测会系统性偏短。
-    this._cartB = w.addBox(this.cartG, { mass: mass, halfExtents: [0.26, 0.06, 0.18], pos: [this.startX(), 0.05, z], friction: fr, dampingLin: 0, dampingAng: 1 });
-    // 设初速：v0 由释放高度 h 导出（能量法）。用 bridge 的 setLinearVelocity() 记录初速，
-    // 这样 seek 重放时能还原（自己 set 不会记进 rec.initVel，seek 会把车清零停在起点）
-    const v0 = this.v0 || 0;
-    if (v0 > 0 && this._cartB) w.setLinearVelocity(this._cartB, [v0, 0, 0]);
+    const r = 0.06;
+    const topX = Tx + sinT * r, topY = Ty + cosT * r;
+    this._cartB = w.addBox(this.cartG, { shape: 'sphere', mass: mass, halfExtents: [r, r, r], pos: [topX, topY, z], friction: fr, dampingLin: 0, dampingAng: 1, lockRot: true });
+  },
+  // 诊断：测「车进入水平摩擦段时（坡脚 x=startX=XF0 附近）的水平峰值速度」→ 供当面校核 v_entry/√(2gh)。
+  measureEntrySpeed() {
+    if (!this._physReady || !this._phys || !this._cartB) return null;
+    this._rebuildPhys();
+    const w = this._phys, sx = this.startX();
+    let peak = 0, xe = null;
+    for (let i = 0; i < 60 * 6; i++) {
+      w.stepN(1);
+      const x = this.cartG.position.x;
+      const vx = w.linearSpeedX(this._cartB);
+      if (x < sx + 0.15 && vx > peak) { peak = vx; xe = x; }
+      if (x > sx + 0.3) break;
+    }
+    return peak > 0 ? { vEntry: peak, x: xe, t: null } : null;
   },
   onParam(k, v) {
     this.p[k] = v;
@@ -231,7 +294,7 @@ const A2 = {
     const host = document.getElementById('viewport') || document.body;
     const el = document.createElement('div');
     el.id = 'a2-legend';
-    el.style.cssText = 'position:absolute;left:12px;top:46px;z-index:7;font:600 11px/1.5 ui-monospace,Consolas,monospace;color:#E6EDF7;background:rgba(11,17,32,.82);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 9px;pointer-events:none;';
+    el.style.cssText = `position:absolute;left:12px;top:46px;z-index:7;font:600 11px/1.5 ui-monospace,Consolas,monospace;color:${COLORS.ink};background:${rgba(COLORS.bg, .82)};border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 9px;pointer-events:none;`;
     host.appendChild(el);
     this.legendEl = el;
   },
@@ -248,32 +311,37 @@ const A2 = {
     this.legendEl.innerHTML = head + rows;
   },
   recompute() {
-    const h = this.p.height || 0.15;
+    const h = this.p.height || 0.35;
     this.v0 = Math.sqrt(2 * G * h);
     // 质量不改变滑行距离（v0 由高度决定）
     const ms = clamp(this.p.mass || 0.4, 0.1, 1.0);
     this.syncWeights(ms);
+    // 几何常量：五条等长水平轨道（顶面 y=0，从 XF0 向右） + 一条释放坡（坡脚圆弧在 XF0，切线转到水平）
+    this.BL = 7.0; this.XF0 = -1.2; this.RL = 2.0;
+    this.H_ramp = h;
+    this.theta = Math.atan(this.H_ramp / this.RL);
+    this._geo = this._geometry();
     const list = this.SURFACES.map(o => {
-      // CEO 拍板 A：图例/标记条显示实测值。修正因子上乘理论值（无实测档 = 理论 1.0）。
+      // CEO 拍板 A：图例/标记条显示实测值。修正因子 MEASURED_C 乘理论值（无实测档 = 理论 1.0）。
       const c = this.MEASURED_C[o.mu] || 1.0;
       const sTheory = o.mu > 0 ? (this.v0 * this.v0) / (2 * o.mu * G) : Infinity;
       return { mu: o.mu, label: o.label, color: o.color, s: isFinite(sTheory) ? sTheory * c : Infinity };
     });
-    list.forEach(o => { if (isFinite(o.s)) o.s = Math.min(o.s, this.BL - 0.6); });
-    const finite = list.filter(o => isFinite(o.s)).map(o => o.s);
-    const finMax = finite.length ? Math.max.apply(null, finite) : 1;
-    this.scale = 7 / Math.max(finMax, 0.4);
+    // 标记条真实尺度：标尺 1 单位 = 1 米。只 clamp 到轨道物理长度。
+    list.forEach(o => { if (isFinite(o.s)) o.s = Math.min(o.s, this.BL); });
     this.list = list;
     const selMu = Number(this.p.surface);
     this.sel = list.find(o => Math.abs(o.mu - selMu) < 1e-6) || list[1];
     this.s = this.sel.s;
-    // 几何常量：五条等长平直跑道 + 仅一条释放坡（随选中材料平移）
-    this.BL = 7.0; this.XF0 = -3.3; this.RL = 1.5;
-    this.H_ramp = clamp(0.42 + h * 2.0, 0.5, 1.05);
-    this.theta = Math.atan(this.H_ramp / this.RL);
-    // 时长口径（CEO 定）：有终点 3.4s 呈现；理想光滑是无限过程 → duration = Infinity（禁拖、不自动暂停）
-    if (isFinite(this.s)) this.duration = 3.4;
-    else this.duration = Infinity;
+    // 时长口径：斜坡(直线段 + 圆弧段)下滑时间 + 摩擦段滑到停时间 + 余量。
+    // 理想光滑 μ=0 是无限过程 → duration = Infinity（禁拖、不自动暂停）。
+    if (isFinite(this.s)) {
+      const g2 = this._geo;
+      const pathL = g2.Lstr + g2.R * g2.theta;                         // 直线斜坡 + 圆弧路程
+      const tRamp = Math.sqrt(2 * pathL / (G * Math.sin(this.theta))); // 无摩擦下滑时间
+      const tFlat = this.v0 / (this.sel.mu * G);                       // 摩擦段滑到停时间（v0=√(2gh)）
+      this.duration = clamp(Math.ceil((tRamp + tFlat + 0.4) * 10) / 10, 1.2, 12);
+    } else this.duration = Infinity;
     if (this.ctx) this.ctx.emitReadout({ slide: isFinite(this.s) ? this.s : '理想光滑：永不停止' });
     this.buildTracks();
     this.t = 0;
@@ -318,22 +386,53 @@ const A2 = {
     }
     const n = this.list.length, ZSP = 0.6, BL = this.BL, XF0 = this.XF0;
     const marks = [], ramps = [];
+    const th = this.theta, sinT = Math.sin(th), cosT = Math.cos(th);
     this.list.forEach((o, idx) => {
       const z = -((n - 1) / 2) * ZSP + idx * ZSP;
       const isSel = (o === this.sel);
       const bar = new THREE.Mesh(new THREE.BoxGeometry(BL, 0.08, 0.44), this.mkBoardMat(isSel, o.color));
       bar.position.set(XF0 + BL / 2, 0.04, z); bar.userData.noFit = true; bar.receiveShadow = true; bar.castShadow = false;
       this.tracksG.add(bar);
-      const sW = isFinite(o.s) ? clamp(o.s * this.scale, 0.15, BL - 0.05) : BL - 0.05;
-      const mk = box(sW, 0.015, 0.075, '#F59E0B', { emissive: '#F59E0B', emissiveIntensity: 0.7, transparent: true, opacity: 0.85, depthWrite: false });
-      mk.position.set(XF0 + sW / 2, 0.085, z); mk.castShadow = false; marks.push(mk);
-      const tk = box(0.04, 0.012, 0.34, '#FDE68A', { transparent: true, opacity: 0.85, depthWrite: false });
-      tk.position.set(XF0 + sW, 0.085, z); tk.castShadow = false; marks.push(tk);
+      // 渐隐延伸：s 超出可视轨道（冰面 μ0.02 / 理想光滑 μ0）时，尽头画一段渐隐延长板，
+      // 车滑出 7m 视野后仍在延伸段上继续（物理另有 200m 轨道，绝不坠落）——CEO「延伸/渐隐」要求。
+      if (!isFinite(o.s) || o.s > BL - 0.05) {
+        const FD = 20, segN = 7;
+        for (let i = 0; i < segN; i++) {
+          const seg = box(FD / segN, 0.06, 0.44, this.mkBoardMat(isSel, o.color));
+          seg.position.set(XF0 + BL + (i + 0.5) * FD / segN, 0.03, z);
+          seg.material = seg.material.clone(); seg.material.transparent = true;
+          seg.material.opacity = Math.max(0.03, 0.6 * (1 - i / segN)) * (isSel ? 1 : 0.4);
+          seg.material.depthWrite = false; seg.userData.noFit = true; seg.castShadow = false; seg.receiveShadow = false;
+          this.tracksG.add(seg);
+        }
+      }
+      // 标记条：真实米数标尺（1 单位 = 1m，不压缩整幅）。冰面/理想光滑无终点标记。
+      if (isFinite(o.s) && o.s < BL - 0.05) {
+        const sW = clamp(o.s, 0.15, BL - 0.05);
+        const mk = box(sW, 0.015, 0.075, C, { emissive: C, emissiveIntensity: 0.7, transparent: true, opacity: 0.85, depthWrite: false });
+        mk.position.set(XF0 + sW / 2, 0.085, z); mk.castShadow = false; marks.push(mk);
+        const tk = box(0.04, 0.012, 0.34, '#FDE68A', { transparent: true, opacity: 0.85, depthWrite: false });
+        tk.position.set(XF0 + sW, 0.085, z); tk.castShadow = false; marks.push(tk);
+      }
       if (isSel) {
-        const rp = box(this.RL / Math.cos(this.theta), 0.05, 0.44, MATS.woodLight());
-        rp.position.set(XF0 - this.RL / 2, 0.08 + this.H_ramp / 2, z); rp.rotation.z = -this.theta; ramps.push(rp);
-        const riser = box(0.06, this.H_ramp, 0.44, MATS.woodDark());
-        riser.position.set(XF0 - this.RL, 0.08 + this.H_ramp / 2, z); ramps.push(riser);
+        // 视觉斜坡+圆弧：与物理完全同一轮廓（直线斜坡 → 半径 R 圆弧 → 水平切点 B=(XF0,0)）挤出的实心木楔。
+        // 这样学生看到的就是真实器材：斜坡底部是圆弧过渡，不是折角。
+        const g = this._geo || this._geometry();
+        const sp = new THREE.Shape();
+        sp.moveTo(g.Tx, g.Ty);
+        for (let i = 0; i <= g.NA; i++) { const phi = g.theta * (1 - i / g.NA); sp.lineTo(g.XF0 - g.R * Math.sin(phi), g.R * (1 - Math.cos(phi))); }
+        const bottomY = -0.06;
+        sp.lineTo(g.XF0, bottomY); sp.lineTo(g.Tx, bottomY); sp.closePath();
+        const eg = new THREE.ExtrudeGeometry(sp, { depth: 0.44, bevelEnabled: false, curveSegments: 4 });
+        eg.translate(0, 0, -0.22);
+        const rampMesh = new THREE.Mesh(eg, MATS.woodLight());
+        rampMesh.position.z = z; rampMesh.castShadow = true; rampMesh.receiveShadow = false; rampMesh.userData.noFit = true;
+        this.tracksG.add(rampMesh);
+        // 理想光滑 μ=0：配「无阻力 → 永不停止」说明
+        if (o.mu <= 1e-6) {
+          const lb = mkLabel('无阻力 → 永不停止', '#9ad2ff');
+          lb.position.set(XF0 + BL + 1.5, 0.95, z); this.tracksG.add(lb);
+        }
       }
     });
     if (marks.length) { const mg = mergeByMaterial(marks); mg.children.forEach(c => { c.castShadow = false; c.receiveShadow = false; }); this.tracksG.add(mg); }
@@ -357,18 +456,33 @@ const A2 = {
     const x = this.cartG.position.x;
     rollCart(this.cartG, Math.max(0, (x - this.XF0)) / 0.09);
   },
-  // 加载期间的解析式 fallback：v0 初速 + μg 匀减速
+  // 加载期间的解析式 fallback：斜坡加速（无摩擦）→ 水平 μ 匀减速，与物理模型同构。
+  // 小车从坡顶 (XF0−RL, H) 静止释放，到坡脚速度 v0=√(2gH)，然后按 μ 减速。
   _drawFallback(t) {
     if (!this.list) return;
     const v0 = this.v0, mu = this.sel.mu;
     const z = this._cartZ();
     const d = this.duration;
     const tt = Number.isFinite(d) ? clamp(t, 0, d) : t;
-    if (mu <= 1e-6) { this.cartG.position.set(this.XF0 + v0 * tt, 0.05, z); rollCart(this.cartG, (v0 * tt) / 0.09); return; }
-    let xm = v0 * tt - 0.5 * mu * G * tt * tt;
+    // 坡上段：匀加速，路程 s_ramp = RL（坡脚=位移零点）。tt_slope = √(2·RL/ a)，a = g·sinθ
+    const a_ramp = G * Math.sin(this.theta);
+    const t_foot = Math.sqrt(2 * this.RL / a_ramp);
+    if (tt < t_foot) {
+      // 还在坡上：沿坡面位移 u = ½a t²，位置 x = XF0−RL+u·cosθ, y = H−u·sinθ
+      const u = 0.5 * a_ramp * tt * tt;
+      this.cartG.position.set(this.XF0 - this.RL + u * Math.cos(this.theta), this.H_ramp - u * Math.sin(this.theta), z);
+      rollCart(this.cartG, (u * Math.cos(this.theta)) / 0.09);
+      return;
+    }
+    // 水平段：从坡脚起 v0 匀减速
+    const xt = tt - t_foot;
+    if (mu <= 1e-6) {
+      this.cartG.position.set(this.XF0 + v0 * xt, 0, z); rollCart(this.cartG, (v0 * xt) / 0.09); return;
+    }
+    let xm = v0 * xt - 0.5 * mu * G * xt * xt;
     if (xm < 0) xm = 0;
     if (isFinite(this.s) && xm > this.s) xm = this.s;
-    this.cartG.position.set(this.XF0 + xm, 0.05, z);
+    this.cartG.position.set(this.XF0 + xm, 0, z);
     rollCart(this.cartG, xm / 0.09);
   },
   step(dt) {
@@ -635,9 +749,9 @@ const A6 = {
     this.rod = cyl(0.03, 0.03, 1, MATS.steelBright()); ctx.scene.add(this.rod);
     this.bob = sphere(0.22, MATS.steel()); ctx.scene.add(this.bob);
     // 能量条
-    this.barEk = box(0.3, 1, 0.3, '#34D399'); this.barEk.position.set(1.4, 0.5, 0); ctx.scene.add(this.barEk);
-    this.barEp = box(0.3, 1, 0.3, '#60A5FA'); this.barEp.position.set(2.0, 0.5, 0); ctx.scene.add(this.barEp);
-    this.lEk = mkLabel('Ek', '#34D399'); this.lEp = mkLabel('Ep', '#60A5FA'); ctx.scene.add(this.lEk, this.lEp);
+    this.barEk = box(0.3, 1, 0.3, COLORS.energyEk); this.barEk.position.set(1.4, 0.5, 0); ctx.scene.add(this.barEk);
+    this.barEp = box(0.3, 1, 0.3, COLORS.energyEp); this.barEp.position.set(2.0, 0.5, 0); ctx.scene.add(this.barEp);
+    this.lEk = mkLabel('Ek', COLORS.energyEk); this.lEp = mkLabel('Ep', COLORS.energyEp); ctx.scene.add(this.lEk, this.lEp);
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
     this.theta = 0; this.omega = 0;
   },
@@ -916,29 +1030,35 @@ Object.assign(A1, {
 });
 Object.assign(A2, {
   readouts() {
-    // 读数从物理世界采样：位移取小车位置，速度取线性速度，静止判断看是否 True 停住
-    // 位移零点 = 释放点 startX（=XF0+0.1，坡脚），不是跑道左端 XF0——理论 s=v0²/(2μg) 从释放点起算，
-    // 零点不齐会把刚体实测距离系统性多算 0.1m（0.5 变 0.58，假红）。
-    let x = this.startX(), v = 0, stopped = false;
+    // 读数从物理世界采样：位移取小车位置，速度取线性速度，静止判断看是否 True 停住。
+    // 位移零点 = 坡脚 XF0（=startX()，小车过接缝进入水平段开始计滑行）；坡上阶段 dist=0。
+    let x = this.startX(), v = 0, stopped = false, onRamp = false;
     if (this._physReady && this._phys && this._cartB) {
       x = this.cartG.position.x;
       v = this._phys.linearSpeedX(this._cartB);
       stopped = this._phys.isStopped(this._cartB);
+      onRamp = this._phys.isStopped(this._cartB) === false && x < this.startX();
     } else if (this.list) {
-      // fallback：解析式 t → x
+      // fallback：解析式——先在坡上匀加速（无摩擦），到坡脚后按 μ 匀减速
       const mu = this.sel.mu, tt = this.t || 0;
-      if (mu <= 1e-6) { x = this.XF0 + this.v0 * tt; v = this.v0; }
+      const a_ramp = G * Math.sin(this.theta);
+      const t_foot = Math.sqrt(2 * this.RL / a_ramp);
+      if (tt < t_foot) { onRamp = true; x = this.XF0 - this.RL + 0.5 * a_ramp * tt * tt * Math.cos(this.theta); v = a_ramp * tt * Math.cos(this.theta); }
       else {
-        const sMax = isFinite(this.s) ? this.s : Infinity;
-        x = this.XF0 + Math.min(this.v0 * tt - 0.5 * mu * G * tt * tt, sMax);
-        v = Math.max(0, this.v0 - mu * G * tt);
-        stopped = v <= 0.01;
+        const xt = tt - t_foot;
+        if (mu <= 1e-6) { x = this.XF0 + this.v0 * xt; v = this.v0; }
+        else {
+          const sMax = isFinite(this.s) ? this.s : Infinity;
+          x = this.XF0 + Math.min(this.v0 * xt - 0.5 * mu * G * xt * xt, sMax);
+          v = Math.max(0, this.v0 - mu * G * xt);
+          stopped = v <= 0.01;
+        }
       }
     }
     const dist = Math.max(0, x - this.startX());
-    const phase = stopped ? '已停止' : (v > 0.01 ? '滑行中' : '静止');
+    const phase = onRamp ? '坡上下滑中' : (stopped ? '已停止' : (v > 0.01 ? '滑行中' : '静止'));
     return [
-      rd('到坡底速度 v₀', this.v0, 'm/s'),
+      rd('坡底速度 v₀', this.v0, 'm/s'),
       rd('所选材料 μ', this.sel ? this.sel.mu : 0, '', 2),
       rd('当前位移 s', dist, 'm'),
       rd('速度 v', v, 'm/s'),

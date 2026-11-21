@@ -75,29 +75,85 @@ class World {
     this._tmpT = new Ammo.btTransform();
     this._tmpQ = new Ammo.btQuaternion(0, 0, 0, 1);
     this._tmpV = new Ammo.btVector3(0, 0, 0);
+    // 每帧内部子步数（外层仍固定 1/60 步长，确定性不变）：子步越多接触/摩擦越准、能量守恒越好。
+    // 默认 1 保持其它场景（A7 发布版）行为不变；需要更高精度的场景（A2）自己设 subSteps=4。
+    this.subSteps = 1;
+    // 可选：每步推进后的回调（仅在 stepN/stepTo 内部调用，确定性）。
+    this.afterStep = null;
   }
 
-  /* 加一个盒体刚体。mass=0 → 静态。mesh 可为 null（纯物理体，不参与渲染同步）。
-   * halfExtents = 盒体半尺寸 [hx, hy, hz]；pos 为质心初始位置；quat 可选（默认单位四元数）。 */
-  addBox(mesh, { mass = 1, halfExtents, pos = [0, 0, 0], quat = [0, 0, 0, 1], friction = 0.5, restitution = 0, dampingLin = 0.05, dampingAng = 0.3 } = {}) {
+  /* 加一个刚体。mass=0 → 静态。mesh 可为 null（纯物理体，不参与渲染同步）。
+   * shape: 'box'（默认）| 'cylinderZ'（轴沿 z 的圆柱，半径=halfExtents[0]、长=2*halfExtents[2]）。
+   *       圆柱与任意倾角坡面/圆弧都是线接触，过接缝平滑过渡、不啃坡（A2 从坡顶下滑必需）。
+   * halfExtents = 盒半尺寸 / 柱半径+半长；pos 为质心初始位置；quat 可选（默认单位四元数）。
+   * lockRot=true → setAngularFactor(0,0,0)：小车这类滑行体锁死旋转，过接缝不俯仰弹跳。 */
+  addBox(mesh, { mass = 1, halfExtents, pos = [0, 0, 0], quat = [0, 0, 0, 1], friction = 0.5, restitution = 0, dampingLin = 0.05, dampingAng = 0.3, shape = 'box', lockRot = false, lockZ = false } = {}) {
     const A = this.Ammo;
-    const shape = new A.btBoxShape(new A.btVector3(halfExtents[0], halfExtents[1], halfExtents[2]));
+    let shapeObj;
+    if (shape === 'cylinderZ') {
+      // 轴沿 z 的圆柱：btCylinderShapeZ(半径, 半径, 半长)
+      shapeObj = new A.btCylinderShapeZ(new A.btVector3(halfExtents[0], halfExtents[0], halfExtents[2]));
+    } else if (shape === 'sphere') {
+      shapeObj = new A.btSphereShape(halfExtents[0]);
+    } else {
+      shapeObj = new A.btBoxShape(new A.btVector3(halfExtents[0], halfExtents[1], halfExtents[2]));
+    }
     const t = new A.btTransform();
     t.setIdentity();
     t.getOrigin().setValue(pos[0], pos[1], pos[2]);
-    t.getRotation().setValue(quat[0], quat[1], quat[2], quat[3]);
-    const motionState = new A.btDefaultMotionState(t);
+    // 旋转必须用 setRotation(q)，不能 getRotation().setValue(...)——后者在 ammo 绑定里
+    // 把 setValue 写到临时拷贝上，回读恒等四元数（静态体看起来转了、dump 却显示 identity）。
+    const qq = new A.btQuaternion(quat[0], quat[1], quat[2], quat[3]);
+    t.setRotation(qq);
+    const motionState = new A.btDefaultMotionState(t);   // 先建 motionState（复制变换），再 destroy 四元数
+    A.destroy(qq);
     const inertia = new A.btVector3(0, 0, 0);
-    if (mass > 0) shape.calculateLocalInertia(mass, inertia);
-    const body = new A.btRigidBody(new A.btRigidBodyConstructionInfo(mass, motionState, shape, inertia));
+    if (mass > 0) shapeObj.calculateLocalInertia(mass, inertia);
+    const body = new A.btRigidBody(new A.btRigidBodyConstructionInfo(mass, motionState, shapeObj, inertia));
     body.setFriction(friction);
     body.setRestitution(restitution);
     if (mass > 0) body.setDamping(dampingLin, dampingAng);
+    if (lockRot) { const zf = new A.btVector3(0, 0, 0); body.setAngularFactor(zf); A.destroy(zf); }
+    // lockZ=true → setLinearFactor(1,1,0)：把横向（z）平移锁死，物体只在 x、y 上动。
+    // A2 小车沿轨道单向滑行，横向锁死可杜绝 μ=0 无摩擦时横向微漂累积到滑出跑道/坠落。
+    if (lockZ) { const lf = new A.btVector3(1, 1, 0); body.setLinearFactor(lf); A.destroy(lf); }
     this.dynamicsWorld.addRigidBody(body);
     A.destroy(t); A.destroy(inertia);
 
     const key = 'b' + this.bodies.length;
-    const rec = { key, mesh, body, shape, motionState, initPos: pos.slice(), initQuat: quat.slice(), initVel: [0, 0, 0] };
+    const rec = { key, mesh, body, shape: shapeObj, motionState, initPos: pos.slice(), initQuat: quat.slice(), initVel: [0, 0, 0] };
+    this.bodies.push(rec);
+    if (mesh) this.syncBody(rec);
+    return rec;
+  }
+
+  /* 加一块静态三角网格（顶点/索引，世界坐标）。用于 A2 的「直线斜坡 + 圆弧过渡」这类曲面：
+   * 用 btBvhTriangleMeshShape 把一条 2D 轮廓沿 z 挤出，圆柱可在上面连续滑行，接缝切线连续、无立棱。
+   * friction 默认 0（斜坡/圆弧段无摩擦，材料摩擦只作用在平面段）。
+   * vertices: [] 长度 3N；indices: [] 长度 3T。 */
+  addTriMesh(mesh, { vertices, indices, friction = 0, restitution = 0 } = {}) {
+    const A = this.Ammo;
+    const triMesh = new A.btTriangleMesh(true, false);   // (use32BitIndices, use4ComponentVertices)
+    const v = [new A.btVector3(), new A.btVector3(), new A.btVector3()];
+    for (let i = 0; i < indices.length; i += 3) {
+      for (let k = 0; k < 3; k++) {
+        const j = indices[i + k];
+        v[k].setValue(vertices[j * 3], vertices[j * 3 + 1], vertices[j * 3 + 2]);
+      }
+      triMesh.addTriangle(v[0], v[1], v[2], true);
+    }
+    for (const x of v) A.destroy(x);
+    const shape = new A.btBvhTriangleMeshShape(triMesh, true, true);
+    const t = new A.btTransform(); t.setIdentity();
+    const motionState = new A.btDefaultMotionState(t);
+    const inertia = new A.btVector3(0, 0, 0);
+    const body = new A.btRigidBody(new A.btRigidBodyConstructionInfo(0, motionState, shape, inertia));
+    body.setFriction(friction);
+    body.setRestitution(restitution);
+    this.dynamicsWorld.addRigidBody(body);
+    A.destroy(t); A.destroy(inertia);
+    const key = 'b' + this.bodies.length;
+    const rec = { key, mesh, body, shape, motionState, triMesh, initPos: [0, 0, 0], initQuat: [0, 0, 0, 1], initVel: [0, 0, 0], isTrimesh: true };
     this.bodies.push(rec);
     if (mesh) this.syncBody(rec);
     return rec;
@@ -153,7 +209,10 @@ class World {
     for (const b of this.bodies) {
       this._tmpT.setIdentity();
       this._tmpT.getOrigin().setValue(b.initPos[0], b.initPos[1], b.initPos[2]);
-      this._tmpT.getRotation().setValue(b.initQuat[0], b.initQuat[1], b.initQuat[2], b.initQuat[3]);
+      // 旋转必须 setRotation(q)，不能用 getRotation().setValue(...)——后者写到临时拷贝、回读恒等四元数。
+      const q = new A.btQuaternion(b.initQuat[0], b.initQuat[1], b.initQuat[2], b.initQuat[3]);
+      this._tmpT.setRotation(q);
+      A.destroy(q);
       b.body.setWorldTransform(this._tmpT);
       b.body.getMotionState().setWorldTransform(this._tmpT);
       // 线速度：先清零再恢复 initVel（A7 无初速、A2 小车有初速）
@@ -170,9 +229,9 @@ class World {
     this.sync();
   }
 
-  /* 固定步长推进 n 步（不复位）。 */
+  /* 固定步长推进 n 步（不复位）。内部 subSteps 个子步提高能量守恒（外层仍 1/60，确定性不变）。 */
   stepN(n) {
-    for (let i = 0; i < n; i++) this.dynamicsWorld.stepSimulation(STEP, 1, STEP);
+    for (let i = 0; i < n; i++) { this.dynamicsWorld.stepSimulation(STEP, this.subSteps, STEP / this.subSteps); if (this.afterStep) this.afterStep(); }
     this.sync();
   }
 
@@ -181,7 +240,7 @@ class World {
     this.reset();
     const tt = Number.isFinite(t) ? Math.max(0, t) : 0;
     const n = Math.max(0, Math.floor(tt / STEP + 0.5));
-    for (let i = 0; i < n; i++) this.dynamicsWorld.stepSimulation(STEP, 1, STEP);
+    for (let i = 0; i < n; i++) { this.dynamicsWorld.stepSimulation(STEP, this.subSteps, STEP / this.subSteps); if (this.afterStep) this.afterStep(); }
     this.sync();
   }
 
@@ -234,6 +293,7 @@ class World {
       try { this.dynamicsWorld.removeRigidBody(b.body); } catch (e) {}
       try { A.destroy(b.motionState); } catch (e) {}
       try { A.destroy(b.shape); } catch (e) {}
+      try { if (b.triMesh) A.destroy(b.triMesh); } catch (e) {}
       try { A.destroy(b.body); } catch (e) {}
     }
     this.bodies = [];

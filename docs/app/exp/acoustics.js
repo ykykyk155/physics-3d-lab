@@ -3,7 +3,7 @@ import { THREE, COLORS, mat, box, cyl, sphere, decor, mergeByMaterial, mkLabel, 
 import { MATS, matClone, registerMaterials, bellJar, tuningFork } from './props.js';
 
 const C = COLORS.acoustics;
-const WAVE = '#34D399';
+const WAVE = C;
 
 /* ===================== C1 声音的传播（真空罩） ===================== */
 const C1 = {
@@ -183,12 +183,12 @@ const C3 = {
     ctx.scene.add(mergeByMaterial(seams));
     this.barrier = box(0.12, 3, 3, matClone('barrierGrey')); this.barrier.material.transparent = true; this.barrier.material.opacity = 0.9; this.barrier.position.set(-1.5, 1.5, 0); ctx.scene.add(this.barrier);
     this.pulse = decor(sphere(0.18, WAVE, { emissive: WAVE, emissiveIntensity: 0.8 })); ctx.scene.add(this.pulse);
-    this.pulse2 = decor(sphere(0.18, '#f0abfc', { emissive: '#f0abfc', emissiveIntensity: 0.6, transparent: true, opacity: 0.8 })); ctx.scene.add(this.pulse2);
+    this.pulse2 = decor(sphere(0.18, COLORS.altPink, { emissive: COLORS.altPink, emissiveIntensity: 0.6, transparent: true, opacity: 0.8 })); ctx.scene.add(this.pulse2);
     this.lbl = mkLabel('', C); this.lbl.position.set(0, 3.6, 0); ctx.scene.add(this.lbl);
     this.ruler = new THREE.Group(); ctx.scene.add(this.ruler);
     for (let i = 0; i <= 10; i++) { const t = decor(box(0.02, 0.02, i % 5 === 0 ? 0.4 : 0.24, '#3d6b5b')); t.position.set(-4 + i * 0.8, 0.03, 1.4); this.ruler.add(t); }
     // 控制环节高亮环：声源 / 传播路径 / 人耳处（数据元素用声学绿 #34D399，不用黄）
-    this.hl = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: 0x34D399 }));
+    this.hl = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: C }));
     this.hl.rotation.x = Math.PI / 2; this.hl.visible = false; ctx.scene.add(this.hl);
     this.t = 0;
     this.duration = 4;          // 一次完整回声（去+回）的呈现时长；真实 Δt 见读数

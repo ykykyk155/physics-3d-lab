@@ -3,8 +3,8 @@ import { THREE, COLORS, DEG, mat, box, cyl, sphere, torus, decor, mergeByMateria
 import { MATS, matClone, registerMaterials, lens as mkLens, setLensAperture, screen as mkScreen, candle, opticalRail, railRider, planeMirror, laser, glassTank, testTube } from './props.js';
 
 const C = COLORS.optics;
-const RAY = '#A78BFA';
-const RAY2 = '#F0ABFC';
+const RAY = C;
+const RAY2 = COLORS.altPink;
 
 function clearRays(list) { list.forEach(r => { r.geometry && r.geometry.dispose(); r.parent && r.parent.remove(r); }); list.length = 0; }
 
@@ -102,7 +102,7 @@ const B2 = {
     this.laserG = laser(); this.laserG.position.set(-2.6, 2.2, 0); this.laserG.rotation.z = -0.7; ctx.scene.add(this.laserG);
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
     this.lblI = mkLabel('i', '#c4b5fd'); ctx.scene.add(this.lblI);
-    this.lblR = mkLabel('r', '#f0abfc'); ctx.scene.add(this.lblR);
+    this.lblR = mkLabel('r', COLORS.altPink); ctx.scene.add(this.lblR);
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
@@ -232,7 +232,7 @@ const B4 = {
     this.fiber.position.set(0, 1.0, 0); this.fiber.visible = false; ctx.scene.add(this.fiber);
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
     this.lblI = mkLabel('', '#c4b5fd'); ctx.scene.add(this.lblI);
-    this.lblR = mkLabel('', '#f0abfc'); ctx.scene.add(this.lblR);
+    this.lblR = mkLabel('', COLORS.altPink); ctx.scene.add(this.lblR);
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   pairN() {
@@ -272,7 +272,7 @@ const B4 = {
     } else {
       // 全反射：折回入射一侧
       const rdir = new THREE.Vector3(Math.sin(i), -up * Math.cos(i), 0);
-      this.rays.push(fatLine([O, O.clone().addScaledVector(rdir, 3.2)], '#f0abfc', 2.8));
+      this.rays.push(fatLine([O, O.clone().addScaledVector(rdir, 3.2)], COLORS.altPink, 2.8));
     }
     this.rays.forEach(r => this.scene.add(r));
     // 情景切换：激光(默认) / 筷子 / 叉鱼 / 光纤——切到对应情景显示道具、并调整说明
@@ -311,7 +311,7 @@ const B5 = {
     this.screenG = mkScreen({ w: 0.95, h: 1.4 });
     this.screen = this.screenG;
     this.screen.position.set(0, 0.09, 0); ctx.scene.add(this.screenG);
-    this.axis = fatLine([new THREE.Vector3(-6, 1.62, 0), new THREE.Vector3(6, 1.62, 0)], '#5b6b85', 1.5, { dashed: true }); ctx.scene.add(this.axis);
+    this.axis = fatLine([new THREE.Vector3(-6, 1.62, 0), new THREE.Vector3(6, 1.62, 0)], COLORS.neutral, 1.5, { dashed: true }); ctx.scene.add(this.axis);
     this.obj = box(0.16, 1, 0.16, '#ffd479', { emissive: '#ffb020', emissiveIntensity: 0.4 }); ctx.scene.add(this.obj);
     // 光源形状：F 形 / 蜡烛 / 箭头——三种都是真实器材，切换时整件替换
     this.srcShape = new THREE.Group(); ctx.scene.add(this.srcShape);
@@ -390,7 +390,7 @@ const B5 = {
     // 焦点标记
     this.marks.clear();
     [-2 * f, -f, f, 2 * f].forEach(m => {
-      const l = box(0.04, 0.3, 0.04, m === f || m === -f ? '#f0abfc' : '#7b8aa3');
+      const l = box(0.04, 0.3, 0.04, m === f || m === -f ? COLORS.altPink : '#7b8aa3');
       l.position.set(m * k, 1.2, 0); this.marks.add(l);
     });
     clearRays(this.rays);

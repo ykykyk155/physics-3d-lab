@@ -87,7 +87,7 @@ const cartPose = () => page.evaluate(() => {
 });
 
 /* --- CEO 新增 5：静止真静止（毛巾 μ=0.6） --- */
-await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0.6); e.onParam('height', 0.15); });
+await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0.6); e.onParam('height', 0.35); });
 await sleep(300);
 const dur = await page.evaluate(() => window.__LAB.current().exp.duration);
 await page.evaluate(d => { window.__LAB.current().exp.seek(d); }, dur);
@@ -101,7 +101,7 @@ check('毛巾(μ=0.6)真静止：停住后再走60帧位不移', drift < 0.02, `
 
 /* --- CEO 新增 6：滑动距离有区分度 --- */
 const stopDist = async (mu) => {
-  await page.evaluate(m => { const e = window.__LAB.current().exp; e.onParam('surface', m); e.onParam('height', 0.15); }, mu);
+  await page.evaluate(m => { const e = window.__LAB.current().exp; e.onParam('surface', m); e.onParam('height', 0.35); }, mu);
   await sleep(250);
   const d = await page.evaluate(() => window.__LAB.current().exp.duration);
   await page.evaluate(dd => { window.__LAB.current().exp.seek(dd); }, d);
@@ -117,18 +117,18 @@ const rWood = await stopDist(0.12);
 
 // 与解析式对比（轨道侧摩擦 1.0 → 有效摩擦 = μ）：dist = v0²/(2μg)
 // 判据（CEO 拍板）：|实测−理论| ≤ max(5%×理论, 0.03m)——0.03 容差吸收 60Hz 离散步长与初始穿透
-const G = 9.8, h = 0.15;
+const G = 9.8, h = 0.35;
 const v0T = Math.sqrt(2 * G * h);
 const theory = mu => (v0T * v0T) / (2 * mu * G);
 const within = (meas, mu) => {
   const t = theory(mu);
   return Math.abs(meas - t) <= Math.max(0.05 * t, 0.03);
 };
-check('木板 μ=0.12 停止距离≈理论1.25m（容差内）',
+check('木板 μ=0.12 停止距离≈理论（容差内）',
   within(rWood.dist, 0.12), `实测 ${rWood.dist.toFixed(3)} / 理论 ${theory(0.12).toFixed(3)}（Δ${(Math.abs(rWood.dist - theory(0.12))).toFixed(3)}）`);
-check('棉布 μ=0.3 距≈理论0.50m（容差内）',
+check('棉布 μ=0.3 距≈理论（容差内）',
   within(rCloth.dist, 0.3), `实测 ${rCloth.dist.toFixed(3)} / 理论 ${theory(0.3).toFixed(3)}（Δ${(Math.abs(rCloth.dist - theory(0.3))).toFixed(3)}）`);
-check('毛巾 μ=0.6 距≈理论0.25m（容差内）',
+check('毛巾 μ=0.6 距≈理论（容差内）',
   within(rTowel.dist, 0.6), `实测 ${rTowel.dist.toFixed(3)} / 理论 ${theory(0.6).toFixed(3)}（Δ${(Math.abs(rTowel.dist - theory(0.6))).toFixed(3)}）`);
 
 const diffs = { tow2cloth: rCloth.dist - rTowel.dist, cloth2wood: rWood.dist - rCloth.dist };
@@ -138,21 +138,46 @@ check('两两相对差距≥15%', (diffs.tow2cloth / rTowel.dist) >= 0.15 && (di
   `毛巾→棉布 +${(diffs.tow2cloth / rTowel.dist * 100).toFixed(0)}%、棉布→木板 +${(diffs.cloth2wood / rCloth.dist * 100).toFixed(0)}%`);
 check('最远一档≤轨道85%', rWood.dist <= 7.0 * 0.85, `木板 ${rWood.dist.toFixed(2)} ≤ ${(7.0 * 0.85).toFixed(2)}`);
 
+/* --- CEO 方案 B 验收：摩擦输入标定 k(μ)=0.945μ−0.19μ² 必须让「全量程」每点 ≤5% ---
+ * 三个材料只是曲线上的采样点；这里扫 0.02~0.70 共 9 点（含 0.02/0.2/0.45 等中间值），逐点确认。
+ * 常驻意义：换 ammo 版本或改子步数 → 引擎有效摩擦变化 → 标定失效 → 这条立刻报红。 */
+const calibSweep = async () => {
+  const mus = [0.02, 0.05, 0.10, 0.12, 0.20, 0.30, 0.45, 0.60, 0.70];
+  const rows = [];
+  for (const mu of mus) {
+    const d = await page.evaluate((mn) => {
+      const e = window.__LAB.current().exp._impl; e._testMu = mn; e._rawFric = false; e._rebuildPhys();
+      const w = e._phys, sx = e.startX(); let x = sx, still = 0, vx = 9;
+      for (let i = 0; i < 60 * 26; i++) { w.stepN(1); x = e.cartG.position.x; vx = w.linearSpeedX(e._cartB); if (i > 60 && Math.abs(vx) < 0.006) { still++; if (still > 12) break; } else still = 0; }
+      return Math.max(0, x - sx);
+    }, mu);
+    const t = theory(mu);
+    rows.push({ mu, d, t, dev: (d - t) / t, ok: Math.abs(d - t) <= Math.max(0.05 * t, 0.03) });
+  }
+  await page.evaluate(() => { const e = window.__LAB.current().exp._impl; e._testMu = null; e._rebuildPhys(); });
+  return rows;
+};
+const crows = await calibSweep();
+check('标定 k(μ) 后全量程(0.02~0.70)每点偏差≤5%', crows.every(r => r.ok),
+  crows.map(r => `${r.mu}:${(r.dev * 100).toFixed(1)}%`).join(' '));
+
 /* --- CEO 四条基础 --- */
-await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0.3); e.onParam('height', 0.15); });
+await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0.3); e.onParam('height', 0.35); });
 await sleep(250);
 const d2 = await page.evaluate(() => window.__LAB.current().exp.duration);
-const t = d2 * 0.7;
-await page.evaluate(tt => window.__LAB.current().exp.seek(tt), t); const a1 = await cartPose();
-await page.evaluate(tt => window.__LAB.current().exp.seek(tt), t); const a2 = await cartPose();
+const STEP = 1 / 60;
+const nStep = Math.round(d2 * 0.7 / STEP);
+const tCmp = nStep * STEP;            // 顺序播放与拖动用同一个精确 t，避免浮点累加误差
+await page.evaluate(tt => window.__LAB.current().exp.seek(tt), tCmp); const a1 = await cartPose();
+await page.evaluate(tt => window.__LAB.current().exp.seek(tt), tCmp); const a2 = await cartPose();
 check('同一 t 两次 seek 位姿一致', a1 === a2 && a1 !== 'MISSING', a1);
-const seq = await page.evaluate(tt => {
+const seq = await page.evaluate(({ n }) => {
   const e = window.__LAB.current().exp; const s = window.__LAB.current().scene;
-  e.seek(0); let acc = 0; const STEP = 1 / 60;
-  while (acc + STEP <= tt + 1e-9) { e.step(STEP); acc += STEP; }
+  e.seek(0); const STEP = 1 / 60;
+  for (let i = 0; i < n; i++) e.step(STEP);
   return (s.getObjectByName('A2-cart') || {}).position.x.toFixed(4);
-}, t);
-await page.evaluate(tt => window.__LAB.current().exp.seek(tt), t);
+}, { n: nStep });
+await page.evaluate(tt => window.__LAB.current().exp.seek(tt), tCmp);
 const drag = await cartPose();
 check('顺序播放≈拖到 t（±0.02m）', Math.abs(Number(seq) - Number(drag)) < 0.02, `seq=${seq} drag=${drag}`);
 
@@ -162,6 +187,27 @@ const r0 = await page.evaluate(() => window.__LAB.current().exp.readouts());
 const hasSpeed = r0.some(r => /速度 v/.test(r.label));
 const hasPhase = r0.some(r => /运动阶段/.test(r.label));
 check('读数含速度/位移/阶段', hasSpeed && hasPhase, r0.map(r => r.label).join('/'));
+
+/* --- CEO 新增：μ=0 理想光滑——不出轨、不坠落、duration 仍 Infinity --- */
+await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0); e.onParam('height', 0.35); });
+await sleep(250);
+const dur0 = await page.evaluate(() => window.__LAB.current().exp.duration);
+check('μ=0 duration = Infinity（禁拖）', dur0 === Infinity, `duration=${dur0}`);
+let yBad = [], minY = 9, maxY = -9, zs = [];
+for (const tt of [2, 4, 6, 8, 10]) {
+  const p = await page.evaluate(t => { const e = window.__LAB.current().exp; e.seek(t);
+    const c = window.__LAB.current().scene.getObjectByName('A2-cart');
+    return { x: c.position.x, y: c.position.y, z: c.position.z }; }, tt);
+  minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); zs.push(p.z);
+  if (p.y < 0.0 || p.y > 0.2) yBad.push([tt, +p.y.toFixed(3)]);
+}
+const zDrift = Math.max(...zs) - Math.min(...zs);
+check('μ=0 全程不出轨（y 稳定在轨面 0.06、不坠落）', yBad.length === 0 && minY > 0.0 && maxY < 0.2, `y∈[${minY.toFixed(3)}, ${maxY.toFixed(3)}]${yBad.length ? ' 异常' + JSON.stringify(yBad) : ''}`);
+check('μ=0 不横向漂出轨道（z 全程不变）', zDrift < 0.05, `z 漂移 ${zDrift.toFixed(4)}（z≈${zs[0].toFixed(2)}）`);
+// 滑出可视 7m 之外仍继续前进（永不停止）
+const far = await page.evaluate(() => { const e = window.__LAB.current().exp; e.seek(8);
+  const c = window.__LAB.current().scene.getObjectByName('A2-cart'); return c.position.x; });
+check('μ=0 滑过轨道尽头仍在延伸段上继续前进', far > 5.8, `t=8s x=${far.toFixed(2)}`);
 
 /* 二次进入不重复下载 */
 const before2 = ammoReq;
