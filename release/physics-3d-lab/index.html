@@ -470,9 +470,7 @@ let renderer, camera, controls, labelRenderer;
 function initEngine(){
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;   // r187 已移除 PCFSoftShadowMap
-  renderer.shadowMap.autoUpdate = false;       // 共享池口径：按需置 needsUpdate
+  // 阴影已全局关闭（用户要求：所有实验物件影子删掉），不再做 shadow pass
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   viewport.insertBefore(renderer.domElement, viewport.firstChild);
 
@@ -509,13 +507,9 @@ function initEngine(){
 function addLights(scene){
   const hemi = new THREE.HemisphereLight(0xEAF2FF, 0x33415C, 1.0);
   scene.add(hemi);
+  // 无阴影投影主光：仅照明，不做 shadow pass
   const dir = new THREE.DirectionalLight(0xffffff, 2.2);
   dir.position.set(6, 10, 4);
-  dir.castShadow = true;
-  dir.shadow.mapSize.set(1024, 1024);
-  dir.shadow.camera.left = -8; dir.shadow.camera.right = 8;
-  dir.shadow.camera.top = 8; dir.shadow.camera.bottom = -8;
-  dir.shadow.camera.far = 40; dir.shadow.bias = -0.0005;
   scene.add(dir);
   return dir;
 }
@@ -530,8 +524,7 @@ function keepPersistent(...rs){
 }
 function disposeObject(root){
   root.traverse(o => {
-    if(o.isLight){                                        // 灯光自带阴影 RT：不释放则每切一次场景泄 1~2 个纹理
-      if(o.shadow && o.shadow.map){ o.shadow.map.dispose(); o.shadow.map = null; }
+    if(o.isLight){                                        // 灯光无阴影 RT（全局关阴影后无泄漏）；安全起见仍释放
       if(o.dispose) o.dispose();
       return;
     }
@@ -567,12 +560,10 @@ function animate(){
         try{ current.exp.onParam(k, store.params[k]); }catch(e){ console.error('[onParam:'+k+']', e); }
       }
       pending.clear();
-      renderer.shadowMap.needsUpdate = true;
     }
     if(seekPending != null && current.exp.seek){         // 时间条 seek：rAF 合并，每帧至多一次
       try{ current.exp.seek(seekPending); }catch(e){ console.error('[seek]', e); }
       seekPending = null;
-      renderer.shadowMap.needsUpdate = true;
     }
     const d = current.exp.duration;                      // duration 是活属性：参数改变时长时实验自行更新，外壳每帧跟随
     if(typeof d === 'number' && d !== curDuration){
@@ -673,7 +664,6 @@ function switchExperiment(id, opts = {}){
     curDuration = (current.exp && typeof current.exp.duration === 'number') ? current.exp.duration : 0;
     setupTimebar();                                      // simTime 归零、时长/禁用态/标签刷新
     for(const p of meta.params) pending.add(p.id);       // build 后按 JSON 默认值全量 onParam 一轮
-    renderer.shadowMap.needsUpdate = true;
     controls.update();
     $('#fade').classList.remove('on');
     resolve(true);                                       // 场景就绪、遮罩已撤，此后可交互
@@ -1200,7 +1190,6 @@ function resetAll(){
     if(current.exp && current.exp.reset){ try{ current.exp.reset(); }catch(e){ console.error('[reset]', e); } }
     const c0 = current.cam0;
     if(c0){ camera.position.copy(c0.pos); controls.target.copy(c0.tgt); controls.update(); }
-    renderer.shadowMap.needsUpdate = true;
     store.simTime = 0;
     seekPending = null;
     updateTimebarValue();
@@ -1231,7 +1220,6 @@ function resetAll(){
     if(current.exp && current.exp.reset){ try{ current.exp.reset(); }catch(e){ console.error('[reset]', e); } }
     const c0 = current.cam0;                             // 重置连相机一起回场景初始机位（含面板补偿）
     if(c0){ camera.position.copy(c0.pos); controls.target.copy(c0.tgt); controls.update(); }
-    renderer.shadowMap.needsUpdate = true;
     store.simTime = 0;                                   // 重置=参数回默认 + 时间轴回零
     seekPending = null;
     updateTimebarValue();
