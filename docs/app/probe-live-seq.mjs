@@ -1,0 +1,12 @@
+import puppeteer from 'puppeteer-core';
+const b = await puppeteer.launch({executablePath:'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader','--disable-gpu','--no-sandbox']});
+const page = await b.newPage(); await page.setViewport({width:1420,height:800});
+const errs=[]; page.on('pageerror',e=>errs.push(String(e.message)));
+await page.goto('https://ykykyk155.github.io/physics-3d-lab/?v='+Date.now(),{waitUntil:'load',timeout:60000});
+await page.waitForFunction('window.__LAB && window.__LAB.ready',{timeout:60000});
+const cards = await page.evaluate(()=>[...document.querySelectorAll('#sceneGrid .scene-card')].map(c=>c.querySelector('.seq')?.textContent+' '+c.textContent.replace(/\s+/g,' ').trim().slice(2,20)));
+console.log(cards.join(' | '));
+const chip = await page.evaluate(()=>document.querySelector('#chipName').textContent);
+console.log('CHIP', chip);
+console.log('ERRORS', errs.length);
+await b.close();

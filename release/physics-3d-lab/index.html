@@ -644,7 +644,7 @@ function renderSceneGrid(){
     card.type = 'button';
     card.style.setProperty('--tab-c', c);
     card.style.setProperty('--tab-rgb', hexToRgb(c));
-    card.innerHTML = '<span class="seq">' + String(seq[meta.id]).padStart(2, '0') + '</span>' + meta.name + '<span class="chap">' + meta.chapter + '</span>';
+    card.innerHTML = '<span class="seq">' + String(seq[meta.id]).padStart(2, '0') + '</span>' + meta.name;
     card.addEventListener('click', () => {
       if(store.experimentId !== meta.id) switchExperiment(meta.id);
     });
@@ -1147,7 +1147,8 @@ function renderChip(meta){
   $('#chipDot').style.background = moduleColor(meta.module);
   const seq = experimentSeq()[meta.id];
   $('#chipName').textContent = (seq ? String(seq).padStart(2, '0') + ' · ' : '') + meta.name;
-  $('#chipSub').textContent = meta.chapter;
+  $('#chipSub').textContent = '';
+  $('#chipSub').style.display = 'none';
 }
 function bindChrome(){
   const tr = $('#timeRange');
