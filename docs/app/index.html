@@ -89,24 +89,6 @@ input[type=range]:focus-visible::-moz-range-thumb{box-shadow:var(--shadow-glow)}
 .gd-formula{font-family:var(--font-mono);font-size:12.5px;color:#7DB4FF}
 .gd-zero{font-size:12px;line-height:18px;color:#F5B04C;background:rgba(245,176,76,.08);border-radius:var(--radius-md);padding:6px 8px}
 .gd-safe{font-size:11px;color:var(--color-text-secondary);opacity:.7;border-top:1px solid var(--color-border);padding-top:8px;margin-top:2px}
-/* 三段平均速度记录表（A1）：segments() 数据 + 「记录这一组」累积行 */
-.seg-table-wrap{margin-top:12px;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);padding:10px 12px}
-.seg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.seg-head .section-title{flex:1}
-.seg-btn{all:unset;cursor:pointer;font-size:11px;color:var(--color-primary);padding:3px 10px;border-radius:var(--radius-full);border:1px solid var(--color-primary)}
-.seg-btn:hover{background:rgba(59,130,246,.15)}
-.seg-btn.warn{color:#F5B04C;border-color:#F5B04C}
-.seg-calc{font-size:11.5px;line-height:17px;color:var(--color-text-secondary);margin-bottom:8px}
-.seg-calc .mono{font-family:var(--font-mono);color:#7DB4FF}
-.seg-table{width:100%;border-collapse:collapse;font-size:12px}
-.seg-table th{font-weight:500;color:var(--color-text-secondary);text-align:left;padding:4px 6px;border-bottom:1px solid var(--color-border);font-size:11px}
-.seg-table td{padding:5px 6px;border-bottom:1px solid rgba(70,85,122,.35);color:var(--color-text);font-variant-numeric:tabular-nums}
-.seg-table td.mono{font-family:var(--font-mono);font-size:11.5px}
-.seg-table tr.dim td{color:var(--color-text-secondary)}
-.seg-table tr.total td{border-top:2px solid var(--color-border)}
-.seg-row-del{all:unset;cursor:pointer;color:var(--color-text-secondary);font-size:12px;padding:0 4px}
-.seg-row-del:hover{color:var(--color-danger,#f56)}
-.seg-empty{font-size:12px;color:var(--color-text-secondary);padding:6px 2px}
 .tab{height:36px;border:1px solid transparent;border-radius:var(--radius-full);background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:background var(--dur-fast),color var(--dur-fast);white-space:nowrap}
 .tab:hover{background:var(--color-surface)}
 .tab.active{background:rgba(var(--tab-rgb),.15);color:var(--tab-c);border-color:rgba(var(--tab-rgb),.4)}
@@ -355,19 +337,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <section>
         <div class="section-title">参数调节</div>
         <div id="paramsArea"></div>
-        <div class="seg-table-wrap" id="segTableWrap" style="display:none">
-          <div class="seg-head">
-            <span class="section-title" style="margin-bottom:0">三段平均速度记录表</span>
-            <button id="segRecord" type="button" class="seg-btn">记录这一组</button>
-            <button id="segClear" type="button" class="seg-btn">清除</button>
-          </div>
-          <div class="seg-calc" id="segCalc">
-            <span id="segCalcText">—</span>
-          </div>
-          <table class="seg-table"><thead><tr>
-            <th>段</th><th>路程 s(m)</th><th>时间 t(s)</th><th>平均速度 v̄(m/s)</th><th>参数</th><th></th>
-          </tr></thead><tbody id="segBody"></tbody></table>
-        </div>
       </section>
     </div>
     <footer class="p-footer">
@@ -387,6 +356,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <div class="pb-speeds" id="pbSpeeds"></div>
     </div>
     <div class="timebar" id="timebar" style="display:none">
+      <button class="pb-btn" id="btnTimeReset" type="button" aria-label="时间重置（回到起点）" title="时间重置（回到起点）">⟲</button>
       <input type="range" id="timeRange" min="0" max="1" step="0.01" value="0" aria-label="时间轴">
       <span class="tb-time" id="tbTime"></span>
     </div>
@@ -650,7 +620,7 @@ function switchExperiment(id, opts = {}){
   $('#drawerName').textContent = meta.name;
   if(!opts.keepDrawer) $('#panel').classList.remove('open');
 
-  renderTabs(); renderSceneGrid(); renderParams(meta); renderChip(meta); renderGuide(meta); renderSegTable();
+  renderTabs(); renderSceneGrid(); renderParams(meta); renderChip(meta); renderGuide(meta);
   setSpeed(meta.defaultSpeed != null ? meta.defaultSpeed : 1);
   setPlaying(true);
   $('#playbar').style.display = 'flex';
@@ -703,7 +673,6 @@ function switchExperiment(id, opts = {}){
     curDuration = (current.exp && typeof current.exp.duration === 'number') ? current.exp.duration : 0;
     setupTimebar();                                      // simTime 归零、时长/禁用态/标签刷新
     for(const p of meta.params) pending.add(p.id);       // build 后按 JSON 默认值全量 onParam 一轮
-    renderSegTable();                                    // 记录表此刻才有 exp.segments() 可查（切换开头那次是空拍）
     renderer.shadowMap.needsUpdate = true;
     controls.update();
     $('#fade').classList.remove('on');
@@ -869,94 +838,6 @@ function guidePaint(){
   card.style.top = Math.max(12, Math.min(cy, viewport.clientHeight - 200)) + 'px';
   $('#gPrev').disabled = guideIdx === 0;
   $('#gNext').textContent = guideIdx === guideSteps.length - 1 ? '完成' : '下一步';
-}
-/* ---------- 三段平均速度记录表（A1）：exp.segments() 一次取三段，「记录这一组」累积进表 ---------- */
-const SEG_NAMES = { s1:'前段', s2:'后段', s:'全程' };
-let segRows = [];                                       // 累积的记录 [{params, seg:{s1,t1,v1,s2,t2,v2,s,t,v}}]
-function getSegments(){
-  const exp = current.exp;
-  if(exp && typeof exp.segments === 'function'){
-    try{ const sg = exp.segments(); if(sg && typeof sg === 'object') return sg; }catch(e){ console.error('[segments]', e); }
-  }
-  return null;
-}
-function renderSegTable(){
-  const wrap = $('#segTableWrap');
-  const sg = getSegments();
-  wrap.style.display = sg ? '' : 'none';
-  if(!sg) return;
-  // 当前参数快照（写进每行，便于对比不同参数下的三段）
-  const meta = DATA.byId[store.experimentId];
-  const pText = meta ? meta.params.map(p => {
-    const v = store.params[p.id];
-    return p.id + '=' + (typeof v === 'number' ? fmtNum(v) : v);
-  }).join(' ') : '';
-  const en = sg.enabled !== false;
-  const calc = $('#segCalc');
-  calc.innerHTML = segCalcHTML(sg, en);
-  const body = $('#segBody'); body.innerHTML = '';
-  if(segRows.length === 0){
-    // 未记录任何组：直接呈现实时三段（值随参数实时刷新，segLiveUpdate 每 100ms 更新）
-    body.appendChild(mkRowFull('前段', sg.s1, sg.t1, sg.v1, en, pText, '当前', 'seg-live'));
-    body.appendChild(mkRowFull('后段', sg.s2, sg.t2, sg.v2, en, pText, '当前', 'seg-live'));
-    body.appendChild(mkRowFull('全程', sg.s, sg.t, sg.v, en, pText, '当前', 'seg-live total'));
-  }else{
-    segRows.forEach((row, i) => {
-      const r = row.seg, e2 = r.enabled !== false;
-      body.appendChild(mkRowFull('前段', r.s1, r.t1, r.v1, e2, row.pText, ''));
-      body.appendChild(mkRowFull('后段', r.s2, r.t2, r.v2, e2, row.pText, ''));
-      const last = mkRowFull('全程', r.s, r.t, r.v, e2, row.pText, '', 'total');
-      const del = el('button', 'seg-row-del'); del.type = 'button'; del.textContent = '✕'; del.title = '删除这条记录';
-      del.addEventListener('click', () => { segRows.splice(i, 1); renderSegTable(); });
-      const tdDel = el('td'); tdDel.appendChild(del);
-      last.appendChild(tdDel);
-      body.appendChild(last);
-    });
-  }
-}
-/* 实时行随参数变化刷新（挂在 renderStats 的 100ms 节拍里，只在表可见且未记录时动 DOM） */
-let segLiveSig = '';
-function segLiveUpdate(){
-  const wrap = $('#segTableWrap');
-  if(wrap.style.display === 'none' || segRows.length > 0) return;
-  const sg = getSegments();
-  if(!sg) return;
-  const en = sg.enabled !== false;
-  const sig = en + '|' + [sg.s1,sg.t1,sg.v1,sg.s2,sg.t2,sg.v2,sg.s,sg.t,sg.v].map(n => fmtNum(n)).join('|');
-  if(sig === segLiveSig) return;
-  segLiveSig = sig;
-  $('#segCalc').innerHTML = segCalcHTML(sg, en);         // 计算行文案/置灰态跟值一起刷
-  const rows = document.querySelectorAll('#segBody tr.seg-live');
-  const vals = [[sg.s1,sg.t1,sg.v1],[sg.s2,sg.t2,sg.v2],[sg.s,sg.t,sg.v]];
-  rows.forEach((tr, i) => {
-    tr.classList.toggle('dim', !en);
-    const tds = tr.querySelectorAll('td');
-    for(let k = 0; k < 3; k++) tds[k + 1].textContent = en ? fmtNum(vals[i][k]) : '0';
-  });
-}
-function mkRowFull(name, s, t, v, en, pText, tag, cls){
-  const tr = el('tr', cls || '');
-  if(!en) tr.classList.add('dim');
-  tr.innerHTML = '<td>' + name + '</td><td class="mono">' + (en ? fmtNum(s) : '0') + '</td><td class="mono">' + (en ? fmtNum(t) : '0') + '</td><td class="mono">' + (en ? fmtNum(v) : '0') + '</td><td class="mono">' + pText + '</td><td' + (tag ? ' class="seg-empty"' : '') + '>' + (tag || '') + '</td>';
-  return tr;
-}
-function segCalcHTML(sg, en){
-  return en
-    ? '当前三段：前段 <span class="mono">' + fmtNum(sg.v1) + '</span> · 后段 <span class="mono">' + fmtNum(sg.v2) + '</span> · 全程 <span class="mono">' + fmtNum(sg.v) + '</span> m/s —— 单调关系 v₁ &lt; v̄ &lt; v₂（越往后越快）'
-    : '静止分支（μ ≥ tanθ，推不动）：三段路程/时间/速度均为 0';
-}
-function segRecord(){
-  const sg = getSegments();
-  if(!sg) return;
-  const meta = DATA.byId[store.experimentId];
-  const pText = meta ? meta.params.map(p => {
-    const v = store.params[p.id];
-    return p.id + '=' + (typeof v === 'number' ? fmtNum(v) : v);
-  }).join(' ') : '';
-  segRows.push({ pText, seg: Object.assign({}, sg) });
-  if(segRows.length > 8) segRows.shift();               // 表不上滚，最多留 8 组
-  renderSegTable();
-  toast('已记录一组（共 ' + segRows.length + ' 组）');
 }
 function readoutCard(res, secondary){  const card = el('div', 'readout-card' + (secondary ? ' secondary' : ''));
   const lab = el('span', 'rlabel'); lab.textContent = res.label;
@@ -1445,6 +1326,16 @@ function onTimeScrub(v){
   seekPending = v;                                       // 只写外壳状态，经 animate 合并后调 exp.seek
   updateTimebarValue();
 }
+/* 时间重置：拨回 t=0 并暂停（用户定案 2026-11-21）；不重置参数、不动速度档。
+   A2 Infinity（禁拖）与 duration=0（置灰）场景同样生效——只要 timebar 可见就能回到起点。 */
+function resetTime(){
+  store.playback.playing = false;
+  store.simTime = 0;
+  if(current.exp && current.exp.seek) seekPending = 0;   // 经 animate 合并后调 exp.seek(0)，积分型状态同步清
+  else seekPending = null;
+  updateTimebarValue();
+  renderPlayback();
+}
 
 /* ---------- 顶部 chip / 全屏 / 抽屉 ---------- */
 function renderChip(meta){
@@ -1487,9 +1378,6 @@ function bindChrome(){
   $('#vwHome').addEventListener('click', () => camPresets().home());
   $('#vwFront').addEventListener('click', () => camPresets().front());
   $('#vwSide').addEventListener('click', () => camPresets().side());
-  // 三段平均速度记录表（A1 等支持 segments() 的场景）
-  $('#segRecord').addEventListener('click', segRecord);
-  $('#segClear').addEventListener('click', () => { segRows = []; segLiveSig = ''; renderSegTable(); });
   const tr = $('#timeRange');
   tr.addEventListener('input', e => onTimeScrub(parseFloat(e.target.value)));
   tr.addEventListener('keydown', e => {                 // ←/→ 0.5s、Shift ×4、Home/End 到端点
@@ -1506,6 +1394,7 @@ function bindChrome(){
     tr.value = v;
   });
   $('#btnPlay').addEventListener('click', () => setPlaying(!store.playback.playing));
+  $('#btnTimeReset').addEventListener('click', resetTime);
   $('#btnReset').addEventListener('click', resetAll);
   $('#btnFull').addEventListener('click', () => {
     if(!document.fullscreenElement) $('#app').requestFullscreen().catch(() => {});
@@ -1519,7 +1408,6 @@ function bindChrome(){
   setStatsCollapsed(window.matchMedia('(max-width:767px)').matches);   // 窄屏默认收起（抽屉化）
   window.matchMedia('(max-width:767px)').addEventListener?.('change', e => setStatsCollapsed(e.matches));
   setInterval(renderStats, 100);                        // 实时数据 100ms 刷新（readouts() 由实验实现）
-  setInterval(segLiveUpdate, 100);                      // 记录表实时行同步刷新（复用同节拍）
   // 音频开关：默认静音、localStorage 记忆；AudioContext 保持挂起，用户手势后才唤醒
   const ab = $('#audioBtn');
   paintAudioBtn(false);
