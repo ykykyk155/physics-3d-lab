@@ -91,6 +91,8 @@ input[type=range]:focus-visible::-moz-range-thumb{box-shadow:var(--shadow-glow)}
 .scene-card:hover{background:var(--color-surface-hover)}
 .scene-card.active{background:rgba(var(--tab-rgb),.12);border-color:rgba(var(--tab-rgb),.35);box-shadow:inset 4px 0 0 var(--tab-c)}
 .scene-card .chap{display:block;font-size:12px;line-height:16px;font-weight:400;color:var(--color-text-secondary);margin-top:3px}
+.scene-card .seq{display:inline-block;min-width:22px;margin-right:6px;font-size:11px;line-height:16px;font-weight:600;color:var(--color-text-secondary);font-variant-numeric:tabular-nums;vertical-align:1px}
+.scene-card.active .seq{color:var(--tab-c)}
 
 /* 读数卡（result / secondaryResult） */
 .readout-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -627,15 +629,22 @@ function renderTabs(){
     document.documentElement.style.setProperty('--tab-rgb', hexToRgb(c));
   }
 }
+/* 全局实验序号：按左侧页签顺序连续编号（力学 1-7、电学 8-14、光学 15-19、声学 20-22、热学 23-25） */
+function experimentSeq(){
+  const map = {}; let n = 0;
+  MODULES.forEach(m => (DATA.byModule[m.id] || []).forEach(x => { map[x.id] = ++n; }));
+  return map;
+}
 function renderSceneGrid(){
   const grid = $('#sceneGrid'); grid.innerHTML = '';
+  const seq = experimentSeq();
   (DATA.byModule[store.module] || []).forEach(meta => {
     const c = moduleColor(meta.module);
     const card = el('button', 'scene-card' + (store.experimentId === meta.id ? ' active' : ''));
     card.type = 'button';
     card.style.setProperty('--tab-c', c);
     card.style.setProperty('--tab-rgb', hexToRgb(c));
-    card.innerHTML = meta.name + '<span class="chap">' + meta.chapter + '</span>';
+    card.innerHTML = '<span class="seq">' + String(seq[meta.id]).padStart(2, '0') + '</span>' + meta.name + '<span class="chap">' + meta.chapter + '</span>';
     card.addEventListener('click', () => {
       if(store.experimentId !== meta.id) switchExperiment(meta.id);
     });
@@ -1136,7 +1145,8 @@ function renderChip(meta){
   const chip = $('#sceneChip');
   chip.style.display = 'flex';
   $('#chipDot').style.background = moduleColor(meta.module);
-  $('#chipName').textContent = meta.name;
+  const seq = experimentSeq()[meta.id];
+  $('#chipName').textContent = (seq ? String(seq).padStart(2, '0') + ' · ' : '') + meta.name;
   $('#chipSub').textContent = meta.chapter;
 }
 function bindChrome(){
