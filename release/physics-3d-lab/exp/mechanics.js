@@ -24,15 +24,15 @@ const A1 = {
     this.ramp.position.y = -0.03;
     this.ramp.castShadow = true; this.ramp.receiveShadow = false;
     this.rampGroup = new THREE.Group(); this.rampGroup.add(this.ramp);
-    // 木板两侧的薄挡边（防止小车跑偏）
+    // 木板两侧的薄挡边（防止小车跑偏）：低矮贴面，不遮挡车轮、不挡轮
     const rims = [];
-    [-1, 1].forEach(s => { const r = box(1, 0.05, 0.03, MATS.woodDark()); r.position.set(0, 0.03, s * 0.42); rims.push(r); });
-    this.rampGroup.add(mergeByMaterial(rims));
+    [-1, 1].forEach(s => { const r = box(1, 0.024, 0.03, MATS.woodDark()); r.position.set(0, 0.012, s * 0.415); rims.push(r); });
+    this.rimMesh = mergeByMaterial(rims); this.rampGroup.add(this.rimMesh);
     this.group.add(this.rampGroup);
 
     // 小车：车身 + 四轮 + 车轴（真实小车，随质量缩放的是车身不是方块）
-    this.cartG = cart({ len: 0.62, wid: 0.44, wheelR: 0.10 });
-    this.cartG.scale.setScalar(0.95);
+    this.cartG = cart({ len: 0.34, wid: 0.24, wheelR: 0.055 });
+    this.cartG.scale.setScalar(1);
     this.block = this.cartG;                   // 车随斜面一起倾斜，贴住斜面
     this.rampGroup.add(this.cartG);
 
@@ -44,6 +44,7 @@ const A1 = {
 
     this.lAngle = mkLabel('θ', C); this.group.add(this.lAngle);
     this.u = 0; this.v = 0;
+    this._layout();
   },
   onParam(k, v) {
     this.p[k] = v;
@@ -51,33 +52,49 @@ const A1 = {
     if (k === 'length') { this.L = v; this.ramp.scale.x = v; this.u = 0; this.v = 0; }
     const L = this.p.length || 1;
     this.ramp.position.x = L / 2;              // 低端落在原点，避免斜插入地
+    this._layout();
     this.buildSupport();
     this._t = 0;
     this.recompute();
     this.place();
   },
-  // 斜面支架：木板搭在两条竖直支腿上（教材就是木板搭支架），不是实心楔形块
+  // 斜面支架：两条竖直支腿顶到木板底面（精确不穿板），下端立在承台顶面上
   buildSupport() {
     if (!this.ctx) return;
     if (this.support) { this.support.traverse(o => o.geometry && o.geometry.dispose()); this.scene.remove(this.support); this.support = null; }
-    const L = this.p.length || 1, th = (this.p.theta || 0) * DEG;
-    const hiX = L * Math.cos(th), hiY = L * Math.sin(th);
+    const L = this.p.length || 1, th = (this.p.theta || 0) * DEG, t = 0.06;
+    const cosT = Math.cos(th), sinT = Math.sin(th), tanT = Math.tan(th);
+    const hiX = L * cosT;                        // 坡顶（木板最高端）世界 x
     this.support = new THREE.Group();
-    if (hiY > 0.02) {
-      const legH = hiY;
-      [-1, 1].forEach(s => {
-        const leg = box(0.09, legH, 0.1, MATS.woodDark());
-        leg.position.set(hiX - 0.12, legH / 2, s * 0.34);
+    const legX = hiX - 0.10;
+    // 板底面世界高度：底 ≈ tanθ·(X − t·sinθ)；取支腿 footprint 低端，保证腿顶不穿出板底
+    const legTop = tanT * ((legX - 0.03) - t * sinT);
+    if (legTop > 0.02) {
+      [-1, 1].forEach(sd => {
+        const leg = box(0.06, legTop, 0.07, MATS.woodDark());
+        leg.position.set(legX, legTop / 2, sd * 0.30);
         leg.castShadow = true; leg.receiveShadow = true; this.support.add(leg);
       });
-      // 支腿间横撑
-      const bar = box(0.09, 0.08, 0.78, MATS.woodDark());
-      bar.position.set(hiX - 0.12, legH * 0.45, 0); this.support.add(bar);
+      const bar = box(0.06, 0.05, 0.66, MATS.woodDark());   // 腿间横撑（低于板面，不穿板）
+      bar.position.set(legX, legTop * 0.42, 0); this.support.add(bar);
     }
-    // 地面底脚（接接触阴影）
-    const foot = box(Math.max(hiX, 0.3), 0.06, 0.86, MATS.woodDark());
-    foot.position.set(hiX / 2, 0.03, 0); foot.receiveShadow = true; this.support.add(foot);
     this.scene.add(this.support);
+  },
+  // 布局：按板长动态缩放小车 + 算可用行程 + 抬坡体使板底与承台相切 + 挡边贴合板长
+  _layout() {
+    const L = this.p.length || 1;
+    const th = (this.p.theta || 0) * DEG;
+    const baseLen = 0.34;                        // cart 车长基准（scale=1）
+    const margin = 0.06;                         // 起终点整车距板端各留 6cm（≥5cm 要求）
+    const cartLen = Math.min(baseLen, Math.max(L - 0.25, 0.12));
+    const s = cartLen / baseLen;
+    this._s = s; this._cartLen = cartLen; this._margin = margin;
+    this._travel = Math.max(L - cartLen - 2 * margin, 0.02);
+    if (this.cartG) this.cartG.scale.setScalar(s);
+    // 坡体整体抬到「板底最低点与承台顶面 y=0 精确相切」，板不再扎进承台
+    this.rampGroup.position.y = 0.06 * Math.cos(th);
+    // 挡边随板长对齐到 0..L
+    if (this.rimMesh) { this.rimMesh.scale.x = L; this.rimMesh.position.x = L / 2; }
   },
   accel() {
     const th = this.p.theta * DEG, mu = this.p.mu;
@@ -91,11 +108,11 @@ const A1 = {
     this.aVal = a; this.static = staticCase;
     this.Fg = m * G; this.Fn = m * G * Math.cos(th);
     this.Ff = staticCase ? m * G * Math.sin(th) : mu * m * G * Math.cos(th);
-    // 时间轴：静止（μ≥tanθ）→ duration 0（没有过程）；能动 → 物理下滑时长慢放 1.4 倍作为呈现时长
+    // 时间轴：静止（μ≥tanθ）→ duration 0（没有过程）；能动 → 物理下滑时长慢放 1.6 倍作为呈现时长
     if (staticCase) { this.duration = 0; this.kA = 0; }
     else {
-      this.durPhys = Math.sqrt(2 * Math.max(L - 0.3, 0.05) / a);
-      this.duration = this.durPhys * 1.4;
+      this.durPhys = Math.sqrt(2 * Math.max(this._travel != null ? this._travel : (L - 0.3), 0.02) / a);
+      this.duration = this.durPhys * 1.6;
       this.kA = this.durPhys / this.duration;      // 呈现时间 → 物理时间
     }
     if (this.ctx) this.ctx.emitReadout({ acc: staticCase ? '静止' : a });
@@ -107,16 +124,17 @@ const A1 = {
     if (!this.static) {
       const L = this.p.length || 1;
       const tp = Math.min(this._t * (this.kA || 0), this.durPhys || 0);
-      this.u = Math.min(0.5 * this.aVal * tp * tp, Math.max(L - 0.3, 0));
+      this.u = Math.min(0.5 * this.aVal * tp * tp, this._travel);
       this.v = this.aVal * tp;
     } else { this.u = 0; this.v = 0; }
     this.place();
   },
   place() {
-    const L = this.p.length || 1, th = this.p.theta * DEG;
-    const bx = (L - 0.15) - this.u;
-    this.block.position.set(bx, 0.005, 0);      // 车轮底面贴住斜面
-    rollCart(this.cartG, this.u / 0.10);         // 车轮随位移滚动
+    const th = this.p.theta * DEG;
+    const startCenter = (this.p.length || 1) - this._margin - this._cartLen / 2;
+    const bx = startCenter - this.u;
+    this.block.position.set(bx, 0, 0);           // 轮底与板面精确相切（间隙 0）
+    rollCart(this.cartG, this.u / (0.055 * (this._s || 1)));   // 车轮随位移滚动（按实际轮径）
     this.rampGroup.updateMatrixWorld(true);
     const wp = this.rampGroup.localToWorld(new THREE.Vector3(bx, 0.20, 0));
     const s = 0.13;
@@ -138,7 +156,7 @@ const A1 = {
     if (this.static) { this.place(); return; }
     const L = this.p.length || 1;
     const tPhys = Math.min((this._t = clamp((this._t || 0) + dt, 0, this.duration || 0)) * (this.kA || 0), this.durPhys || 0);
-    this.u = Math.min(0.5 * this.aVal * tPhys * tPhys, Math.max(L - 0.3, 0));
+    this.u = Math.min(0.5 * this.aVal * tPhys * tPhys, this._travel);
     this.v = this.aVal * tPhys;
     this.place();
   },

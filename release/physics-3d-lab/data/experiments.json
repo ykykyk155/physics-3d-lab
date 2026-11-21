@@ -8,7 +8,7 @@
   },
   "experiments": [
     {
-      "id": "A1-incline-speed", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.25, "duration": 0.97,"durationZeroKind": "branch","zeroHint": "当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（以渲染师实现为准，已从 1.2 回填为 0.97）：能动分支 = √(2(L−0.3)/a) × 1.4，a = g(sinθ−μcosθ)，**注意有效路程是 L−0.3（扣掉车长与挡板余量），不是全长 L**；默认 θ=20°/L=1.0/μ=0.05 → a=2.891、√(2×0.7/2.891)=0.696、×1.4 = 0.97s。μ≥tanθ 的静止分支返回 0，故本场景标 durationZeroKind = branch（**分类标签，不是数值常量**：探针据此测「θ=5°、μ=0.30 时应为 0、默认时应为 0.97」，不得拿它当 duration 的值）", 
+      "id": "A1-incline-speed", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.25, "duration": 0.98,"durationZeroKind": "branch","zeroHint": "当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师 A1 几何重做后回填 0.98）：能动分支 = √(2·travel/a) × 1.6，a=g(sinθ−μcosθ)；travel = L − 车长 − 2×0.06（起终点整车距板端各留 6cm）；车长 = min(0.34, L−0.25)（车宽 0.24、轮半径 0.055），随板长动态缩放（L=0.5 时缩成 0.25 保证不出界）。默认 θ=20°/L=1.0/μ=0.05 → a=2.891、车长 0.34、travel=0.54、√(2×0.54/2.891)=0.611、×1.6 = 0.978 ≈ 0.98s（0.25× 墙钟≈3.9s）。旧值 0.97 是「行程 L−0.3=0.7」口径，车长 0.589 根本放不下（车头伸出坡顶 0.145m），已废。μ≥tanθ 的静止分支返回 0，标 durationZeroKind=branch（分类标签，非数值常量：探针据此测「θ=5°、μ=0.30 时应为 0、默认时应为 0.98」）", 
       "name": "斜面小车测平均速度", "chapter": "八上 第一章 第4节 速度的测量",
       "quantities": ["v", "s", "t", "a"],
       "params": [
