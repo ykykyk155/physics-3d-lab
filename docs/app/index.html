@@ -211,7 +211,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .err-chip{position:absolute;top:60px;left:12px;z-index:6;max-width:70%;background:rgba(127,29,29,.85);border:1px solid rgba(248,113,113,.4);border-radius:var(--radius-md);padding:8px 12px;font-size:13px}
 
 /* ---------- 右侧统计面板（实时物理量，可收起；窄屏默认收起） ---------- */
-#stats{position:absolute;top:150px;right:16px;z-index:6;width:236px;max-width:calc(100vw - 24px);max-height:calc(100% - 266px);display:flex;flex-direction:column;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);overflow:hidden;transition:width var(--dur-base) var(--ease-in-out)}
+#stats{position:absolute;top:64px;right:16px;z-index:6;width:236px;max-width:calc(100vw - 24px);max-height:calc(100% - 180px);display:flex;flex-direction:column;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);overflow:hidden;transition:width var(--dur-base) var(--ease-in-out)}
 #stats.collapsed{width:auto}
 .stats-head{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;cursor:pointer;user-select:none;flex:none}
 .stats-title{font-size:12px;line-height:18px;letter-spacing:.05em;color:var(--color-text-secondary)}
@@ -288,8 +288,8 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .guide-card .g-nav button.primary{background:var(--color-primary);color:#fff}
 .guide-card .g-nav button:disabled{opacity:.4;cursor:default}
 /* ---------- 视角预设工具条（还原 / 正视 / 侧视），音频按钮下方一列 ---------- */
-#viewTools{position:absolute;top:16px;right:60px;z-index:7;display:flex;flex-direction:column;gap:6px}
-/* 三视角工具条（右缘 60px 起，给 #audioBtn 留位）总高 126px；#stats top 移到 150px 下方避让 */
+#viewTools{position:absolute;top:16px;right:60px;z-index:7;display:flex;flex-direction:row;gap:6px}
+/* 三视角工具条（横排，右缘 60px 起给 #audioBtn 留位）总高 36px（bottom=52），#stats top:64 即可避让 */
 #viewTools button{all:unset;cursor:pointer;width:36px;height:36px;border-radius:var(--radius-full);background:rgba(16,24,40,.85);backdrop-filter:blur(8px);border:1px solid var(--color-border);color:var(--color-text-secondary);display:grid;place-items:center;font-size:16px;box-shadow:var(--shadow-2)}
 #viewTools button:hover{color:var(--color-text)}
 #viewTools button:active{transform:scale(.94)}
