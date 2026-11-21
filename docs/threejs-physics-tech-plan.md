@@ -16,15 +16,13 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); // 移动端 1.5
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.shadowMap.autoUpdate = false;   // 关键：默认不重算阴影
+// 投影阴影全局关闭（2026-11-21 定案）：见「光照」，不配 shadowMap
 ```
 
 - 相机：`PerspectiveCamera(45, w/h, 0.1, 200)`。每个实验注册一组 `cameraPreset { position, target }`，切换场景时用 `Vector3.lerp` + `controls.target.lerp` 在 600ms 内过渡，不做硬切。
-- 光照：`HemisphereLight(0xffffff, 0x444466, 0.6)` + 主 `DirectionalLight`（带阴影）+ 一盏无阴影补光。主光 `shadow.camera` 收紧到场景包围盒（`left/right/top/bottom ±5`），`mapSize 2048`，避免阴影糊和大范围浪费。
+- 光照：`HemisphereLight(0xffffff, 0x444466, 0.6)` + 主 `DirectionalLight`（**不 castShadow**）+ 一盏无阴影补光。阴影已全局关闭（`shadowMap.enabled = false`），主光只做照明，不配置 `shadow.*`。
 - 环境反射：`RoomEnvironment` + `PMREMGenerator` 生成 envMap，给金属、玻璃材质用（棱镜、透镜、磁铁、镜面）。程序生成，不依赖 .hdr 文件。
-- 地面：`ShadowMaterial({ opacity: 0.25 })` 接影平面，比实体地面省一半像素。
+- 层次表达：不渲染投影阴影（2026-11-21 定案，用户要求删掉所有影子）。前后/上下关系靠识别色明度分层、光照固有明暗、几何精确相切（轮底、底面贴地）。省掉 shadow pass 的 draw call 与阴影重建峰值帧。
 - OrbitControls：`enableDamping = true`、`dampingFactor = 0.08`、`minDistance 2 / maxDistance 30`、`maxPolarAngle = Math.PI * 0.495`（防钻地）、`enablePan = false`（初中演示不需要平移，防迷路）。触摸：`touches.ONE = ROTATE`、`touches.TWO = DOLLY_ROTATE`。
 
 ## 2. 材质策略（纯几何体）
@@ -117,7 +115,7 @@ function loop() {
 
 - draw call：静态几何用 `BufferGeometryUtils.mergeGeometries` 合并；重复元素用 `InstancedMesh`；目标 `renderer.info.render.calls < 100`，`triangles < 200k`。
 - 分段数：球 24–32、圆柱 16–24、Tube 曲线 64 段、环 32 段。够圆就停，不要 64/128。
-- 阴影：`autoUpdate = false`，只在参数改变或场景切换时 `needsUpdate = true`；移动端可整体关阴影换帧率。
+- 阴影：**全局关闭**（`renderer.shadowMap.enabled = false`，2026-11-21 定案），不做 shadow pass，无阴影重建帧、无泄漏面。
 - 像素比上限 2（移动端 1.5）；`ResizeObserver` + rAF 防抖处理视区尺寸变化。
 - 页面不可见时 `cancelAnimationFrame` 暂停；`IntersectionObserver` 判断视区是否在屏。
 - 默认不开后处理（bloom/SSAO）；如需辉光，只在桌面端开且分辨率减半。

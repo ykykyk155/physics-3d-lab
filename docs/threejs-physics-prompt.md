@@ -43,8 +43,8 @@
 | 主色（选中、焦点） | `#3B82F6` |
 
 - 场景背景用 `#0B1120` 起手的**轻微径向渐变**（中心略亮、边缘压暗）配合 `scene.fog`（雾色同为 `#0B1120`，`FogExp2` 或 `Fog(近, 远)`），让远处物体自然退到背景里，不出现"浮在黑板上"的悬浮感。
+- **不渲染任何投影阴影**（2026-11-21 定案）：`renderer.shadowMap.enabled = false`，主光不 castShadow，场景内不做 shadow pass。物件之间的前后关系靠明度分层（识别色）、轮廓和层次摆放表达，光源只做照明。"站在地上"的真实感靠物体与地面精确相切的几何（轮底、底面贴地）保证，不靠阴影。
 - 每个实验的力矢量、光路、波形、选中高亮一律用所属模块的识别色，学生任何时候都知道自己在看哪个学科。
-- 配柔和的接触阴影（`ShadowMaterial`），让模型有"站在地上"的真实感。
 - 所有物理量标注（力矢量、光路、电流方向、波形刻度）必须有单位，且单位与数值一起实时更新。
 - 数字用等宽字体（UI 侧 `--font-mono`），避免拖动滑杆时数字宽度跳动；3D 内的 CSS2D 标签同样用等宽字体显示数值。
 - 禁止花哨的发光、粒子特效堆砌；任何视觉元素必须服务于"看懂物理"。
@@ -236,19 +236,13 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); // 移动端 1.5
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;   // r187 起 PCFSoftShadowMap 已被移除，见下
-renderer.shadowMap.autoUpdate = false;   // 只在参数变化/切场景时置 needsUpdate
+// 投影阴影全局关闭（2026-11-21 定案）：不走 shadow pass，见「光照」节
 ```
 
 - **相机**：`PerspectiveCamera(45, aspect, 0.1, 200)`。切场景时用 `position.lerp` + `controls.target.lerp` 做 **600ms** 过渡到该实验的 `cameraPreset`，禁止硬切。
-- **光照**：`HemisphereLight(0xffffff, 0x444466, 0.6)` + 一盏投影主 `DirectionalLight` + 一盏无阴影补光。主光 `shadow.mapSize = 2048`，`shadow.camera` 收紧到场景包围盒（±5），否则阴影糊且大量浪费。
-- **阴影类型**：r187 已**移除** `PCFSoftShadowMap`——常量虽然还导出，但赋给 `shadowMap.type` 时 `WebGLShadowMap` 会打一行 `PCFSoftShadowMap has been removed. Using PCFShadowMap instead.` 然后静默降级。照旧模板写就会在控制台留下这条警告。直接用 `THREE.PCFShadowMap`，需要更软的边缘就在材质和光照上做，别再指望这个枚举。
-- **环境反射**：用 `RoomEnvironment` + `PMREMGenerator` **程序生成** envMap，供金属、玻璃材质使用（棱镜、透镜、磁铁、镜面），不加载 .hdr 文件。
+- **光照**：`HemisphereLight(0xffffff, 0x444466, 0.6)` + 一盏主 `DirectionalLight` + 一盏无阴影补光。**主光不 castShadow**——阴影已全局关闭（见「渲染器」代码段），不需要配置 `shadow.mapSize / camera / bias`。
 - **背景与雾**：背景取 `#0B1120` 径向渐变，`scene.fog` 雾色同为 `#0B1120`。渐变用 CSS 画在 canvas 后面的容器上（`renderer` 设 `alpha: true` 或 `clearColor` 透明），**不要用 3D 天空球**——多一个 draw call 且边缘会露馅。
-- **接影平面**：`ShadowMaterial({ opacity: 0.25 })`，比实体地面省一半像素。
-- **谁能 castShadow 要严格筛选**：只有结构性主体（斜面、物块、容器、透镜、磁铁这类学生会看位置关系的东西）才 `castShadow = true`；**描点、刻度、网格、辅助线、粒子、装饰件一律 `castShadow = false`**。原因：阴影 pass 里每个投影物各算一次 draw call——D4 的散点图有 41 个小球用了默认 `castShadow = true`，一帧阴影重建就多出 31 个 draw call（46 → 77）。关掉后阴影重建帧和稳态帧都留在红线内。
-- **验收按稳态帧判定**：`shadowMap.autoUpdate = false` 时，参数变化或切场景之后的那一帧要跑一次阴影 pass，draw call 天然比稳态高一截。**红线（≤60）按「切换完成 500ms 后、且期间不改参数」的稳态帧判定**；含阴影重建的那一帧单列为峰值参考，不计入判定——但峰值也要通过上一条把投影物数量压下来，不能放任它飙到两三倍。
+- **层次表达（替代阴影）**：前后/上下关系靠识别色明度分层、光照产生的固有明暗和几何精确相切（轮底、底面贴地），不做投影阴影。阴影会带来：每帧多一个 shadow pass 的 draw call、切场景/改参数时的阴影重建峰值帧、以及"物件影子固定不动"的违和感（2026-11-21 用户明确要求删掉所有影子）。
 - **OrbitControls**：`enableDamping = true`、`dampingFactor = 0.08`、`minDistance 2`、`maxDistance 30`、`maxPolarAngle = Math.PI * 0.495`（防钻到地面下）、`enablePan = false`（教学演示不需要平移，避免视角迷路）；触摸 `touches.ONE = ROTATE`、`touches.TWO = DOLLY_ROTATE`。
 - **粗线**：光路、力矢量、标注线一律用 `Line2` + `LineMaterial`。`LineBasicMaterial` 的 `linewidth` 在绝大多数平台恒为 1，画出来的光路细到看不见。光束加 `AdditiveBlending` + `depthWrite: false`。
 - **中文标签**：`CSS2DRenderer` 输出 DOM，标签统一挂在 `labelRoot` 下，切场景时整体清空（`labelRoot.innerHTML = ''`），不要逐个 remove。标签数值用等宽字体，`pointer-events: none` 默认关闭（除非标签本身要可点击）。
@@ -325,7 +319,7 @@ renderer.shadowMap.autoUpdate = false;   // 只在参数变化/切场景时置 n
 - 首屏 JS（含 three vendor）gzip ≤ 250KB；单个实验 chunk gzip ≤ 15KB。
 - 连续切换全部实验 3 轮，标签页内存增幅 ≤ 10%，无 WebGL 泄漏告警。
 - 关键优化手段（必须做到）：
-  - `shadowMap.autoUpdate = false`，只在参数变化或切场景时置 `needsUpdate = true`。
+  - **不渲染投影阴影**：`renderer.shadowMap.enabled = false`（2026-11-21 定案，去 shadow pass 后 draw call 直降、无阴影重建峰值帧、无泄漏面）。
   - 几何体与材质走全局共享池 + 引用计数，切换场景不销毁共享资源，避免重复编译 shader。
   - 静态几何用 `mergeGeometries` 合并，重复元素用 `InstancedMesh`。
   - 分段数克制：球 24–32、圆柱 16–24、曲线 64。够圆就停。

@@ -1,8 +1,8 @@
-// 性能基准：逐场景采集「稳态 calls」「播放峰值 calls」「强制阴影重建帧 calls」+ triangles + 单帧耗时。
+// 性能基准：逐场景采集「稳态 calls」「播放峰值 calls」+ triangles + 单帧耗时。
 // 口径：
 //   稳态      = 切换完成 800ms、暂停播放、不改参数，连采 30 帧取中位数（每帧真实开销，红线按它判）
-//   播放峰值  = 播放态连采 20 帧的最大值（含冲程枚举回写触发的偶发阴影重建，仍应 ≤60）
-//   阴影重建  = 手动 shadowMap.needsUpdate=true 后那一帧（峰值参考，不计入红线）
+//   播放峰值  = 播放态连采 20 帧的最大值（仍应 ≤60）
+// 阴影已全局关闭（2026-11-21 用户要求去阴影），shadowCalls 列固定为 null，不再量测。
 // 稳定性：SwiftShader 长时间跑会崩 Tab，故每 5 个场景重启一次浏览器。
 import http from 'node:http';
 import fs from 'node:fs';
@@ -76,10 +76,8 @@ for (let idx = 0; idx < ids.length; idx++) {
     const sMs = steady.reduce((a, r) => a + r.ms, 0) / steady.length;
     await page.evaluate(() => { window.__LAB.store.playback.playing = true; });
     const pMax = Math.max(...(await sample(page, 20)).map(r => r.calls));
-    await page.evaluate(() => { window.__LAB.renderer().shadowMap.needsUpdate = true; });
-    const shMax = Math.max(...(await sample(page, 6)).map(r => r.calls));
-    out.push({ id, steady: sMed, playMax: pMax, tris: sLast.tris, ms: +sMs.toFixed(1), shadowCalls: shMax });
-    console.log(`${id} | 稳态 ${sMed} | 播放峰值 ${pMax} | ${sLast.tris} tris | ${sMs.toFixed(1)}ms | 强制阴影帧 ${shMax}`);
+    out.push({ id, steady: sMed, playMax: pMax, tris: sLast.tris, ms: +sMs.toFixed(1), shadowCalls: null });
+    console.log(`${id} | 稳态 ${sMed} | 播放峰值 ${pMax} | ${sLast.tris} tris | ${sMs.toFixed(1)}ms`);
   } catch (e) {
     console.log(`${id} | ERROR ${e.message.slice(0, 60)} — 重启浏览器重试`);
     try { await browser.close(); } catch {}

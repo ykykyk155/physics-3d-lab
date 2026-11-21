@@ -2,13 +2,13 @@
   "rows": [
     {
       "id": "A1-incline-speed",
-      "calls": 18,
-      "tris": 1746
+      "calls": 17,
+      "tris": 1734
     },
     {
       "id": "A2-newton-first",
-      "calls": 18,
-      "tris": 1776
+      "calls": 16,
+      "tris": 1832
     },
     {
       "id": "A3-friction",
@@ -32,8 +32,8 @@
     },
     {
       "id": "A7-lever",
-      "calls": 8,
-      "tris": 1976
+      "calls": 9,
+      "tris": 2276
     },
     {
       "id": "D1-series-parallel",
@@ -58,7 +58,7 @@
     {
       "id": "D5-power-joule",
       "calls": 17,
-      "tris": 5472
+      "tris": 11872
     },
     {
       "id": "D6-magnet-solenoid",
@@ -67,8 +67,8 @@
     },
     {
       "id": "D7-motor-generator",
-      "calls": 12,
-      "tris": 364
+      "calls": 15,
+      "tris": 2868
     },
     {
       "id": "B1-pinhole",
@@ -87,8 +87,8 @@
     },
     {
       "id": "B4-refraction",
-      "calls": 9,
-      "tris": 198
+      "calls": 10,
+      "tris": 918
     },
     {
       "id": "B5-convex-lens",
@@ -97,8 +97,8 @@
     },
     {
       "id": "C1-sound-medium",
-      "calls": 15,
-      "tris": 8412
+      "calls": 11,
+      "tris": 5532
     },
     {
       "id": "C2-sound-chars",
@@ -112,8 +112,8 @@
     },
     {
       "id": "F1-melting-curve",
-      "calls": 24,
-      "tris": 3874
+      "calls": 25,
+      "tris": 5654
     },
     {
       "id": "F2-boiling",
@@ -122,8 +122,8 @@
     },
     {
       "id": "F3-heat-engine",
-      "calls": 48,
-      "tris": 14188
+      "calls": 37,
+      "tris": 10716
     }
   ],
   "errors": []

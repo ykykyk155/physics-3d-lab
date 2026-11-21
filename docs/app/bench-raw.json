@@ -1,59 +1,59 @@
 [
   {
     "id": "A1-incline-speed",
-    "steady": 18,
-    "playMax": 18,
-    "tris": 1746,
-    "ms": 25.7,
-    "shadowCalls": 18
+    "steady": 17,
+    "playMax": 17,
+    "tris": 1734,
+    "ms": 21.7,
+    "shadowCalls": null
   },
   {
     "id": "A2-newton-first",
-    "steady": 18,
-    "playMax": 18,
-    "tris": 1856,
-    "ms": 23.2,
-    "shadowCalls": 18
+    "steady": 16,
+    "playMax": 16,
+    "tris": 1832,
+    "ms": 18.7,
+    "shadowCalls": null
   },
   {
     "id": "A3-friction",
     "steady": 21,
     "playMax": 21,
     "tris": 2068,
-    "ms": 17.1,
-    "shadowCalls": 21
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "A4-liquid-pressure",
     "steady": 12,
     "playMax": 12,
     "tris": 862,
-    "ms": 25.7,
-    "shadowCalls": 12
+    "ms": 19.8,
+    "shadowCalls": null
   },
   {
     "id": "A5-buoyancy",
     "steady": 15,
     "playMax": 15,
     "tris": 2702,
-    "ms": 22.3,
-    "shadowCalls": 15
+    "ms": 19.9,
+    "shadowCalls": null
   },
   {
     "id": "A6-energy",
     "steady": 8,
     "playMax": 8,
     "tris": 1044,
-    "ms": 16.7,
-    "shadowCalls": 15
+    "ms": 16.6,
+    "shadowCalls": null
   },
   {
     "id": "A7-lever",
     "steady": 9,
     "playMax": 9,
     "tris": 2276,
-    "ms": 16.6,
-    "shadowCalls": 15
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "D1-series-parallel",
@@ -61,55 +61,55 @@
     "playMax": 24,
     "tris": 12068,
     "ms": 16.7,
-    "shadowCalls": 33
+    "shadowCalls": null
   },
   {
     "id": "D2-resistance-factor",
     "steady": 13,
     "playMax": 13,
     "tris": 4296,
-    "ms": 22.2,
-    "shadowCalls": 13
+    "ms": 17.7,
+    "shadowCalls": null
   },
   {
     "id": "D3-rheostat-lamp",
     "steady": 9,
     "playMax": 9,
     "tris": 11388,
-    "ms": 16.6,
-    "shadowCalls": 13
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "D4-ohm-law",
     "steady": 37,
     "playMax": 37,
     "tris": 13006,
-    "ms": 17.6,
-    "shadowCalls": 37
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "D5-power-joule",
     "steady": 17,
     "playMax": 17,
     "tris": 11872,
-    "ms": 17.5,
-    "shadowCalls": 17
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "D6-magnet-solenoid",
     "steady": 13,
     "playMax": 13,
     "tris": 2102,
-    "ms": 17.8,
-    "shadowCalls": 13
+    "ms": 16.3,
+    "shadowCalls": null
   },
   {
     "id": "D7-motor-generator",
     "steady": 15,
     "playMax": 15,
     "tris": 2868,
-    "ms": 23.4,
-    "shadowCalls": 15
+    "ms": 20.7,
+    "shadowCalls": null
   },
   {
     "id": "B1-pinhole",
@@ -117,86 +117,86 @@
     "playMax": 10,
     "tris": 940,
     "ms": 16.6,
-    "shadowCalls": 15
+    "shadowCalls": null
   },
   {
     "id": "B2-reflection",
     "steady": 11,
     "playMax": 11,
     "tris": 222,
-    "ms": 16.6,
-    "shadowCalls": 15
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "B3-plane-mirror",
     "steady": 16,
     "playMax": 16,
     "tris": 4968,
-    "ms": 17.5,
-    "shadowCalls": 16
+    "ms": 16.4,
+    "shadowCalls": null
   },
   {
     "id": "B4-refraction",
     "steady": 10,
     "playMax": 10,
     "tris": 918,
-    "ms": 50.4,
-    "shadowCalls": 10
+    "ms": 37.2,
+    "shadowCalls": null
   },
   {
     "id": "B5-convex-lens",
     "steady": 20,
     "playMax": 20,
     "tris": 2690,
-    "ms": 16.6,
-    "shadowCalls": 32
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "C1-sound-medium",
     "steady": 11,
     "playMax": 11,
     "tris": 5532,
-    "ms": 33,
-    "shadowCalls": 11
+    "ms": 26.9,
+    "shadowCalls": null
   },
   {
     "id": "C2-sound-chars",
     "steady": 6,
     "playMax": 6,
     "tris": 840,
-    "ms": 16.9,
-    "shadowCalls": 6
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "C3-noise-control",
     "steady": 24,
     "playMax": 24,
     "tris": 3372,
-    "ms": 16.6,
-    "shadowCalls": 24
+    "ms": 16.7,
+    "shadowCalls": null
   },
   {
     "id": "F1-melting-curve",
     "steady": 25,
     "playMax": 25,
     "tris": 5654,
-    "ms": 18.3,
-    "shadowCalls": 25
+    "ms": 16.2,
+    "shadowCalls": null
   },
   {
     "id": "F2-boiling",
     "steady": 12,
     "playMax": 12,
     "tris": 9380,
-    "ms": 21.3,
-    "shadowCalls": 12
+    "ms": 18.1,
+    "shadowCalls": null
   },
   {
     "id": "F3-heat-engine",
     "steady": 37,
-    "playMax": 48,
+    "playMax": 37,
     "tris": 10716,
-    "ms": 24.2,
-    "shadowCalls": 48
+    "ms": 21,
+    "shadowCalls": null
   }
 ]

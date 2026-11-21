@@ -1,13 +1,13 @@
-# 25 个实验 · 性能基准表（实物化后）
+# 25 个实验 · 性能基准表（无阴影）
 
 > 采集：无头 Edge + SwiftShader，3D 取景区 1100×700，pixelRatio=1。红线：draw calls ≤60、triangles <200k（稳态帧判定）。
-> 下表为实物化铺开后的稳态 calls / triangles（切换完成、暂停播放、连采中位数）；播放峰值与三轮纹理/内存由 acceptance.mjs 复测另附。
-> A2/A7 接入 ammo 刚体后于 2026-11-21 用 bench.mjs 全量重测（25 场景同一轮、同一口径，每 5 个重启浏览器）。
+> 下表为稳态 calls / triangles（切换完成、暂停播放、连采中位数）。
+> **2026-11-21 全局关闭投影阴影**（用户要求删掉所有影子，`shadowMap.enabled=false`），播放峰值 = 稳态值（阴影重建峰值帧已消失）；A1 缩车（0.62→0.34m）后三角面略降。A2/A7 保持 ammo 刚体。
 
 | # | id | module | 稳态 calls | triangles | 判定(≤60 / <200k) |
 |---|---|---|---|---|---|
-| 1 | A1-incline-speed | mechanics | 18 | 1,746 | ✅ |
-| 2 | A2-newton-first | mechanics | 18 | 1,856 | ✅ |
+| 1 | A1-incline-speed | mechanics | 17 | 1,734 | ✅ |
+| 2 | A2-newton-first | mechanics | 16 | 1,832 | ✅ |
 | 3 | A3-friction | mechanics | 21 | 2,068 | ✅ |
 | 4 | A4-liquid-pressure | mechanics | 12 | 862 | ✅ |
 | 5 | A5-buoyancy | mechanics | 15 | 2,702 | ✅ |
@@ -32,4 +32,4 @@
 | 24 | F2-boiling | thermal | 12 | 9,380 | ✅ |
 | 25 | F3-heat-engine | thermal | 37 | 10,716 | ✅ |
 
-稳态最大 calls = **37**（D4-ohm-law、F3-heat-engine）；最大 triangles = **13,006**（D4-ohm-law）。全部 ≤60 / <200k。
+稳态最大 calls = **37**（D4-ohm-law、F3-heat-engine）；最大 triangles = **13,006**（D4-ohm-law）。全部 ≤60 / <200k。播放峰值 = 稳态（无阴影重建帧）。
