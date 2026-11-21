@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="applicable-device" content="pc,mobile">
+  <title>初中物理仿真实验库</title>
+  <meta name="description" content="《初中物理仿真实验库》是略阳县西淮坝镇九年制学校王军礼老师开发的轻量化仿真实验平台。立足新课标教学要求，聚焦初中物理核心实验内容，辅以创新小实验，为教师课堂演示、学生课下自主探索提供便捷、实用的数字化实验工具。平台秉持轻量化、易操作、免安装、无注册的设计理念，网页版即开即用，适配手机、电脑等多终端设备。所有实验均基于新课标重点设计，当前已收录实验共32个，将不定期持续更新和完善。">
+  <meta name="keywords" content="初中物理,仿真实验,物理实验,凸透镜成像,平面镜成像,光的反射,测量密度,杠杆平衡,滑轮组,水沸腾,晶体熔化,在线实验,虚拟实验室">
+  <meta name="author" content="王军礼">
+  <meta name="revisit-after" content="7 days">
+  <meta property="og:title" content="初中物理仿真实验库">
+  <meta property="og:description" content="《初中物理仿真实验库》是略阳县西淮坝镇九年制学校王军礼老师开发的轻量化仿真实验平台。立足新课标教学要求，聚焦初中物理核心实验内容，辅以创新小实验，为教师课堂演示、学生课下自主探索提供便捷、实用的数字化实验工具。平台秉持轻量化、易操作、免安装、无注册的设计理念，网页版即开即用，适配手机、电脑等多终端设备。所有实验均基于新课标重点设计，当前已收录实验共32个，将不定期持续更新和完善。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://wuli.wkepu.com/">
+  <meta property="og:image" content="https://cdn.wkepu.cn/img/wllogo.png">
+  <meta property="og:image:alt" content="初中物理仿真实验库标识">
+  <meta property="og:site_name" content="初中物理仿真实验库">
+  <meta property="og:locale" content="zh_CN">
+  <meta itemprop="name" content="初中物理仿真实验库">
+  <meta itemprop="description" content="《初中物理仿真实验库》是略阳县西淮坝镇九年制学校王军礼老师开发的轻量化仿真实验平台。立足新课标教学要求，聚焦初中物理核心实验内容，辅以创新小实验，为教师课堂演示、学生课下自主探索提供便捷、实用的数字化实验工具。平台秉持轻量化、易操作、免安装、无注册的设计理念，网页版即开即用，适配手机、电脑等多终端设备。所有实验均基于新课标重点设计，当前已收录实验共32个，将不定期持续更新和完善。">
+  <meta itemprop="keywords" content="初中物理,仿真实验,物理实验,凸透镜成像,平面镜成像,光的反射,测量密度,杠杆平衡,滑轮组,水沸腾,晶体熔化,在线实验,虚拟实验室">
+  <meta itemprop="image" content="https://cdn.wkepu.cn/img/wllogo.png">
+  <meta itemprop="dateUpdate" content="2026-09-22 14:37:48" />
+  <link rel="shortcut icon" href="https://cdn.wkepu.cn/img/wlicon.png" type="image/x-icon">
+  <link rel="canonical" href="https://wuli.wkepu.com/">
+  <link rel="alternate" type="application/xml" title="站点地图" href="https://wuli.wkepu.com/sitemap.xml">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="https://cdn.wkepu.cn/img/wlicon.png">
+  <base target="_blank">
+  <script type="application/ld+json">{"@context": "https://schema.org","@type": "WebSite","name": "初中物理仿真实验库","alternateName": "初中物理仿真实验平台","url": "https://wuli.wkepu.com/","description": "面向初中物理新课标的在线仿真实验库，包含光学、力学、热学等20多个核心实验，无需安装注册，支持PC和移动设备。","inLanguage": "zh-CN","publisher": {"@type": "Organization","name": "略阳县西淮坝镇九年制学校","url": "https://wuli.wkepu.com/" },"creator": {"@type": "Person","name": "王军礼","affiliation": {"@type": "Organization","name": "略阳县西淮坝镇九年制学校"} },"educationalUse": "实验教学、自主探究","audience": {"@type": "EducationalAudience","educationalRole": "student"} }</script>
+<link rel="stylesheet" type="text/css" href="https://cdn.wkepu.cn/wulifangzhen/index2.1.css">
+<noscript><meta http-equiv="refresh" content="0; url=https://wuli.wkepu.com/no-js.html"></noscript>
+</head>
+<body>
+<div class="welcome-overlay" id="welcomeOverlay" role="dialog" aria-label="欢迎来到初中物理仿真实验库">
+  <div class="welcome-glow" aria-hidden="true"></div>
+  <div class="formula-layer" aria-hidden="true">
+    <span style="--x: 12%; --y: 18%; --d: 0s;   --dur: 7s;">F = ma</span>
+    <span style="--x: 88%; --y: 14%; --d: 1.2s; --dur: 8s;">E = mc²</span>
+    <span style="--x: 8%;  --y: 68%; --d: 2.1s; --dur: 7.5s;">v = s/t</span>
+    <span style="--x: 92%; --y: 72%; --d: 0.6s; --dur: 9s;">ρ = m/V</span>
+    <span style="--x: 50%; --y: 8%;  --d: 1.6s; --dur: 8.5s;">P = UI</span>
+    <span style="--x: 18%; --y: 40%; --d: 2.8s; --dur: 7.8s;">W = Fs</span>
+    <span style="--x: 82%; --y: 44%; --d: 3.2s; --dur: 8.2s;">Q = cmΔt</span>
+    <span style="--x: 28%; --y: 88%; --d: 1.9s; --dur: 9.5s;">I = U/R</span>
+    <span style="--x: 72%; --y: 86%; --d: 0.9s; --dur: 7.2s;">p = F/S</span>
+  </div>
+  <div class="welcome-inner">
+    <svg class="atom-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="coreGrad" cx="35%" cy="35%">
+          <stop offset="0%" stop-color="#ffe08a"/>
+          <stop offset="60%" stop-color="#ff9d4d"/>
+          <stop offset="100%" stop-color="#ff6b2c"/>
+        </radialGradient>
+        <radialGradient id="electronGrad" cx="35%" cy="35%">
+          <stop offset="0%" stop-color="#e0f2ff"/>
+          <stop offset="100%" stop-color="#5fb3e8"/>
+        </radialGradient>
+        <filter id="coreGlow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <g transform="rotate(0 100 100)">
+        <ellipse cx="100" cy="100" rx="82" ry="28" fill="none" stroke="rgba(160,210,255,0.42)" stroke-width="1.2"/>
+        <circle cx="182" cy="100" r="5.5" fill="url(#electronGrad)" opacity="0.95">
+          <animateMotion dur="3.2s" repeatCount="indefinite"
+            path="M 182 100 A 82 28 0 1 1 18 100 A 82 28 0 1 1 182 100"/>
+        </circle>
+      </g>
+      <g transform="rotate(60 100 100)">
+        <ellipse cx="100" cy="100" rx="82" ry="28" fill="none" stroke="rgba(160,210,255,0.42)" stroke-width="1.2"/>
+        <circle cx="182" cy="100" r="5.5" fill="url(#electronGrad)" opacity="0.95">
+          <animateMotion dur="4.3s" repeatCount="indefinite"
+            path="M 182 100 A 82 28 0 1 1 18 100 A 82 28 0 1 1 182 100"/>
+        </circle>
+      </g>
+      <g transform="rotate(-60 100 100)">
+        <ellipse cx="100" cy="100" rx="82" ry="28" fill="none" stroke="rgba(160,210,255,0.42)" stroke-width="1.2"/>
+        <circle cx="182" cy="100" r="5.5" fill="url(#electronGrad)" opacity="0.95">
+          <animateMotion dur="5.4s" repeatCount="indefinite"
+            path="M 182 100 A 82 28 0 1 1 18 100 A 82 28 0 1 1 182 100"/>
+        </circle>
+      </g>
+      <circle cx="100" cy="100" r="13" fill="url(#coreGrad)" filter="url(#coreGlow)">
+        <animate attributeName="r" values="13;15.5;13" dur="2.4s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+    <h2 class="welcome-title">
+      欢迎来到
+      <span class="welcome-title-main">初中物理仿真实验库</span>
+    </h2>
+    <p class="welcome-subtitle">即开即用 · 无需注册 · 轻量仿真</p>
+    <button type="button" class="welcome-enter" id="welcomeEnter">
+      开始探索
+      <span aria-hidden="true">→</span>
+    </button>
+  </div>
+</div>
+<div class="container">
+  <div class="header">
+    <h1 role="heading" aria-level="1">⚛️初中物理仿真实验库</h1>
+    <div class="badge-container">
+      <span class="badge"><span>📱</span><a href="https://wuli.wkepu.com/app/">手机APP版</a></span>
+      <span class="badge"><span>💻</span><a href="https://wuli.wkepu.com/pc.html">电脑网页版</a></span>
+      <span class="badge"><span>🔓</span>无需注册</span>
+      <span class="badge"><span>🧪</span>轻量级仿真</span>
+      <span class="badge"><span>🌐</span><a href="/zhishidian/">知识专题</a></span>
+	  <span class="badge"><span>💬</span><a href="/jietizhidao/">解题指导专题</a></span>
+    </div>
+    <div class="intro-text" id="introText">
+      <strong>《初中物理仿真实验库》</strong> 是略阳县西淮坝镇九年制学校王军礼老师开发的轻量化仿真实验平台。立足新课标教学要求，聚焦初中物理核心实验内容，辅以创新小实验，为教师课堂演示、学生课下自主探索提供便捷、实用的数字化实验工具。平台秉持轻量化、易操作、免安装、无注册的设计理念，网页版即开即用，适配手机、电脑等多终端设备。所有实验均基于新课标重点设计，当前已收录实验共32个，将不定期持续更新和完善。<a href="/about.html" style="color:#1e3a5f;text-decoration:none;">了解更多﹥</a>
+    </div>
+    <button type="button" class="intro-toggle" id="introToggle" aria-expanded="false" aria-controls="introText">
+      <span class="toggle-text">展开查看简介</span>
+      <span class="arrow" aria-hidden="true">▼</span>
+    </button>
+    <div class="meta-row">
+      <div class="meta-left">
+        <div class="meta-item"><i>📘</i> 使用说明：在实验目录中找到或搜索实验名称，点击进入后即可使用。</div>
+        <div class="meta-item"><i>👤</i> 制作人：略阳县西淮坝镇九年制学校 · 王军礼</div>
+        <div class="meta-item"><i>📅</i> 更新日期：2026年9月22日</div>
+      </div>
+    </div>
+  </div>
+  <div class="section-title">
+    📋 实验目录 <span>仿真实验</span>
+  </div>
+  <div class="recent-bar" id="recentBar" hidden aria-live="polite">
+  <span class="recent-label"><span aria-hidden="true">🕘</span> 最近使用</span>
+  <div class="recent-list" id="recentList" role="list"></div>
+  <button type="button" class="recent-clear" id="recentClear" aria-label="清除最近使用记录">清除记录</button>
+  </div>
+  <div class="exp-toolbar">
+    <div class="search-box">
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input type="search" id="expSearch" placeholder="搜索实验名称，如：凸透镜、密度、杠杆…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" inputmode="search" aria-label="按实验名称搜索">
+      <button type="button" id="searchClear" class="search-clear" aria-label="清空搜索" hidden>✕</button>
+    </div>
+    <div class="filter-chips" id="filterChips" role="group" aria-label="按实验类别筛选"></div>
+  </div>
+  <div class="search-tip" id="searchTip" hidden></div>
+  <div class="experiment-grid" id="expGrid" role="list" aria-label="物理仿真实验列表">
+  </div>
+<div id="compatWarning" class="compat-warning hidden">
+    <div class="warning-content">
+        <div class="warning-icon">⚠️</div>
+        <div class="warning-text">
+            您当前正在使用<b>兼容模式（IE内核）</b> 这会导致页面显示异常或功能受限。
+            请切换至 <b>极速模式</b> 或使用 <b>Chrome / Edge / Firefox</b> 等现代浏览器。
+        </div>
+    </div>
+</div>
+  <div class="footer">
+    <div class="db-info">
+      <div style="font-size:1rem; color:#004680; margin-bottom:6px;">🔗 初中物理仿真实验库网址</div>
+      <div class="db-url">
+        <a href="https://wuli.wkepu.com" target="_blank">https://wuli.wkepu.com</a>
+      </div>
+      <div style="margin-top: 14px; color:#2b557a; display: flex; gap: 8px; flex-wrap: wrap;">
+        <span>📲 手机扫码访问 · 随时随地做实验</span>
+      </div>
+    </div>
+    <div class="stats-card">
+            <div class="stats-left">
+                <h3><span class="online">📌</span> 当前在线实验</h3>
+                <div class="experiment-count">32+<span>核心实验+创新实验</span></div>
+                <div style="font-size:0.8rem; margin-top:8px; opacity:0.9;">持续更新中 · 适配手机/电脑</div>
+            </div>
+            <div class="qr-sim">
+                <div class="qr-icon"></div>
+                <p>移动设备<br>扫码直达</p>
+            </div>
+        </div>
+    <div class="copyright">
+      <div class="foot">⚛️初中物理仿真实验库｜ 🧪即开即用、无注册、轻量化仿真实验平台｜ <a href="/about.html" style="color:#4a6885;text-decoration:none;">📖关于平台</a></div>
+      <div class="teacher">🏫 本平台由略阳县西淮坝镇九年制学校 · 王军礼老师开发和维护</div>
+	  <div class="honor">🏅 2026年陕西省中小学（中职）教师数字素养提升实践活动获奖作品</div>
+    </div>
+  </div>
+</div>
+<!-- 主功能脚本 -->
+<script type="text/javascript" src="https://cdn.wkepu.cn/wulifangzhen/js/index2.5.js"></script>
+<!-- 兼容性检测及欢迎动画 -->
+<script>(function(){var ua=navigator.userAgent.toLowerCase(),I=ua.indexOf('trident')!==-1||ua.indexOf('msie')!==-1;(function(){var o=document.getElementById('welcomeOverlay');if(!o)return;var p=false;try{p=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}if(I||p){if(o.parentNode)o.parentNode.removeChild(o);return;}var k='welcomeShown_v1',x=6048e5,s=true;try{var l=localStorage.getItem(k);if(l!==null){var d=new Date().getTime()-Number(l);if(!isNaN(d)&&d>=0&&d<x)s=false;}}catch(e){s=true;}if(!s){if(o.parentNode)o.parentNode.removeChild(o);return;}try{localStorage.setItem(k,String(new Date().getTime()));}catch(e){}var v=document.body.style.overflow;document.body.style.overflow='hidden';var c=false;function f(){if(c)return;c=true;o.className+=' hide';document.body.style.overflow=v||'';setTimeout(function(){if(o.parentNode)o.parentNode.removeChild(o);},700);}var b=document.getElementById('welcomeEnter');function g(e){if(e&&e.stopPropagation)e.stopPropagation();f();}if(b){if(b.addEventListener)b.addEventListener('click',g,false);else if(b.attachEvent)b.attachEvent('onclick',g);}function h(e){e=e||window.event;var t=e.target||e.srcElement;if(t===o){f();return;}var cl=t.className||'';if(cl.indexOf('welcome-glow')!==-1||cl.indexOf('welcome-inner')!==-1)f();}if(o.addEventListener)o.addEventListener('click',h,false);else if(o.attachEvent)o.attachEvent('onclick',h);function i(e){e=e||window.event;var key=e.keyCode||e.which;if(key===27)f();}if(document.addEventListener)document.addEventListener('keydown',i,false);else if(document.attachEvent)document.attachEvent('onkeydown',i);setTimeout(f,7000);})();(function(){var w=document.getElementById('compatWarning');if(!w)return;function init(){var ic=false;try{ic=sessionStorage.getItem('compatWarningClosed')==='true';}catch(e){}if(I&&!ic){var a=w.className.split(' '),n=[];for(var j=0;j<a.length;j++)if(a[j]!=='hidden')n.push(a[j]);w.className=n.join(' ');}else if(w.className.indexOf('hidden')===-1)w.className+=' hidden';}if(window.addEventListener)window.addEventListener('load',init,false);else if(window.attachEvent)window.attachEvent('onload',init);else window.onload=init;})();})();</script>
+<script type="text/javascript" src="https://cdn.wkepu.cn/static/tongji.js" async="async"></script>
+</body>
+</html>

@@ -1,17 +1,17 @@
 # 外壳侧整体验收报告
 
-时间：2026-11-18T03:12:23.691Z
+时间：2026-11-21T10:10:10.087Z
 环境：headless Chromium(Edge) + SwiftShader，1280×900 → 390×844
 
 ## 结论总览
 
 | 验收项 | 标准 | 结果 |
 |---|---|---|
-| ① 移动端抽屉 | <768px 面板变底部抽屉，把手可见、可展开，3D 区可拖拽 | handle=PASS 展开位移=matrix(1, 0, 0, 1, 0, 0) 拖拽位移=4.884 → PASS |
-| ② 内存增幅(3轮×25场景) | ≤10% | 1.11% → PASS |
+| ① 移动端抽屉 | <768px 面板变底部抽屉，把手可见、可展开，3D 区可拖拽 | handle=PASS 展开位移=matrix(1, 0, 0, 1, 0, 0) 拖拽位移=6.592 → PASS |
+| ② 内存增幅(3轮×25场景) | ≤10% | 0.91% → PASS |
 | ② WebGL 泄漏告警 | 控制台无泄漏类告警（性能提示不计） | 泄漏类 0 条、性能提示 4 条 → PASS |
 | ③ shader 重编译 | programs.length 切换后不增长 | R1=10 R2=10 R3=10（轮内峰值 10）→ PASS |
-| ③ 共享资源不重建 | geometries/textures 三轮后不增长(容差2%) | geo 34→34 PASS；tex 3→3 PASS |
+| ③ 共享资源不重建 | geometries/textures 三轮后不增长(容差2%) | geo 35→35 PASS；tex 3→3 PASS |
 | ④ 绘制预算（props 实物化后复核） | 稳态 calls ≤60、tris <200k | 最高 37 calls / 13,006 tris → PASS |
 ## 明细
 
@@ -20,8 +20,8 @@
 
 | 实验 | calls | triangles |
 |---|---|---|
-| A1-incline-speed | 18 | 1746 |
-| A2-newton-first | 14 | 1824 |
+| A1-incline-speed | 17 | 1734 |
+| A2-newton-first | 14 | 1808 |
 | A3-friction | 21 | 2068 |
 | A4-liquid-pressure | 12 | 862 |
 | A5-buoyancy | 15 | 2702 |
@@ -44,14 +44,14 @@
 | C3-noise-control | 20 | 3156 |
 | F1-melting-curve | 22 | 4742 |
 | F2-boiling | 12 | 9380 |
-| F3-heat-engine | 35 | 10706 |
+| F3-heat-engine | 37 | 10716 |
 
 ## 控制台告警
 
 泄漏类（判 FAIL）：（无）
 
 性能提示（不计入判定）4 条：
-- [.WebGL-0x1b8c001d2800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x1b8c001d2800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x1b8c001d2800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-- [.WebGL-0x1b8c001d2800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+- [.WebGL-0x6a44010b1c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0x6a44010b1c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0x6a44010b1c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- [.WebGL-0x6a44010b1c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)

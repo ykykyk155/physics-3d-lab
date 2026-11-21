@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>演物实验室 · 中学物理交互实验室</title>
+<meta name="description" content="演物实验室：面向中学物理课堂的浏览器交互实验室。人教版初中物理 22 章 85 节、77 个三维实验台，全部实时计算，无需安装，开屏即用。" />
+<meta name="theme-color" content="#14181C" />
+<link rel="icon" href="/assets/icons/icon-32.png" sizes="32x32" />
+<link rel="icon" href="/assets/icons/icon-192.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="/assets/icons/icon-180.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+<body>
+  <a class="skip-link" href="#view">跳到主要内容</a>
+  <div id="shell"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <script type="importmap">
+    { "imports": { "three": "/assets/vendor/three.module.min.js" } }
+  </script>
+  <script type="module" src="/assets/js/main.js"></script>
+</body>
+</html>

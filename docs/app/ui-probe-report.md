@@ -1,6 +1,6 @@
 # UI→引擎通路探针报告
 
-时间：2026-11-21T04:13:28.669Z
+时间：2026-11-21T10:19:30.413Z
 方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
 
 | 实验 | 控件 | 类型 | onParam 送达 | 判定 |
@@ -9,11 +9,11 @@
 | A1-incline-speed | length | number | 1（store=0.5） | ✅ |
 | A1-incline-speed | mu | number | 1（store=0） | ✅ |
 | A1-incline-speed | mass | number | 1（store=0.1） | ✅ |
-| A1-incline-speed | duration 快照校验 | getter | actual=0.9741859660984475 vs 快照 0.97（±10%） | ✅ |
+| A1-incline-speed | duration 快照校验 | getter | actual=0.9778712455346528 vs 快照 0.98（±10%） | ✅ |
 | A1-incline-speed | 置灰文案=zeroHint | branch | 期望「当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）」实际「当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）」 | ✅ |
 | A1-incline-speed | seek 拖动一致性 | 0.36→0.71→0.36 | simTime 回位=true、无NaN=true | ✅ |
-| A1-incline-speed | zeroKind=branch | 默认 d0=0.9741859660984475 → 触发后 d1=0 | | ✅ 0↔非0 互斥成立 |
-| A1-incline-speed | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
+| A1-incline-speed | zeroKind=branch | 默认 d0=0.9778712455346528 → 触发后 d1=0 | | ✅ 0↔非0 互斥成立 |
+| A1-incline-speed | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | A1-incline-speed | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 0.25×（期望 0.25×） | ✅ |
 | A1-incline-speed | 表实门禁 | duration | 有时长=true snap=true kind=branch | ✅ |
 | A2-newton-first | surface | enum | 1（store=0.6） | ✅ |

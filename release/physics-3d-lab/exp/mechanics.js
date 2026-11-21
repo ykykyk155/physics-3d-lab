@@ -116,6 +116,33 @@ const A1 = {
       this.kA = this.durPhys / this.duration;      // 呈现时间 → 物理时间
     }
     if (this.ctx) this.ctx.emitReadout({ acc: staticCase ? '静止' : a });
+    this._setupSegments();
+  },
+  // 三段平均速度（对照 xiaobinlaoshi）：沿斜面位移等分——前段 [0, travel/2]、后段 [travel/2, travel]、全程。
+  // 匀加速闭式解：到段终点的时刻 t=√(2s/a)；平均速度 v=段长/段用时（后段用 t−t₁，不是全程时刻）。
+  _setupSegments() {
+    const a = this.aVal, tr = this._travel;
+    if (this.static || !(a > 0) || !(tr >= 0.02)) {
+      this.seg = { enabled: false, s1: 0, t1: 0, v1: 0, s2: 0, t2: 0, v2: 0, s: 0, t: 0, v: 0 };
+      return;
+    }
+    const s1 = tr / 2;
+    const t1 = Math.sqrt(2 * s1 / a);
+    const t = Math.sqrt(2 * tr / a);
+    const s2 = tr - s1;
+    const t2 = t - t1;
+    this.seg = {
+      enabled: true, s1, t1, v1: s1 / t1,
+      s2, t2, v2: s2 / t2,
+      s: tr, t, v: tr / t,
+    };
+  },
+  // 三段平均速度接口（前端数据表直接消费；只读，勿改字段）：
+  // enabled=false = 静止分支（μ≥tanθ，无过程，各量为 0）。
+  // s1/t1/v1 前段（车到前段终点时刻 t₁）、s2/t2/v2 后段（t₂=后段用时=到达时刻−t₁）、s/t/v 全程。
+  segments() {
+    if (!this.seg) this._setupSegments();
+    return this.seg;
   },
   // 时间轴：匀加速直线运动有闭式解，seek 直接算（解析型）
   seek(t) {
@@ -1037,13 +1064,20 @@ const A7 = {
  * 读数只读状态、不改状态：面板每 100ms 拉一次，不能有副作用。 */
 Object.assign(A1, {
   readouts() {
-    return [
+    const seg = this.segments();
+    const rows = [
+      // 三段平均速度前置展示（对照 xiaobinlaoshi A1 数据表：前段/后段/全程）
+      seg.enabled ? rd('前段平均速度 v₁', seg.v1, 'm/s') : rd('前段平均速度 v₁', 0, 'm/s'),
+      seg.enabled ? rd('后段平均速度 v₂', seg.v2, 'm/s') : rd('后段平均速度 v₂', 0, 'm/s'),
+      seg.enabled ? rd('全程平均速度 v̄', seg.v, 'm/s') : rd('全程平均速度 v̄', 0, 'm/s'),
       rd('速度 v', this.v, 'm/s'),
       rd('位移 s', this.u, 'm'),
       rd('加速度 a', this.static ? 0 : this.aVal, 'm/s²'),
+    ];
+    return this.static ? rows : rows.concat([
       rd('摩擦力 f', this.Ff, 'N'),
       rd('已用时 t', this._t, 's'),
-    ];
+    ]);
   },
 });
 Object.assign(A2, {

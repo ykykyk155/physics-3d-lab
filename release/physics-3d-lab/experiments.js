@@ -133,6 +133,9 @@ for (const id in RAW) {
         return { label: String(r.label), value: v, unit: r.unit == null ? '' : String(r.unit) };
       });
     },
+    // 三段平均速度数据表接口（A1）：返回完整分段数据，供前端数据表直接消费；
+    // 不受 readouts 6 行上限限制。字段见 exp/mechanics.js A1.segments()。
+    segments() { if (typeof impl.segments === 'function') return impl.segments(); return null; },
     // 声音：audioAt(t) → null（不出声）或 { mode:'tone'|'noise'|'pulse', gain, freq?, wave?, interval?, filterHz? }
     // 外壳每帧都会调，所以这里只做校验和兜底：gain 非法 / 非正一律回 null（当成静音），
     // 频率、间隔、截止频率都钳到能用的范围。不做缓存、不产生副作用。
