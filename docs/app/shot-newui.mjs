@@ -1,4 +1,6 @@
-// 新功能目检截图：章节视图 / 指导抽屉 / 分步引导 / 三视角预设 / A1 三段记录表 / 安全条
+// 平台层六件套目检截图（可复跑）：章节视图 / 指导抽屉 / 分步引导 / 三视角预设 / A1 三段记录表 / 安全条
+// 用法：node shot-newui.mjs（自起 http 服务 + 无头 Edge，截图落 docs/benchmark/，产物仅人工核对用）
+// 说明：一次性补丁器 _patch.cjs 已删（其目标 _diag-segtable.mjs 亦删）；回归以 ui-probe.mjs + acceptance.mjs 为准
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
