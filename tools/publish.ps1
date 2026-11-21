@@ -83,17 +83,36 @@ if (-not (Push-Ref "HEAD:refs/heads/main" "source (main)")) {
     exit 1
 }
 
-# site branch: subtree of the release folder, force-pushed (it is a build output)
-$sha = git -C $repo subtree split --prefix=release/physics-3d-lab HEAD
-if ($sha) {
-    if (-not (Push-Ref "${sha}:refs/heads/gh-pages" "site (gh-pages $($sha.Substring(0,7)))")) {
-        Write-Host "  [FAIL] site push failed 6 times - page NOT updated" -ForegroundColor Red
+# site branch: build a commit whose tree is exactly the release folder.
+# Uses git plumbing (write-tree / commit-tree) instead of `git subtree`: not every
+# git build ships subtree, and it silently vanished after a git upgrade once.
+$siteTmpIndex = Join-Path $repo '.git\gh-pages.index'
+if (Test-Path $siteTmpIndex) { Remove-Item $siteTmpIndex -Force }
+$env:GIT_INDEX_FILE = $siteTmpIndex
+try {
+    git -C $repo read-tree --empty
+    git -C $repo --work-tree="$rel" add -A -f -- . 2>&1 | Out-Null
+    $tree = (git -C $repo write-tree).Trim()
+} finally {
+    Remove-Item Env:\GIT_INDEX_FILE -ErrorAction SilentlyContinue
+    if (Test-Path $siteTmpIndex) { Remove-Item $siteTmpIndex -Force }
+}
+
+if ($tree -and $tree -match '^[0-9a-f]{40,64}$') {
+    $siteCommit = (git -C $repo commit-tree $tree -m "site build $(Get-Date -Format 'yyyy-MM-dd HH:mm')").Trim()
+    if ($siteCommit -and $siteCommit -match '^[0-9a-f]{40,64}$') {
+        if (-not (Push-Ref "${siteCommit}:refs/heads/gh-pages" "site (gh-pages $($siteCommit.Substring(0,7)))")) {
+            Write-Host "  [FAIL] site push failed 6 times - page NOT updated" -ForegroundColor Red
+            exit 1
+        }
+        Write-Host ""
+        Write-Host "  page will be live at: https://<user>.github.io/<repo>/" -ForegroundColor Green
+    } else {
+        Write-Host "  commit-tree returned nothing - site branch NOT updated" -ForegroundColor Red
         exit 1
     }
-    Write-Host ""
-    Write-Host "  page will be live at: https://<user>.github.io/<repo>/" -ForegroundColor Green
 } else {
-    Write-Host "  subtree split returned nothing - site branch NOT updated" -ForegroundColor Red
+    Write-Host "  write-tree returned nothing - site branch NOT updated" -ForegroundColor Red
     exit 1
 }
 
