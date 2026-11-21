@@ -147,8 +147,11 @@ const calibSweep = async () => {
   for (const mu of mus) {
     const d = await page.evaluate((mn) => {
       const e = window.__LAB.current().exp._impl; e._testMu = mn; e._rawFric = false; e._rebuildPhys();
-      const w = e._phys, sx = e.startX(); let x = sx, still = 0, vx = 9;
-      for (let i = 0; i < 60 * 26; i++) { w.stepN(1); x = e.cartG.position.x; vx = w.linearSpeedX(e._cartB); if (i > 60 && Math.abs(vx) < 0.006) { still++; if (still > 12) break; } else still = 0; }
+      const w = e._phys;
+      const saved = w.afterStep; w.afterStep = null;   // 短路末端钳停/循环钩子，测「自由滑行到停」的标定
+      let x, sx = e.startX(), still = 0, vx = 9;
+      for (let i = 0; i < 60 * 30; i++) { w.stepN(1); x = e.cartG.position.x; vx = w.linearSpeedX(e._cartB); if (i > 60 && Math.abs(vx) < 0.006) { still++; if (still > 12) break; } else still = 0; }
+      w.afterStep = saved;
       return Math.max(0, x - sx);
     }, mu);
     const t = theory(mu);
@@ -188,26 +191,77 @@ const hasSpeed = r0.some(r => /速度 v/.test(r.label));
 const hasPhase = r0.some(r => /运动阶段/.test(r.label));
 check('读数含速度/位移/阶段', hasSpeed && hasPhase, r0.map(r => r.label).join('/'));
 
-/* --- CEO 新增：μ=0 理想光滑——不出轨、不坠落、duration 仍 Infinity --- */
+/* --- CEO 新增：冰面 μ=0.02——滑到轨道末端刹停，duration 有限可拖 --- */
+await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0.02); e.onParam('height', 0.35); });
+await sleep(250);
+const durIce = await page.evaluate(() => window.__LAB.current().exp.duration);
+check('冰面 μ=0.02 duration 有限（可拖）', isFinite(durIce) && durIce > 0, `duration=${durIce}`);
+await page.evaluate(dd => { window.__LAB.current().exp.seek(dd); }, durIce);
+await sleep(50);
+const xEndI = -1.2 + 7.0;                                   // XF0 + BL = 轨道右端
+const ice = await page.evaluate(() => {
+  const e = window.__LAB.current().exp._impl, w = e._phys;
+  const c = window.__LAB.current().scene.getObjectByName('A2-cart');
+  const v = e._cartB && w ? w.linearSpeedX(e._cartB) : 0;
+  return { x: c.position.x, y: c.position.y, z: c.position.z, v };
+});
+check('冰面到末端刹停（位置钳末端、速度归零、不坠落）',
+  Math.abs(ice.x - xEndI) < 0.1 && Math.abs(ice.v) < 0.01 && Math.abs(ice.y - 0.06) < 0.04,
+  `x=${ice.x.toFixed(3)}（末端 ${xEndI}）v=${ice.v.toFixed(3)} y=${ice.y.toFixed(3)} z=${ice.z.toFixed(3)}`);
+// 实测：冰面从坡顶释放到刹停末端用时（CEO 要的数）
+const iceTime = await page.evaluate(() => {
+  const e = window.__LAB.current().exp._impl; e._rebuildPhys(); const w = e._phys;
+  const xEnd = e.XF0 + e.BL;
+  for (let i = 0; i < 60 * 8; i++) { w.stepN(1); if (e.cartG.position.x >= xEnd) return (i + 1) / 60; }
+  return -1;
+});
+console.log(`[数] 冰面滑到末端用时 ≈ ${iceTime.toFixed(2)}s；duration=${durIce.toFixed(2)}s`);
+check('冰面末端用时在 duration 内', iceTime > 0 && iceTime <= durIce, `t=${iceTime.toFixed(2)} ≤ ${durIce.toFixed(2)}`);
+
+/* --- CEO 新增：μ=0 理想光滑——到末端瞬移回坡顶无限循环，不出轨、不坠落，duration 仍 Infinity --- */
 await page.evaluate(() => { const e = window.__LAB.current().exp; e.onParam('surface', 0); e.onParam('height', 0.35); });
 await sleep(250);
 const dur0 = await page.evaluate(() => window.__LAB.current().exp.duration);
 check('μ=0 duration = Infinity（禁拖）', dur0 === Infinity, `duration=${dur0}`);
-let yBad = [], minY = 9, maxY = -9, zs = [];
-for (const tt of [2, 4, 6, 8, 10]) {
-  const p = await page.evaluate(t => { const e = window.__LAB.current().exp; e.seek(t);
-    const c = window.__LAB.current().scene.getObjectByName('A2-cart');
-    return { x: c.position.x, y: c.position.y, z: c.position.z }; }, tt);
-  minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); zs.push(p.z);
-  if (p.y < 0.0 || p.y > 0.2) yBad.push([tt, +p.y.toFixed(3)]);
-}
-const zDrift = Math.max(...zs) - Math.min(...zs);
-check('μ=0 全程不出轨（y 稳定在轨面 0.06、不坠落）', yBad.length === 0 && minY > 0.0 && maxY < 0.2, `y∈[${minY.toFixed(3)}, ${maxY.toFixed(3)}]${yBad.length ? ' 异常' + JSON.stringify(yBad) : ''}`);
-check('μ=0 不横向漂出轨道（z 全程不变）', zDrift < 0.05, `z 漂移 ${zDrift.toFixed(4)}（z≈${zs[0].toFixed(2)}）`);
-// 滑出可视 7m 之外仍继续前进（永不停止）
-const far = await page.evaluate(() => { const e = window.__LAB.current().exp; e.seek(8);
-  const c = window.__LAB.current().scene.getObjectByName('A2-cart'); return c.position.x; });
-check('μ=0 滑过轨道尽头仍在延伸段上继续前进', far > 5.8, `t=8s x=${far.toFixed(2)}`);
+const pts = await page.evaluate(() => {
+  const e = window.__LAB.current().exp, scene = window.__LAB.current().scene;
+  const out = [];
+  for (const tt of [2, 4, 6, 8, 12, 16, 20]) {
+    e.seek(tt);
+    const c = scene.getObjectByName('A2-cart');
+    out.push({ t: tt, x: c.position.x, y: c.position.y, z: c.position.z });
+  }
+  return out;
+});
+const xEnd0 = -1.2 + 7.0;
+const yBad = pts.filter(p => p.y < -0.01 || p.y > 0.5);
+const xBad = pts.filter(p => p.x < -3.5 || p.x > xEnd0 + 0.05);
+const zDrift = Math.max(...pts.map(p => p.z)) - Math.min(...pts.map(p => p.z));
+check('μ=0 循环全程不出轨不坠落（y∈(−0.01,0.5)、x∈[坡顶,末端]）',
+  yBad.length === 0 && xBad.length === 0,
+  pts.map(p => `t${p.t}:x${p.x.toFixed(2)},y${p.y.toFixed(2)}`).join(' '));
+check('μ=0 不横向漂出轨道（z 全程不变）', zDrift < 0.05, `z 漂移 ${zDrift.toFixed(4)}（z≈${pts[0].z.toFixed(2)}）`);
+const lastP = pts[pts.length - 1];
+check('μ=0 大 t 已循环回坡顶重滑（未卡末端、未坠落）',
+  lastP.x < xEnd0 - 1.0 && lastP.x > -3.5 && lastP.y > -0.01, `t=${lastP.t} x=${lastP.x.toFixed(2)} y=${lastP.y.toFixed(2)}`);
+// 实测 μ=0 单程时长（两次到末端间隔；CEO 要的数）
+// 注意：原 afterStep 在「到末端」后立刻 setState 瞬移回坡顶，stepN 返回后读 x 已是坡顶位置，
+// 永远读不到 x≥末端；因此在原钩子之前包一层计数（先 syncBody 读本帧滑行真实位置）。
+const lapCalc = await page.evaluate(() => {
+  const e = window.__LAB.current().exp._impl; e._rebuildPhys(); const w = e._phys;
+  const xEnd = e.XF0 + e.BL;
+  const orig = w.afterStep; const hits = [];
+  w.afterStep = () => {
+    w.syncBody(e._cartB);
+    if (e.cartG.position.x >= xEnd) hits.push(w._n);
+    orig();
+  };
+  for (let i = 0; i < 60 * 14 && hits.length < 3; i++) { w._n = i; w.stepN(1); }
+  w.afterStep = orig;
+  return hits.map(h => (h + 1) / 60);
+});
+const lapT = lapCalc.length >= 2 ? lapCalc[1] - lapCalc[0] : -1;
+console.log(`[数] μ=0 单程时长 ≈ ${lapT.toFixed(2)}s（两次到末端间隔 ${lapCalc.map(x => x.toFixed(2)).join('→')}）；期望≈${(1.57 + 7.0 / Math.sqrt(2 * 9.8 * 0.35)).toFixed(2)}s`);
 
 /* 二次进入不重复下载 */
 const before2 = ammoReq;

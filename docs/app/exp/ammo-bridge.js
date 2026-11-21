@@ -159,6 +159,24 @@ class World {
     return rec;
   }
 
+  /* 直接设置刚体世界位置（可带速度/清速）。确定性地把物体「瞬移」到某处：
+   * 冰面在轨道末端刹停、理想光滑循环回到坡顶都用它。同步写 motionState，保证下次 sync 读到一致变换。 */
+  setState(rec, pos, vel) {
+    if (!rec) return;
+    const A = this.Ammo;
+    this._tmpT.setIdentity();
+    this._tmpT.getOrigin().setValue(pos[0], pos[1], pos[2]);
+    rec.body.setWorldTransform(this._tmpT);
+    rec.body.getMotionState().setWorldTransform(this._tmpT);
+    if (vel) {
+      const bv = new A.btVector3(vel[0], vel[1], vel[2]);
+      rec.body.setLinearVelocity(bv);
+      A.destroy(bv);
+    }
+    try { rec.body.activate ? rec.body.activate() : null; } catch (e) {}
+    this.syncBody(rec);
+  }
+
   /* 给刚体设初始线速度（m/s）。记进 rec.initVel，reset() 时会恢复——否则 seek 重放时初速被清零、物体不动。 */
   setLinearVelocity(rec, v) {
     const A = this.Ammo;

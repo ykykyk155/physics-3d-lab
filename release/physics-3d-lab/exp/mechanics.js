@@ -219,6 +219,7 @@ const A2 = {
     this.cartVis = cart({ len: 0.52, wid: 0.36, wheelR: 0.09 });
     this.cartVis.position.y = -0.06;
     this.cartG.add(this.cartVis);
+    this._cartHalf = 0.26;      // 车半长（len 0.52/2）：末端钳停/循环瞬移时整车不悬空
     this.block = this.cartG; ctx.scene.add(this.cartG);
     this.makeLegend();
     this.duration = 3.4;        // 在 build 期就有值：外壳切场景时会立刻读 duration
@@ -277,6 +278,7 @@ const A2 = {
     const w = createWorld({ gravity: [0, -9.8, 0] });
     this._phys = w;
     if (this._subSteps) w.subSteps = this._subSteps;
+    this._loopT = 0;            // 理想光滑循环时钟：每回到坡顶清零，物理只步进到本次单程内
     const z = this._cartZ();
     const mu = this._testMu != null ? this._testMu : (this.sel ? this.sel.mu : 0.3);
     const g = this._geo = this._geometry();
@@ -311,7 +313,31 @@ const A2 = {
     const mass = clamp(this.p.mass || 0.4, 0.1, 1.0);
     const r = 0.06;
     const topX = Tx + sinT * r, topY = Ty + cosT * r;
+    this._topX = topX; this._topY = topY;
     this._cartB = w.addBox(this.cartG, { shape: 'sphere', mass: mass, halfExtents: [r, r, r], pos: [topX, topY, z], friction: fr, dampingLin: 0, dampingAng: 1, lockRot: true });
+
+    // ===== 极端材料终点行为（CEO 口径：不画出本页、无延伸渐隐）=====
+    // 判断用「滑行位移 s 是否被钳到轨道长 BL」：只有理论停距超过轨道（本页只有冰面 μ0.02，
+    // 停距 17.5m > BL）才这样；普通三档 s<BL − ε 永远到不了末端，此分支不触发。
+    // 冰面：到末端刹停（位置钳在 xEnd、速度归零）——duration 有限（recompute 已按到末端时刻算）；
+    // 理想光滑 μ=0：到末端立刻瞬移回坡顶重新滑，无限循环——duration=Infinity（时间条禁拖）。
+    // afterStep 每 1/60 步调用（bridge stepN/stepTo 内），此刻 mesh 未同步 → 先 syncBody 读真实位置。
+    const xEnd = this.XF0 + this.BL;
+    this._odo = 0;                                        // 轮子累计里程（循环瞬移回坡顶后轮子不倒转）
+    w.afterStep = () => {
+      if (!this._cartB) return;
+      w.syncBody(this._cartB);
+      const vx = w.linearSpeedX(this._cartB);
+      this._odo += Math.abs(vx) * (1 / 60);
+      const x = this.cartG.position.x;
+      if (mu <= 1e-6) {
+        // 理想光滑：到末端瞬移回坡顶（零速重新滑）；过渡先做瞬移，CEO 看效果再定是否加动画
+        if (x >= xEnd) w.setState(this._cartB, [this._topX, this._topY, z], [0, 0, 0]);
+      } else if (this.s >= this.BL - 1e-9) {
+        // 冰面：到末端刹停（位置钳在末端、速度归零，整段轨道内）
+        if (x >= xEnd) w.setState(this._cartB, [xEnd, 0.06, z], [0, 0, 0]);
+      }
+    };
   },
   // 诊断：测「车进入水平摩擦段时（坡脚 x=startX=XF0 附近）的水平峰值速度」→ 供当面校核 v_entry/√(2gh)。
   measureEntrySpeed() {
@@ -345,11 +371,11 @@ const A2 = {
   },
   updateLegend() {
     if (!this.legendEl || !this.list) return;
-    const head = '<div style="color:#ffd479;margin-bottom:5px">' + this.sel.label + ' · 滑行 s=' + (isFinite(this.s) ? this.s.toFixed(2) + ' m' : '∞（永不停止）') + ' · h=' + (this.p.height || 0.15).toFixed(2) + ' m</div>';
+    const head = '<div style="color:#ffd479;margin-bottom:5px">' + this.sel.label + ' · 滑行 s=' + (isFinite(this.s) ? this.s.toFixed(2) + ' m' : '∞（循环往复）') + ' · h=' + (this.p.height || 0.15).toFixed(2) + ' m</div>';
     const rows = this.list.map(o => {
       const on = (o === this.sel);
       const dot = '<span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:' + o.color + ';margin-right:7px;vertical-align:middle;border:1px solid rgba(255,255,255,.3)"></span>';
-      const d = isFinite(o.s) ? o.s.toFixed(2) + ' m' : '永不停止';
+      const d = isFinite(o.s) ? o.s.toFixed(2) + ' m' : '循环往复';
       const st = on ? 'color:#fff;font-weight:700;' : 'color:#aab6c8;';
       return '<div style="' + st + 'margin:1px 0">' + dot + o.label + ' · μ=' + o.mu.toFixed(2) + ' · ' + d + '</div>';
     }).join('');
@@ -384,10 +410,16 @@ const A2 = {
       const g2 = this._geo;
       const pathL = g2.Lstr + g2.R * g2.theta;                         // 直线斜坡 + 圆弧路程
       const tRamp = Math.sqrt(2 * pathL / (G * Math.sin(this.theta))); // 无摩擦下滑时间
-      const tFlat = this.v0 / (this.sel.mu * G);                       // 摩擦段滑到停时间（v0=√(2gh)）
+      const mu = this.sel.mu;
+      // 到达停止点的时间：轨道内停 → v0/(μg)（匀减速到停，disc=0）；
+      // 冰面 μ=0.02 理论停距 17.5m 超出轨道 → s 已 clamp 到 BL=7.0，车在轨道末端被刹车，
+      // 到末端的时刻解 v0·t − ½μg·t² = s 的二次式小根：t=(v0−√(v0²−2μg·s))/(μg)。
+      // μ=0 时 s=∞，走 else 分支（duration=Infinity），不会到这里。
+      const disc = Math.max(0, this.v0 * this.v0 - 2 * mu * G * this.s);
+      const tFlat = (this.v0 - Math.sqrt(disc)) / (mu * G);
       this.duration = clamp(Math.ceil((tRamp + tFlat + 0.4) * 10) / 10, 1.2, 12);
     } else this.duration = Infinity;
-    if (this.ctx) this.ctx.emitReadout({ slide: isFinite(this.s) ? this.s : '理想光滑：永不停止' });
+    if (this.ctx) this.ctx.emitReadout({ slide: isFinite(this.s) ? this.s : '理想光滑：循环往复' });
     this.buildTracks();
     this.t = 0;
     this.updateLegend();
@@ -438,19 +470,7 @@ const A2 = {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(BL, 0.08, 0.44), this.mkBoardMat(isSel, o.color));
       bar.position.set(XF0 + BL / 2, 0.04, z); bar.userData.noFit = true; bar.receiveShadow = true; bar.castShadow = false;
       this.tracksG.add(bar);
-      // 渐隐延伸：s 超出可视轨道（冰面 μ0.02 / 理想光滑 μ0）时，尽头画一段渐隐延长板，
-      // 车滑出 7m 视野后仍在延伸段上继续（物理另有 200m 轨道，绝不坠落）——CEO「延伸/渐隐」要求。
-      if (!isFinite(o.s) || o.s > BL - 0.05) {
-        const FD = 20, segN = 7;
-        for (let i = 0; i < segN; i++) {
-          const seg = box(FD / segN, 0.06, 0.44, this.mkBoardMat(isSel, o.color));
-          seg.position.set(XF0 + BL + (i + 0.5) * FD / segN, 0.03, z);
-          seg.material = seg.material.clone(); seg.material.transparent = true;
-          seg.material.opacity = Math.max(0.03, 0.6 * (1 - i / segN)) * (isSel ? 1 : 0.4);
-          seg.material.depthWrite = false; seg.userData.noFit = true; seg.castShadow = false; seg.receiveShadow = false;
-          this.tracksG.add(seg);
-        }
-      }
+      // CEO 口径：冰面/理想光滑都到轨道末端就结束（冰面刹停、理想光滑循环），不再有延伸渐隐段。
       // 标记条：真实米数标尺（1 单位 = 1m，不压缩整幅）。冰面/理想光滑无终点标记。
       if (isFinite(o.s) && o.s < BL - 0.05) {
         const sW = clamp(o.s, 0.15, BL - 0.05);
@@ -473,9 +493,9 @@ const A2 = {
         const rampMesh = new THREE.Mesh(eg, MATS.woodLight());
         rampMesh.position.z = z; rampMesh.castShadow = true; rampMesh.receiveShadow = false; rampMesh.userData.noFit = true;
         this.tracksG.add(rampMesh);
-        // 理想光滑 μ=0：配「无阻力 → 永不停止」说明
+        // 理想光滑 μ=0：配「无阻力 → 循环往复」说明（到末端自动回坡顶重滑，永不停止）
         if (o.mu <= 1e-6) {
-          const lb = mkLabel('无阻力 → 永不停止', '#9ad2ff');
+          const lb = mkLabel('无阻力 → 循环往复', '#9ad2ff');
           lb.position.set(XF0 + BL + 1.5, 0.95, z); this.tracksG.add(lb);
         }
       }
@@ -498,8 +518,9 @@ const A2 = {
   },
   _rollWheels() {
     if (!this.cartG) return;
-    const x = this.cartG.position.x;
-    rollCart(this.cartG, Math.max(0, (x - this.XF0)) / 0.09);
+    // 理想光滑循环：轮子随累计里程 _odo 单调转（回坡顶后不倒转）；其余走位置差。
+    const o = this._odo != null ? this._odo : Math.max(0, this.cartG.position.x - this.XF0);
+    rollCart(this.cartG, o / 0.09);
   },
   // 加载期间的解析式 fallback：斜坡加速（无摩擦）→ 水平 μ 匀减速，与物理模型同构。
   // 小车从坡顶 (XF0−RL, H) 静止释放，到坡脚速度 v0=√(2gH)，然后按 μ 减速。
@@ -522,7 +543,14 @@ const A2 = {
     // 水平段：从坡脚起 v0 匀减速
     const xt = tt - t_foot;
     if (mu <= 1e-6) {
-      this.cartG.position.set(this.XF0 + v0 * xt, 0, z); rollCart(this.cartG, (v0 * xt) / 0.09); return;
+      // 理想光滑：到末端回坡顶循环。单程水平段时长 t_flat=BL/v0，落点 xm=v0·(xt % t_flat)，
+      // 里程 odo=已完圈数×BL+当前位置（轮子单调转不倒转）——与物理 afterStep 循环同构。
+      const t_flat = this.BL / v0;
+      const lap = Math.floor(xt / t_flat);
+      const xm = v0 * (xt - lap * t_flat);
+      rollCart(this.cartG, (lap * this.BL + xm) / 0.09);
+      this.cartG.position.set(this.XF0 + xm, 0, z);
+      return;
     }
     let xm = v0 * xt - 0.5 * mu * G * xt * xt;
     if (xm < 0) xm = 0;
@@ -1108,7 +1136,12 @@ Object.assign(A2, {
       }
     }
     const dist = Math.max(0, x - this.startX());
-    const phase = onRamp ? '坡上下滑中' : (stopped ? '已停止' : (v > 0.01 ? '滑行中' : '静止'));
+    // 阶段文案：冰面在末端刹停 →「滑到轨道末端·刹车停下」；理想光滑循环 →「循环滑行中（无限）」；
+    // 其余：坡上下滑中 / 已停止 / 滑行中。
+    let phase;
+    if (this.sel && Math.abs(this.sel.mu) <= 1e-6) phase = '循环滑行中（无限）';
+    else if (isFinite(this.s) && this.s >= this.BL - 1e-9 && dist >= this.BL - 0.05) phase = '滑到末端·刹停';
+    else phase = onRamp ? '坡上下滑中' : (stopped ? '已停止' : (v > 0.01 ? '滑行中' : '静止'));
     return [
       rd('坡底速度 v₀', this.v0, 'm/s'),
       rd('所选材料 μ', this.sel ? this.sel.mu : 0, '', 2),
