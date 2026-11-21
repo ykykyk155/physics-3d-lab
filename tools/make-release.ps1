@@ -30,6 +30,20 @@ Copy-Item $entry $out
 Copy-Item (Join-Path $app 'exp')    (Join-Path $out 'exp')    -Recurse
 Copy-Item (Join-Path $app 'vendor') (Join-Path $out 'vendor') -Recurse
 
+# service worker: copy and inject the release version (git short hash) as cache name.
+# Every publish changes the cache name; activate() drops the previous cache.
+$swSrc = Join-Path $app 'sw.js'
+if (Test-Path $swSrc) {
+    $swVer = (git -C $repo rev-parse --short HEAD 2>$null | Select-Object -First 1).Trim()
+    if (-not $swVer) { $swVer = Get-Date -Format 'yyyyMMddHHmm' }
+    $swContent = [System.IO.File]::ReadAllText($swSrc, [System.Text.Encoding]::UTF8)
+    $swContent = $swContent.Replace('__VERSION__', $swVer)
+    [System.IO.File]::WriteAllText((Join-Path $out 'sw.js'), $swContent, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "  sw.js  version $swVer"
+} else {
+    Write-Host "  [WARN] sw.js missing - no offline cache" -ForegroundColor Yellow
+}
+
 # data source: ONE source of truth lives in docs/ (the only *.json directly there).
 # The in-app copy is regenerated on every build so the two can never drift.
 # (They did drift once: snapshot markers were added to the source only, and the
@@ -70,6 +84,7 @@ Get-ChildItem $PSScriptRoot -Filter '*.bat' -File | ForEach-Object { Copy-Item $
 $required = @(
     'index.html',
     'experiments.js',
+    'sw.js',
     'exp\common.js', 'exp\props.js', 'exp\mechanics.js', 'exp\optics.js',
     'exp\acoustics.js', 'exp\electricity.js', 'exp\thermal.js',
     'vendor\three.module.js', 'vendor\three.core.js',

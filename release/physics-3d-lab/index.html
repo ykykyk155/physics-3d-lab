@@ -297,7 +297,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <div>
     <div class="boot-ring"></div>
     <div class="boot-title">正在加载 3D 场景…</div>
-    <div class="boot-sub" id="boot-sub">首次打开需要下载约 0.5 MB 资源</div>
+    <div class="boot-sub" id="boot-sub">首次打开需联网下载资源，之后自动缓存、秒开</div>
   </div>
 </div>
 <div id="app">
@@ -1484,7 +1484,7 @@ boot().then(() => { window.__LAB.ready = true; });
   if (!boot) return;
   var t0 = Date.now();
   var slow = setTimeout(function () {
-    if (sub) sub.textContent = '网络较慢，仍在加载…（首次打开约需 2~5 秒）';
+    if (sub) sub.textContent = '网络较慢，仍在加载…首次打开会缓存全部资源，之后秒开无需等待';
   }, 6000);
   var tick = setInterval(function () {
     if (window.__LAB && window.__LAB.ready) {
@@ -1495,9 +1495,18 @@ boot().then(() => { window.__LAB.ready = true; });
     } else if (Date.now() - t0 > 20000) {
       clearInterval(tick);
       boot.style.pointerEvents = 'none';
-      if (sub) sub.textContent = '加载超时。如果是本地打开，请双击「启动实验.bat」，不要直接双击 index.html。';
+      if (sub) sub.textContent = '加载超时。请在联网状态下打开一次完成缓存，之后即可离线使用。';
     }
   }, 100);
+})();
+</script>
+<script>
+/* Service Worker 注册：发布时在 sw.js 内注入版本号，首次打开后全站资源本地缓存，之后秒开、离线可用 */
+(function () {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () { /* 静默失败：SW 只是加速，不阻碍使用 */ });
+  });
 })();
 </script>
 </body>
