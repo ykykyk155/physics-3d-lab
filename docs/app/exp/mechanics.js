@@ -216,11 +216,16 @@ const A2 = {
     // 视觉整体向下偏 0.06：物理盒半高 0.06、轮底在原点，刚体静止时盒心在轨道顶面上方 0.06，
     // 向下偏 0.06 让四轮正好落在轨道顶面（物理盒与视觉对齐，不再悬空或陷进轨道）。
     this.cartG = new THREE.Group(); this.cartG.name = 'A2-cart';
+    // 姿态层：车身随坡面倾转（球体刚体锁旋转、车体本身恒水平，不随坡转会看起来「车尾翘起」）。
+    // 枢轴放在车心（cartG 原点 = 球心）：绕车心转 θ，车两端升降正好匹配坡面高差，
+    // 轮底相对车心仅 0.06，倾转后轮底位置偏差 ~0.06·(1−cosθ)≈1mm，视觉上轮子依旧贴坡。
+    this.tiltG = new THREE.Group();
     this.cartVis = cart({ len: 0.52, wid: 0.36, wheelR: 0.09 });
     this.cartVis.position.y = -0.06;
-    this.cartG.add(this.cartVis);
+    this.tiltG.add(this.cartVis);
+    this.cartG.add(this.tiltG);
     this._cartHalf = 0.26;      // 车半长（len 0.52/2）：末端钳停/循环瞬移时整车不悬空
-    this.block = this.cartG; ctx.scene.add(this.cartG);
+    this.block = this.tiltG; ctx.scene.add(this.cartG);
     this.makeLegend();
     this.duration = 3.4;        // 在 build 期就有值：外壳切场景时会立刻读 duration
     this.t = 0;
@@ -512,15 +517,34 @@ const A2 = {
       this._rebuildPhys();
       this._phys.stepTo(tt);
       this._rollWheels();
+      this._applyTilt();
     } else {
       this._drawFallback(tt);
     }
   },
+  // 车身随坡面倾转：直线坡段绕车心转 −θ（车头朝 +x、坡下行，车头低车尾高=顺时针=负角），
+  // 圆弧段从 −θ 平滑转到 0（切线连续），水平段为 0。枢轴在车心：车两端升降正好匹配坡面高差。
+  _applyTilt() {
+    if (!this.tiltG || !this._geo) return;
+    const { R, theta, sinT, XF0 } = this._geo;
+    const x = this.cartG.position.x;
+    let ang = 0;
+    if (x < XF0) {
+      const Ax = XF0 - R * sinT;                 // 直线段与圆弧切点
+      if (x > Ax) {
+        // 圆弧段：车在圆弧上的坡降角 = π/2 − acos((XF0−x)/R)，值域 [θ, 0]
+        const phi = Math.acos(Math.min(1, (XF0 - x) / R));
+        const down = Math.PI / 2 - phi;          // 车头相对水平向下倾角（A 处=θ，B 处=0）
+        ang = -Math.min(down, theta);
+      } else ang = -theta;                       // 直线坡段：倾角 = −θ
+    }
+    this.tiltG.rotation.z = ang;
+  },
   _rollWheels() {
-    if (!this.cartG) return;
+    if (!this.cartVis) return;
     // 理想光滑循环：轮子随累计里程 _odo 单调转（回坡顶后不倒转）；其余走位置差。
     const o = this._odo != null ? this._odo : Math.max(0, this.cartG.position.x - this.XF0);
-    rollCart(this.cartG, o / 0.09);
+    rollCart(this.cartVis, o / 0.09);
   },
   // 加载期间的解析式 fallback：斜坡加速（无摩擦）→ 水平 μ 匀减速，与物理模型同构。
   // 小车从坡顶 (XF0−RL, H) 静止释放，到坡脚速度 v0=√(2gH)，然后按 μ 减速。
@@ -537,7 +561,8 @@ const A2 = {
       // 还在坡上：沿坡面位移 u = ½a t²，位置 x = XF0−RL+u·cosθ, y = H−u·sinθ
       const u = 0.5 * a_ramp * tt * tt;
       this.cartG.position.set(this.XF0 - this.RL + u * Math.cos(this.theta), this.H_ramp - u * Math.sin(this.theta), z);
-      rollCart(this.cartG, (u * Math.cos(this.theta)) / 0.09);
+      this._applyFallbackTilt(this.XF0 - this.RL + u * Math.cos(this.theta));   // 车身随坡面倾转
+      rollCart(this.cartVis, (u * Math.cos(this.theta)) / 0.09);
       return;
     }
     // 水平段：从坡脚起 v0 匀减速
@@ -548,15 +573,32 @@ const A2 = {
       const t_flat = this.BL / v0;
       const lap = Math.floor(xt / t_flat);
       const xm = v0 * (xt - lap * t_flat);
-      rollCart(this.cartG, (lap * this.BL + xm) / 0.09);
+      rollCart(this.cartVis, (lap * this.BL + xm) / 0.09);
       this.cartG.position.set(this.XF0 + xm, 0, z);
+      this._applyFallbackTilt(this.XF0 + xm);   // 水平段倾 0
       return;
     }
     let xm = v0 * xt - 0.5 * mu * G * xt * xt;
     if (xm < 0) xm = 0;
     if (isFinite(this.s) && xm > this.s) xm = this.s;
     this.cartG.position.set(this.XF0 + xm, 0, z);
-    rollCart(this.cartG, xm / 0.09);
+    this._applyFallbackTilt(this.XF0 + xm);
+    rollCart(this.cartVis, xm / 0.09);
+  },
+  // fallback 期车身倾转（与 _applyTilt 同源）：直线坡 −θ、圆弧从 −θ 平滑转 0、水平 0。
+  _applyFallbackTilt(x) {
+    if (!this.tiltG || !this._geo) return;
+    const { R, theta, sinT, XF0 } = this._geo;
+    let ang = 0;
+    if (x < XF0) {
+      const Ax = XF0 - R * sinT;
+      if (x > Ax) {
+        const phi = Math.acos(Math.min(1, (XF0 - x) / R));
+        const down = Math.PI / 2 - phi;
+        ang = -Math.min(down, theta);
+      } else ang = -theta;
+    }
+    this.tiltG.rotation.z = ang;
   },
   step(dt) {
     if (dt <= 0) return;
