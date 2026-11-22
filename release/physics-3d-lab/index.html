@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>初中物理 3D 可视化实验室</title>
-<meta name="build-version" content="bef62f2">
+<meta name="build-version" content="71b79bc">
 <link rel="icon" href="data:,">
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -667,6 +667,7 @@ function switchExperiment(id, opts = {}){
         },
         getParam(pid){ return store.params[pid]; },
       },
+      toast(msg){ toast(msg); },                         // 实验警示通道（D1 误接/断路提示等），转发全局 toast
     };
     if(impl){
       try{ impl.build(ctx); }catch(e){ console.error('[build:'+id+']', e); toast('实验构建出错，详见控制台'); }

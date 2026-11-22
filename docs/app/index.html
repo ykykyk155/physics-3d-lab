@@ -667,6 +667,7 @@ function switchExperiment(id, opts = {}){
         },
         getParam(pid){ return store.params[pid]; },
       },
+      toast(msg){ toast(msg); },                         // 实验警示通道（D1 误接/断路提示等），转发全局 toast
     };
     if(impl){
       try{ impl.build(ctx); }catch(e){ console.error('[build:'+id+']', e); toast('实验构建出错，详见控制台'); }

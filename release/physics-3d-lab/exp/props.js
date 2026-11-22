@@ -262,6 +262,57 @@ export function setMeterNeedle(g, frac) {
   n.rotation.z = (0.5 - Math.max(0, Math.min(1, frac))) * 1.9;
 }
 
+/* ============ 电压表（与电流表同型，表盘标 V、红黑两接线柱） ============ */
+export function voltmeter(opts = {}) {
+  const w = opts.w || 0.66, h = opts.h || 0.54, d = opts.d || 0.22;
+  const R = Math.min(w, h) * 0.40;
+  const g = new THREE.Group();
+  const shellM = MATS.plasticDark(), faceM = MATS.white(), needleM = MATS.needleRed();
+  // 方壳
+  g.add(merged([box(w, h, d, shellM)]));
+  // 圆白表盘（朝向 +z，略突出壳面）
+  const dial = cyl(R, R, 0.02, faceM); dial.rotation.x = Math.PI / 2; dial.position.z = d / 2 + 0.012;
+  g.add(merged([dial], true));
+  // 表盘标注 V：Canvas 画字，无外部资源
+  const cv = document.createElement('canvas'); cv.width = 72; cv.height = 72;
+  const px = cv.getContext('2d');
+  px.clearRect(0, 0, 72, 72);
+  px.fillStyle = '#22283a';
+  px.font = '700 46px Arial, sans-serif';
+  px.textAlign = 'center'; px.textBaseline = 'middle';
+  px.fillText('V', 36, 39);
+  const tex = new THREE.CanvasTexture(cv);
+  const vMark = new THREE.Mesh(new THREE.PlaneGeometry(R * 0.6, R * 0.6),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  vMark.rotation.x = Math.PI / 2; vMark.position.z = d / 2 + 0.026;
+  g.add(vMark);
+  g.userData.vText = tex;
+  // 刻度弧
+  const ticks = [];
+  for (let i = 0; i <= 8; i++) {
+    const a = (-0.62 + i / 8 * 1.24);
+    const t = box(0.012, R * 0.16, 0.006, MATS.dark());
+    t.position.set(Math.sin(a) * R * 0.82, Math.cos(a) * R * 0.82, d / 2 + 0.024);
+    t.rotation.z = -a; ticks.push(t);
+  }
+  g.add(merged(ticks, true));
+  // 黑指针（枢轴在表盘下缘中心）
+  const needle = box(0.014, R * 1.0, 0.008, needleM); needle.position.set(0, R * 0.5, d / 2 + 0.03);
+  const pivotG = new THREE.Group(); pivotG.position.set(0, -R * 0.16, d / 2 + 0.03); pivotG.add(needle);
+  const hub = cyl(0.028, 0.028, 0.012, MATS.dark()); hub.rotation.x = Math.PI / 2; hub.position.z = d / 2 + 0.03;
+  g.add(pivotG, hub);
+  // 红黑两接线柱
+  const posts = [];
+  const postCols = [MATS.red(), MATS.dark()];
+  for (let i = 0; i < 2; i++) {
+    const p = cyl(0.032, 0.032, 0.1, postCols[i]);
+    p.position.set((i - 0.5) * w * 0.6, -h / 2 - 0.03, d / 2 - 0.02); posts.push(p);
+  }
+  g.add(merged(posts, true));
+  g.userData.needle = pivotG;
+  return g;
+}
+
 /* ============ 烧杯 / 玻璃缸（玻璃壁 + 刻度线） ============ */
 export function beaker(opts = {}) {
   const R = opts.r || 0.9, H = opts.h || 1.6;

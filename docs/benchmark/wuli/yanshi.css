@@ -1,0 +1,294 @@
+/* ===== 演示模式 ===== */
+.top-actions .pres-btn {
+  background: #2b9c7a;
+  color: #ffffff;
+}
+.top-actions .pres-btn:hover {
+  background: #1d7a5f;
+  transform: translateY(-1px);
+}
+.pres-exit-btn {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100000;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a2e4f;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 10px 20px;
+  border-radius: 40px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 20, 40, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.18s ease;
+}
+.pres-exit-btn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 20, 40, 0.25);
+}
+body.presentation-mode {
+  background: #0b1a2e;
+  padding: 0;
+  display: grid;
+  place-items: start center;
+  overflow-y: auto;  
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  height: 100vh;  
+}
+body.presentation-mode::-webkit-scrollbar {display: none;width:0;height:0;}
+body.presentation-mode .experiment-card {
+  max-width: min(100%, 1440px); 
+  width: 100%;
+  min-height: 100vh; 
+  height: auto; 
+  max-height: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  padding: 16px 24px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: visible;
+  box-sizing: border-box;
+  background: linear-gradient(145deg, #f5f9ff 0%, #e6ecf5 100%);
+}
+body.presentation-mode .top-actions,
+body.presentation-mode h1 span,
+body.presentation-mode .sub,
+body.presentation-mode .footer-note,
+body.presentation-mode footer {
+  display: none !important;
+}
+body.presentation-mode h1 {
+  flex: 0 0 auto;
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  margin: 0 0 14px 0;
+  padding: 0;
+  justify-content: center;
+  text-align: center;
+}
+body.presentation-mode .canvas-container {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-height: 320px;
+  margin-bottom: 14px;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+body.presentation-mode .canvas-container canvas,
+body.presentation-mode #simCanvas,
+body.presentation-mode canvas {
+  display: block !important;
+  flex: 0 0 auto !important; 
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  position: static !important;
+  transform: none !important;
+  align-self: center !important;
+}
+
+body.presentation-mode .control-panel {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 32px;
+  padding: 16px 28px 16px 36px;
+}
+body.presentation-mode .distances {
+  gap: 40px;
+}
+body.presentation-mode .distances div {
+  padding: 10px 28px 10px 22px;
+}
+body.presentation-mode .distances label {
+  font-size: 1.55rem;
+}
+body.presentation-mode .distances .value {
+  font-size: 1.95rem;
+  min-width: 100px;
+  padding: 4px 20px;
+}
+body.presentation-mode .legend {
+  font-size: 1.5rem;
+  padding: 8px 26px;
+  gap: 28px;
+}
+body.presentation-mode .legend .obj-dot,
+body.presentation-mode .legend .img-dot {
+  font-size: 3rem;
+}
+body.presentation-mode button#resetButton {
+  font-size: 1.8rem;
+  padding: 14px 48px;
+}
+body.presentation-mode .pres-exit-btn {
+  display: inline-flex;
+}
+@media (max-width: 720px) {
+   .top-actions .pres-btn {display: none !important;}
+  body.presentation-mode .experiment-card { padding: 10px 12px; }
+  body.presentation-mode .distances label { font-size: 1rem; }
+  body.presentation-mode .distances .value { font-size: 1.3rem; min-width: 70px; }
+  body.presentation-mode .legend { font-size: 1rem; padding: 4px 16px; gap: 14px; }
+  body.presentation-mode .legend .obj-dot,
+  body.presentation-mode .legend .img-dot { font-size: 2rem; }
+  body.presentation-mode button#resetButton { font-size: 1.2rem; padding: 10px 26px; }
+  body.presentation-mode .control-panel { gap: 14px; padding: 10px 16px; }
+  .pres-exit-btn { opacity: 0.6;top: 12px; right: 12px; padding: 8px 14px; font-size: 0.85rem; }
+   body.presentation-mode h1 {
+    font-size: 1.5rem;
+    padding: 0 92px 0 12px;
+    margin-bottom: 10px;
+    justify-content: flex-start; 
+    text-align: left;
+  }
+  .pres-exit-btn:hover,
+  .pres-exit-btn:focus-visible {
+    opacity: 1;
+  }
+}
+/* ---------- 隐藏滚动条：全容器覆盖 ---------- */
+html:has(body.presentation-mode),
+body.presentation-mode,
+body.presentation-mode .experiment-card {
+  scrollbar-width: none;
+}
+html:has(body.presentation-mode),
+body.presentation-mode,
+body.presentation-mode .experiment-card {
+  -ms-overflow-style: none;
+}
+html:has(body.presentation-mode)::-webkit-scrollbar,
+body.presentation-mode::-webkit-scrollbar,
+body.presentation-mode .experiment-card::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* ===== 分享按钮 ===== */
+.top-actions .share-btn {
+  background: #6b4fbb;
+  color: #ffffff;
+}
+.top-actions .share-btn:hover {
+  background: #563ea3;
+  transform: translateY(-1px);
+}
+/* ===== 分享二维码弹窗 ===== */
+.share-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 40, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99995;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+.share-modal.active { display: flex; }
+.share-modal-content {
+  background: #ffffff;
+  max-width: 380px;
+  width: 100%;
+  border-radius: 28px;
+  padding: 28px 28px 22px;
+  position: relative;
+  box-shadow: 0 30px 60px -20px rgba(0, 20, 40, 0.5);
+  border: 1px solid #ffffff;
+  text-align: center;
+  animation: slideUp 0.25s ease;
+}
+.share-modal-content h2 {
+  margin: 0 0 6px 0;
+  color: #1a2b4a;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.share-modal-content .share-sub {
+  color: #5b7298;
+  font-size: 0.92rem;
+  margin-bottom: 18px;
+}
+.share-qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f9ff;
+  border: 1px solid #e3ecf8;
+  border-radius: 20px;
+  padding: 14px;
+  margin: 0 auto 14px;
+  width: 220px;
+  height: 220px;
+}
+.share-qr-box svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.share-url {
+  font-size: 0.82rem;
+  color: #4a6280;
+  word-break: break-all;
+  background: #f0f6fd;
+  padding: 8px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-family: 'Courier New', monospace;
+}
+.share-tip {
+  font-size: 0.85rem;
+  color: #7a8fa8;
+  line-height: 1.5;
+}
+.share-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #eef4fc;
+  color: #1a2e4f;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.18s;
+}
+.share-close:hover { background: #d5e3f5; }
+/* 移动端隐藏分享按钮 */
+@media (max-width: 720px) {
+  .top-actions .share-btn { display: none !important; }
+}

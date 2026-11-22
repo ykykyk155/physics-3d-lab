@@ -37,8 +37,8 @@
     },
     {
       "id": "D1-series-parallel",
-      "calls": 24,
-      "tris": 12068
+      "calls": 40,
+      "tris": 15812
     },
     {
       "id": "D2-resistance-factor",
@@ -122,8 +122,8 @@
     },
     {
       "id": "F3-heat-engine",
-      "calls": 35,
-      "tris": 10706
+      "calls": 37,
+      "tris": 10716
     }
   ],
   "errors": []
