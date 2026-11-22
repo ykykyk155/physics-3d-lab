@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>初中物理 3D 可视化实验室</title>
-<meta name="build-version" content="99e67c8">
+<meta name="build-version" content="7849e34">
 <link rel="icon" href="data:,">
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -91,6 +91,11 @@ input[type=range]:focus-visible::-moz-range-thumb{box-shadow:var(--shadow-glow)}
 .gd-zero{font-size:12px;line-height:18px;color:#F5B04C;background:rgba(245,176,76,.08);border-radius:var(--radius-md);padding:6px 8px}
 .gd-safe{font-size:11px;color:var(--color-text-secondary);opacity:.7;border-top:1px solid var(--color-border);padding-top:8px;margin-top:2px}
 .tab{height:36px;border:1px solid transparent;border-radius:var(--radius-full);background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:background var(--dur-fast),color var(--dur-fast);white-space:nowrap}
+/* ---------- 实验动作按钮（meta.actions → exp.actions 转发，如 A7 一键平衡） ---------- */
+.exp-actions{display:flex;gap:8px;margin-top:14px}
+.exp-action{flex:1;height:36px;padding:0 10px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);font-size:13px;cursor:pointer;transition:background var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
+.exp-action:hover{background:var(--color-surface-hover);border-color:var(--color-primary)}
+.exp-action:active{transform:translateY(1px)}
 .tab:hover{background:var(--color-surface)}
 .tab.active{background:rgba(var(--tab-rgb),.15);color:var(--tab-c);border-color:rgba(var(--tab-rgb),.4)}
 .tab .tcount{font-family:var(--font-mono);font-size:12px;opacity:.75;margin-left:2px}
@@ -1036,6 +1041,24 @@ function renderParams(meta){
     blk.dataset.pid = p.id;                              // 控件归属直查，不再靠文本反推
     box.appendChild(blk);
   });
+  if(Array.isArray(meta.actions) && meta.actions.length){  // 实验动作按钮（如 A7 一键平衡）：只渲染+转发，算法在 exp.actions
+    const aw = el('div', 'exp-actions');
+    meta.actions.forEach(a => {
+      const b = el('button', 'exp-action');
+      b.type = 'button';
+      b.dataset.action = a.id;
+      b.textContent = a.label;
+      if(a.desc) b.title = a.desc;
+      b.addEventListener('click', () => {
+        const exp = current && current.exp;
+        const fn = exp && exp.actions && exp.actions[a.id];
+        if(typeof fn === 'function'){ try{ fn.call(exp); }catch(e){ console.error('[action:'+a.id+']', e); toast('操作失败，详见控制台'); } }
+        else toast(a.label + '：' + (a.desc || '当前实验暂未实现'));
+      });
+      aw.appendChild(b);
+    });
+    box.appendChild(aw);
+  }
   renderReadouts();
 }
 function makeParamBlock(p){

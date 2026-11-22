@@ -94,7 +94,11 @@
       "phenomenon": "木块被推出距离 ∝ Ek：h 加倍距离约加倍、m 加倍距离加倍（速度影响更陡）；单摆 Ek/Ep 条此消彼长、总量守恒；L↑ → 周期变大而与质量无关；阻尼>0 → 振幅衰减而周期不变"
     },
     {
-      "id": "A7-lever", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 0,"durationZeroKind": "branch","zeroHint": "当前平衡，杠杆静止（改动任一参数使力矩不等即转动）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：|F1L1 − F2L2| < 0.05 → 返回 0（平衡即无过程）；否则返回 2.2s（梁转到 ±25° 极限所需时间，|net| 越大落得越快）。默认参数 f1=2/l1=4 与 f2=4/l2=2 力矩都是 8，处于平衡态，故快照取 0；改动任一参数使力矩不等，duration 立刻变 2.2s、时间条自动可用。钩码为梁（pivotG）子节点、挂点 y=-0.30，随梁转动。快照为 0 时相对容差退化，校验用 |Δ| < max(0.1×|snapshot|, 0.1s)",
+      "id": "A7-lever", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 0,
+      "actions": [
+        { "id": "balance-left", "label": "以左边为基准", "desc": "保持 F1、L1 不变，自动调整 F2、L2 使力矩相等" },
+        { "id": "balance-right", "label": "以右边为基准", "desc": "保持 F2、L2 不变，自动调整 F1、L1 使力矩相等" }
+      ],"durationZeroKind": "branch","zeroHint": "当前平衡，杠杆静止（改动任一参数使力矩不等即转动）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：|F1L1 − F2L2| < 0.05 → 返回 0（平衡即无过程）；否则返回 2.2s（梁转到 ±25° 极限所需时间，|net| 越大落得越快）。默认参数 f1=2/l1=4 与 f2=4/l2=2 力矩都是 8，处于平衡态，故快照取 0；改动任一参数使力矩不等，duration 立刻变 2.2s、时间条自动可用。钩码为梁（pivotG）子节点、挂点 y=-0.30，随梁转动。快照为 0 时相对容差退化，校验用 |Δ| < max(0.1×|snapshot|, 0.1s)",
       "name": "探究杠杆的平衡条件", "chapter": "八下 第十二章 第1/2节",
       "quantities": ["F1", "L1", "F2", "L2"],
       "params": [

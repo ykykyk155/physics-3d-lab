@@ -1344,6 +1344,37 @@ const A7 = {
     this._phys = null;
     this._physReady = false;
   },
+  // —— 一键平衡（CEO 规格 docs/design/A7-一键平衡按钮规格.md §2/§3.1）——
+  // 网格枚举 helper：在另一侧 F×L 100 个组合中，误差最小 → 曼哈顿距离最小 → 先枚举者（f 小到大、l 小到大）。
+  // 网格常量与 experiments.json 的 A7 min/step 同步（改 JSON 必须同步这里）。
+  pickBalance(fCur, lCur, target) {
+    let best = null;
+    for (let i = 0; i < 10; i++) {
+      const f = 0.5 + i * 0.5;                 // F 网格：0.5 → 5.0 步进 0.5（共 10 档）
+      for (let l = 1; l <= 10; l++) {          // L 网格：1 → 10 步进 1（共 10 档）
+        const err = Math.abs(f * l - target);
+        const mh = Math.abs(f - fCur) + Math.abs(l - lCur);
+        if (!best || err < best.err || (err === best.err && mh < best.mh)) {
+          best = { f, l, err, mh };
+        }
+      }
+    }
+    return [best.f, best.l];
+  },
+  actions: {
+    'balance-left'() {   // 以左边为基准：保 F1/L1，调 F2/L2 使力矩相等
+      const target = Number(this.p.f1 || 1) * Number(this.p.l1 || 1);
+      const [f2, l2] = this.pickBalance(Number(this.p.f2 || 1), Number(this.p.l2 || 1), target);
+      this.ctx.ui.setParamValue('f2', f2);
+      this.ctx.ui.setParamValue('l2', l2);
+    },
+    'balance-right'() {  // 以右边为基准：保 F2/L2，调 F1/L1 使力矩相等
+      const target = Number(this.p.f2 || 1) * Number(this.p.l2 || 1);
+      const [f1, l1] = this.pickBalance(Number(this.p.f1 || 1), Number(this.p.l1 || 1), target);
+      this.ctx.ui.setParamValue('f1', f1);
+      this.ctx.ui.setParamValue('l1', l1);
+    },
+  },
 };
 
 /* ===================== 右侧统计面板读数 =====================
