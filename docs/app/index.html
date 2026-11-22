@@ -144,6 +144,10 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .seg button{height:30px;padding:0 12px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:background var(--dur-fast),color var(--dur-fast)}
 .seg button:hover{background:var(--color-surface-hover)}
 .seg button.active{background:rgba(var(--tab-rgb),.15);color:var(--tab-c);border-color:rgba(var(--tab-rgb),.4)}
+.ppresets{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ppresets button{height:26px;padding:0 10px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:12px;cursor:pointer;transition:background var(--dur-fast),color var(--dur-fast)}
+.ppresets button:hover{background:var(--color-surface-hover)}
+.ppresets button.active{background:rgba(var(--tab-rgb),.15);color:var(--tab-c);border-color:rgba(var(--tab-rgb),.4)}
 
 .dropdown{position:relative;margin-top:6px}
 .dropdown>button{width:100%;height:32px;display:flex;justify-content:space-between;align-items:center;padding:0 12px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);font-size:13px;cursor:pointer}
@@ -1059,6 +1063,19 @@ function makeParamBlock(p){
     });
     paramEls[p.id] = { input, val, unit, meta: p };
     block.append(head, input);
+    if(Array.isArray(p.presets) && p.presets.length){      // 滑块 + 特殊值快捷按钮共存（如 A4 四种液体）
+      const pw = el('div', 'ppresets');
+      p.presets.forEach(o => {
+        const b = el('button');
+        b.type = 'button';
+        b.dataset.pv = String(o.value);
+        b.textContent = o.label;
+        b.classList.toggle('active', store.params[p.id] === o.value);
+        b.addEventListener('click', () => setParam(p.id, o.value));
+        pw.appendChild(b);
+      });
+      block.appendChild(pw);
+    }
   }
   return block;
 }
@@ -1122,6 +1139,7 @@ function setParam(id, v){
     pe.input.value = v;
     setFill(pe.input);
     pe.val.textContent = fmtNum(v);
+    paintPresets(id, v);                                 // presets 快捷按钮：滑到锚点亮、脱锚清空
   }else{
     paintEnumByValue(id, v);                             // 枚举：滑到哪亮哪
   }
@@ -1170,12 +1188,20 @@ function clampFollows(){                                // F3 口径：max 跟�
     setFill(pe.input);
   });
 }
+function paintPresets(id, v){                            // 快捷按钮选中态：与滑块当前值相等才亮
+  const blk = document.querySelector('.param-block[data-pid="' + id + '"]');
+  if(!blk) return;
+  blk.querySelectorAll('.ppresets button').forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.pv) === v);
+  });
+}
 function syncSlider(id){
   const pe = paramEls[id];
   if(!pe) return;
   pe.input.value = store.params[id];
   setFill(pe.input);
   pe.val.textContent = fmtNum(store.params[id]);
+  paintPresets(id, store.params[id]);                    // 重置补间/程序化同步也刷新按钮态
 }
 
 /* ---------- 重置：300ms 补间回教材默认值（减弱动效下直接到位） ---------- */
