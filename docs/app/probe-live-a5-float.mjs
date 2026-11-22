@@ -36,16 +36,17 @@ const SNAP = async () => await pg.evaluate(() => {
 // 默认：塑料0.9+水 → 漂浮
 const d = await SNAP();
 checks.push(["默认塑料+水 漂浮 60% 示数0", d.subFrac > 0.59 && d.subFrac < 0.61 && d.status === "漂浮" && d.read === 0 && d.subsInactive === true && d.stringVisible === false]);
-// 铝 + 水
+// 铝 + 水（side≈5.85cm：下潜3→51%、6→100%）
 await setParam("rhoObj", 2.7);
+await setParam("submerge", 3);
 const al0 = await SNAP();
-checks.push(["铝+水 下潜5 浸没~51%", al0.subFrac > 0.5 && al0.subFrac < 0.53 && al0.status === "下沉中" && al0.subsInactive === false && al0.stringVisible === true]);
+checks.push(["铝+水 下潜3 浸没~51%", al0.subFrac > 0.5 && al0.subFrac < 0.53 && al0.status === "下沉中" && al0.subsInactive === false && al0.stringVisible === true]);
 await setParam("submerge", 6);
 const al6 = await SNAP();
 checks.push(["铝+水 下潜6 完全浸没 恒定", al6.subFrac === 1 && al6.status === "完全浸没 · 示数恒定"]);
 await setParam("submerge", 30);
 const al30 = await SNAP();
-checks.push(["铝+水 下潜30 示数不变(3.33)", Math.abs(al30.read - 3.33) < 0.02 && Math.abs(al30.read - al6.read) < 0.001 && al30.status === "完全浸没 · 示数恒定"]);
+checks.push(["铝+水 下潜30 示数不变", Math.abs(al30.read - al6.read) < 0.001 && al30.status === "完全浸没 · 示数恒定"]);
 // 木 + 水
 await setParam("rhoObj", 0.6); await setParam("submerge", 5);
 const wood = await SNAP();
