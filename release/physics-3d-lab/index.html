@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>初中物理 3D 可视化实验室</title>
-<meta name="build-version" content="7849e34">
+<meta name="build-version" content="bef62f2">
 <link rel="icon" href="data:,">
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -1051,8 +1051,11 @@ function renderParams(meta){
       if(a.desc) b.title = a.desc;
       b.addEventListener('click', () => {
         const exp = current && current.exp;
-        const fn = exp && exp.actions && exp.actions[a.id];
-        if(typeof fn === 'function'){ try{ fn.call(exp); }catch(e){ console.error('[action:'+a.id+']', e); toast('操作失败，详见控制台'); } }
+        // current.exp 是 experiments.js 的 api 包装（无 actions，_impl 才是场景实例）；
+        // 动作方法体用 this 访问实例状态（this.p / this.ctx / pickBalance），必须绑定到实例上调用。
+        const inst = exp && exp._impl ? exp._impl : exp;
+        const fn = inst && inst.actions && inst.actions[a.id];
+        if(typeof fn === 'function'){ try{ fn.call(inst); }catch(e){ console.error('[action:'+a.id+']', e); toast('操作失败，详见控制台'); } }
         else toast(a.label + '：' + (a.desc || '当前实验暂未实现'));
       });
       aw.appendChild(b);

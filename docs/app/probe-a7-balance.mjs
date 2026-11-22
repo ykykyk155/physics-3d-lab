@@ -93,7 +93,8 @@ const btns = await pg.evaluate(() => {
 if (btns) {
   const ids = btns.map(x => x.id).join(',');
   ok("两按钮共存", btns.length === 2 && ids.includes('balance-left') && ids.includes('balance-right'), ids);
-  // 走真实 DOM 点击测一发
+  // 走真实 DOM 点击测一发：先扰动（否则点击没生效时断言照样过=假阳性）
+  await setUI("f2", 3); await setUI("l2", 5); await waitSettle();
   await pg.evaluate(() => { document.querySelector('.exp-action[data-action="balance-left"]').click(); });
   await waitSettle(); s = await st();
   ok("DOM点击 balance-left 生效", approx(s.t1, 8) && approx(s.t2, 8) && s.balanced === true, `net=${s.net.toFixed(4)}`);
