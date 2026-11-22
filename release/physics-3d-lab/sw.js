@@ -1,5 +1,5 @@
 /* Service Worker：整站本地缓存 —— 打开过一次后，全部资源走本地缓存，秒开、断网也能用。
- * 版本号 22cdda9 由 tools/make-release.ps1 在发布时替换为 git 短哈希：
+ * 版本号 332065d 由 tools/make-release.ps1 在发布时替换为 git 短哈希：
  * 每次发布自动换缓存名；新 SW 安装完成后清掉旧缓存，保证新旧版本绝不混用。
  * 策略（为发布一致性 + 跨境提速而设计）：
  *   - 安装：容错 precache 核心清单（某项失败不影响整体安装），skipWaiting 立即接管
@@ -8,7 +8,7 @@
  *     「新 HTML + 旧 JS」的混合状态（发布后第一次打开仍是旧版，刷新一次即新版）
  *   - 其他同源 GET：cache-first，miss 才走网络并写入缓存
  */
-const VERSION = '22cdda9';
+const VERSION = '332065d';
 const CACHE = 'phlab-' + VERSION;
 
 const PRECACHE = [

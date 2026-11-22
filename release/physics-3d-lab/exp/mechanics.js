@@ -688,11 +688,11 @@ const A3 = {
     registerMaterials(ctx);
     addGround(ctx.scene, 0x3a2c14);
     // 实验台面：木桌板（长木板 + 两侧包边），不是一块蓝板
-    this.surface = box(9, 0.10, 1.4, MATS.wood()); this.surface.position.y = -0.05;
+    this.surface = box(13, 0.10, 1.4, MATS.wood()); this.surface.position.y = -0.05;
     this.surface.userData.noFit = true;
     ctx.scene.add(this.surface);
     const edge = [];
-    [-1, 1].forEach(s => { const e = box(9, 0.04, 0.06, MATS.woodDark()); e.position.set(0, 0.0, s * 0.7); edge.push(e); });
+    [-1, 1].forEach(s => { const e = box(13, 0.04, 0.06, MATS.woodDark()); e.position.set(0, 0.0, s * 0.7); edge.push(e); });
     const eg = mergeByMaterial(edge); eg.userData.noFit = true; ctx.scene.add(eg);
     // 待测木块：浅色薄木板（木纹沿长边），带挂钩
     this.blockG = woodBlock({ w: 0.72, h: 0.20, d: 0.40 });
@@ -703,19 +703,12 @@ const A3 = {
     this.weightsG.userData.noFit = true;
     ctx.scene.add(this.weightsG);
     this._weightsN = 0; this._weightsH = 0;
-    // 铁架台：底座 + 立杆 + 横臂夹持弹簧测力计（不让测力计悬空）
-    this.stand = new THREE.Group();
-    const sb = box(0.62, 0.07, 0.44, MATS.iron()); sb.position.y = 0.035; sb.receiveShadow = true;
-    const rod = cyl(0.045, 0.045, 2.2, MATS.steel()); rod.position.set(-0.22, 1.1, 0);
-    const arm = cyl(0.03, 0.03, 0.5, MATS.steel()); arm.rotation.z = Math.PI / 2; arm.position.set(-0.05, 2.0, 0);
-    this.stand.add(sb, rod, arm); ctx.scene.add(this.stand);
-    // 弹簧测力计：方壳带刻度窗口 + 顶部提环 + 底部挂钩
-    this.scaleG = springScale({ h: 0.9, w: 0.2, d: 0.12 });
+    // 弹簧测力计：水平放置，轴线与木块运动方向共线，整组随木块平移（教材形态）
+    // 竖壳绕 Z 转 -90°：底部挂钩转向左侧、正对木块右侧挂钩；顶部提环朝右（手拉端）
+    this.scaleG = springScale({ h: 1.0, w: 0.20, d: 0.12 });
     this.scale = this.scaleG;
-    this.scale.position.set(0.16, 1.5, 0); ctx.scene.add(this.scaleG);
-    // 提环挂到横臂上（细线）
-    this.hang = fatLine([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)], '#cfd8e6', 1.5);
-    ctx.scene.add(this.hang);
+    this.scaleG.rotation.z = -Math.PI / 2;
+    this.scaleG.position.set(0, 0.11, 0); ctx.scene.add(this.scaleG);
     this.hook = fatLine([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)], '#e6edf7', 2);
     ctx.scene.add(this.hook);
     this.pullArrow = mkArrow('#ffe066'); ctx.scene.add(this.pullArrow);
@@ -777,18 +770,23 @@ const A3 = {
     this.x = Math.min(v * this._t, 4);
     this.block.position.set(this.x, 0.0, 0);
     if (this.weightsG) this.weightsG.position.set(this.x, 0.20, 0);
-    // 测力计固定在铁架台横臂上，指针随拉力下移（不再悬空、也不跟着木块跑）
-    setSpringScale(this.scaleG, clamp(this.f / 4, 0.04, 1));
-    // 提环挂到横臂上
-    this.hang.geometry.setPositions([0.16, 2.02, 0, -0.05, 2.0, 0]);
-    this.hang.computeLineDistances();
-    // 底部挂钩勾住木块左侧挂钩：细绳从木块侧钩斜拉到测力计挂钩，让开块顶砝码堆
-    this.hook.geometry.setPositions([0.16, 0.98, 0, this.x - 0.44 * (this.block.scale ? this.block.scale.x : 1), 0.11, 0]);
+    // 测力计水平放置：整体随木块平移，底部挂钩正对木块右侧挂钩，短水平绳相连
+    const sx = this.block.scale ? this.block.scale.x : 1;
+    const blockHookX = this.x + 0.44 * sx;         // 木块右侧挂钩外端
+    const SH = 1.0, hookLocal = 0.58 * SH;         // 测力计底部挂钩到组中心的水平距离
+    const gap = 0.10;                               // 短水平绳长度
+    const scaleX = blockHookX + gap + hookLocal;    // 让底部挂钩落在木块右钩右侧 gap 处
+    this.scaleG.position.set(scaleX, 0.11, 0);
+    this.hook.geometry.setPositions([blockHookX, 0.11, 0, scaleX - hookLocal, 0.11, 0]);
     this.hook.computeLineDistances();
-    setArrow(this.pullArrow, new THREE.Vector3(1, 0, 0), clamp(this.f * 0.35, 0.2, 1.2));
-    this.pullArrow.position.set(this.x + 0.46, 0.22, 0);
-    setArrow(this.fArrow, new THREE.Vector3(-1, 0, 0), clamp(this.f * 0.35, 0.2, 1.2));
-    this.fArrow.position.set(this.x - 0.46, 0.08, 0);
+    // 指针：f 越大越靠挂钩端；f=0.2/0.8/2.0 位置差明显（刻度清楚）
+    setSpringScale(this.scaleG, clamp(this.f / 2.2, 0, 1));
+    // 拉力箭头（手向右拉测力计）
+    setArrow(this.pullArrow, new THREE.Vector3(1, 0, 0), 0.42);
+    this.pullArrow.position.set(scaleX + 0.54, 0.11, 0);
+    // 摩擦力箭头（作用在木块上、向左，与运动方向相反）
+    setArrow(this.fArrow, new THREE.Vector3(-1, 0, 0), clamp(this.f * 0.30, 0.22, 0.85));
+    this.fArrow.position.set(this.x - 0.28, 0.03, 0);
     this.lbl.position.set(this.x, clamp(0.20 + (this._weightsH || 0) + 0.13, 0.48, 0.86), 0);
     setLabel(this.lbl, 'f=' + this.f.toFixed(2) + ' N');
   },

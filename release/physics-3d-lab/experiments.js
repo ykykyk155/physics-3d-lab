@@ -12,7 +12,7 @@ const RAW = Object.assign({}, MECHANICS, OPTICS, ACOUSTICS, ELECTRICITY, THERMAL
 const CAM = {
   'A1-incline-speed': { p: [2.4, 2.2, 3.6], t: [0.5, 0.15, 0] },
   'A2-newton-first': { p: [-0.4, 5.0, 7.2], t: [-0.4, 0.25, 0] },
-  'A3-friction': { p: [0, 2.7, 5.3], t: [0, 1.0, 0] },
+  'A3-friction': { p: [1.6, 2.7, 5.3], t: [1.6, 0.9, 0] },   // 居中到行程中段：木块+水平测力计拉到 x≈5.2 仍在画面内
   'A4-liquid-pressure': { p: [1.70, 2.99, 6.72], t: [-0.2, 1.2, 0] },   // 拉远 12%：右侧 U 形管别落进统计面板
   'A5-buoyancy': { p: [1.7, 3.3, 7.0], t: [0, 1.5, 0] },
   'A6-energy': { p: [1.0, 3.0, 6.6], t: [0.3, 1.5, 0] },
