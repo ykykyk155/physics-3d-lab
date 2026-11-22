@@ -1,6 +1,6 @@
 # UI→引擎通路探针报告
 
-时间：2026-11-22T05:43:07.372Z
+时间：2026-11-22T07:53:16.637Z
 方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
 
 | 实验 | 控件 | 类型 | onParam 送达 | 判定 |
@@ -30,7 +30,7 @@
 | A3-friction | pull | number | 1（store=0.05） | ✅ |
 | A3-friction | duration 快照校验 | getter | actual=12 vs 快照 12（±10%） | ✅ |
 | A3-friction | seek 拖动一致性 | 4.44→8.76→4.44 | simTime 回位=true、无NaN=true | ✅ |
-| A3-friction | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
+| A3-friction | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | A3-friction | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 1×（期望 1×） | ✅ |
 | A3-friction | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
 | A4-liquid-pressure | depth | number | 1（store=30） | ✅ |

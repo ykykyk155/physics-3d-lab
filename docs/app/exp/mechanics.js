@@ -1312,6 +1312,8 @@ Object.assign(A3, {
       rd('摩擦力 f', this.f, 'N'),
       rd('压力 N', this.p.normal || 0, 'N'),
       rd('摩擦因数 μ', this.p.mu || 0, '', 2),
+      // 接触面积只按 area 参数显示；f=μN 与面积无关，读数不变正是本实验结论
+      { label: '接触面积', value: (this.p.area === 'small' ? '侧放（小） · f 不变' : '平放（大） · f 不变'), unit: '' },
       rd('拖动位移 x', this.x, 'm'),
       rd('已用时 t', this._t, 's'),
     ];
