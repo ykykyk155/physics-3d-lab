@@ -35,7 +35,7 @@ const SNAP = async () => await pg.evaluate(() => {
 });
 // 默认：塑料0.9+水 → 漂浮
 const d = await SNAP();
-checks.push(["默认塑料+水 漂浮 60% 示数0", d.subFrac > 0.59 && d.subFrac < 0.61 && d.status === "漂浮" && d.read === 0 && d.subsInactive === true && d.stringVisible === false]);
+checks.push(["默认塑料+水 漂浮 90% 示数0", d.subFrac > 0.89 && d.subFrac < 0.91 && d.status === "漂浮" && d.read === 0 && d.subsInactive === true && d.stringVisible === false]);
 // 铝 + 水（side≈5.85cm：下潜3→51%、6→100%）
 await setParam("rhoObj", 2.7);
 await setParam("submerge", 3);
