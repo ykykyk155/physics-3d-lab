@@ -2,7 +2,7 @@
 import fs from "node:fs"; import puppeteer from "puppeteer-core";
 const URL = "https://ykykyk155.github.io/physics-3d-lab/index.html?v=" + Date.now();
 const EDGE = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find(p => fs.existsSync(p));
-const b = await puppeteer.launch({ executablePath: EDGE, headless: true, args: ["--no-sandbox", "--disable-gpu", "--enable-unsafe-swiftshader"] });
+const b = await puppeteer.launch({ executablePath: EDGE, headless: true, args: ["--no-sandbox", "--disable-gpu", "--enable-unsafe-swiftshader", "--no-proxy-server"] });
 const pg = await b.newPage(); await pg.setViewport({ width: 1600, height: 1300 });
 const errs = []; pg.on("pageerror", e => errs.push(e.message)); pg.on("console", m => { if (m.type() === "error") errs.push("CONSOLE " + m.text()); });
 await pg.goto(URL, { waitUntil: "load" });
