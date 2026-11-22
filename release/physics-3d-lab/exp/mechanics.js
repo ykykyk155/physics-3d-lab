@@ -715,8 +715,9 @@ const A3 = {
     this.fArrow = mkArrow('#ff8a5a'); ctx.scene.add(this.fArrow);
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
     this.x = 0;
+    this._applyArea();
     this._rebuildWeights();
-    this.weightsG.position.set(this.x, 0.20, 0);
+    this.weightsG.position.set(this.x, this._blockH, 0);
   },
   _rebuildWeights() {
     const cnt = clamp(Math.round((this.p.normal || 2) / 0.5), 1, 10);
@@ -749,9 +750,24 @@ const A3 = {
     g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
     this._weightsH = cnt * H + 0.12;
   },
+  // 平放 / 侧放：真 90° 绕长边翻（不缩放）。底面始终贴桌，顶部高度与侧钩高度随之变化
+  _applyArea() {
+    const side = this.p && this.p.area === 'small';
+    if (side) {
+      this.block.rotation.x = Math.PI / 2;
+      this._blockY = 0.20; this._blockZ = -0.10;   // 翻后底面上移到 y=0、z 居中
+      this._blockH = 0.40;                          // 底面 0.72×0.20，高 0.40
+      this._hookY = 0.20; this._hookZ = 0.01;       // 侧钩升到半高 0.20
+    } else {
+      this.block.rotation.x = 0;
+      this._blockY = 0; this._blockZ = 0;
+      this._blockH = 0.20;                          // 底面 0.72×0.40，高 0.20
+      this._hookY = 0.11; this._hookZ = 0;
+    }
+  },
   onParam(k, v) {
     this.p[k] = v;
-    if (k === 'area') this.block.scale.set(v === 'big' ? 1 : 0.55, 1, v === 'big' ? 1 : 0.7);
+    if (k === 'area') this._applyArea();
     this.recompute();
   },
   recompute() {
@@ -768,26 +784,28 @@ const A3 = {
     const d = this.duration || 8;
     this._t = Math.min(Math.max(Number.isFinite(tPres) ? tPres : 0, 0), d);
     this.x = Math.min(v * this._t, 4);
-    this.block.position.set(this.x, 0.0, 0);
-    if (this.weightsG) this.weightsG.position.set(this.x, 0.20, 0);
-    // 测力计水平放置：整体随木块平移，底部挂钩正对木块右侧挂钩，短水平绳相连
-    const sx = this.block.scale ? this.block.scale.x : 1;
-    const blockHookX = this.x + 0.44 * sx;         // 木块右侧挂钩外端
+    this.block.position.set(this.x, this._blockY, this._blockZ);
+    if (this.weightsG) this.weightsG.position.set(this.x, this._blockH, 0);
+    // 测力计水平放置：整体随木块平移，底部挂钩正对木块侧钩，短水平绳相连
+    // 绳高/侧钩高随「平放/侧放」重算（侧放块高 0.40、侧钩在 0.20），始终保持水平
+    const sx = 1;
+    const blockHookX = this.x + 0.44 * sx;         // 木块右侧挂钩外端（绕长边翻不改变 x）
     const SH = 1.0, hookLocal = 0.58 * SH;         // 测力计底部挂钩到组中心的水平距离
     const gap = 0.10;                               // 短水平绳长度
     const scaleX = blockHookX + gap + hookLocal;    // 让底部挂钩落在木块右钩右侧 gap 处
-    this.scaleG.position.set(scaleX, 0.11, 0);
-    this.hook.geometry.setPositions([blockHookX, 0.11, 0, scaleX - hookLocal, 0.11, 0]);
+    const hy = this._hookY, hz = this._hookZ, topY = this._blockH;
+    this.scaleG.position.set(scaleX, hy, hz);
+    this.hook.geometry.setPositions([blockHookX, hy, hz, scaleX - hookLocal, hy, hz]);
     this.hook.computeLineDistances();
     // 指针：f 越大越靠挂钩端；f=0.2/0.8/2.0 位置差明显（刻度清楚）
     setSpringScale(this.scaleG, clamp(this.f / 2.2, 0, 1));
     // 拉力箭头（手向右拉测力计）
     setArrow(this.pullArrow, new THREE.Vector3(1, 0, 0), 0.42);
-    this.pullArrow.position.set(scaleX + 0.54, 0.11, 0);
+    this.pullArrow.position.set(scaleX + 0.54, hy, hz);
     // 摩擦力箭头（作用在木块上、向左，与运动方向相反）
     setArrow(this.fArrow, new THREE.Vector3(-1, 0, 0), clamp(this.f * 0.30, 0.22, 0.85));
     this.fArrow.position.set(this.x - 0.28, 0.03, 0);
-    this.lbl.position.set(this.x, clamp(0.20 + (this._weightsH || 0) + 0.13, 0.48, 0.86), 0);
+    this.lbl.position.set(this.x, clamp(topY + (this._weightsH || 0) + 0.13, topY + 0.22, topY + 0.72), 0);
     setLabel(this.lbl, 'f=' + this.f.toFixed(2) + ' N');
   },
   step(dt) { this.drawAt((this._t || 0) + Math.max(dt, 0)); },
