@@ -960,24 +960,62 @@ const A5 = {
     this.lRead = mkLabel('', C); ctx.scene.add(this.lRead);
   },
   onParam(k, v) { this.p[k] = v; this.recompute(); },
+  // 浮沉状态名（readouts 第 5 项 + 场景标签共用）
+  _statusName() {
+    const s = this._subState;
+    this._status = s === 'float' ? '漂浮' : s === 'susp' ? '悬浮' : this._diveFull ? '完全浸没 · 示数恒定' : '下沉中';
+  },
+  // 漂浮时「下潜深度」滑块置灰 + 行内提示（DOM 层弱化，参数与物理不受影响）
+  _updateInactive() {
+    if (typeof document === 'undefined') return;
+    const blk = document.querySelector('.param-block[data-pid="submerge"]');
+    if (!blk) return;
+    const floating = this._subState === 'float';
+    blk.classList.toggle('inactive', floating);
+    let hint = blk.querySelector('.param-hint');
+    if (floating && !hint) {
+      hint = document.createElement('div'); hint.className = 'param-hint';
+      blk.appendChild(hint);
+    }
+    if (hint) hint.textContent = floating ? '物体比液体轻 → 自动漂浮，无需下潜' : '';
+    if (!floating && hint) hint.remove();
+  },
   recompute() {
-    const V = (this.p.volume || 200) * 1e-6;            // m³
+    const Vcm3 = this.p.volume || 200;            // cm³
+    const V = Vcm3 * 1e-6;                        // m³
+    const sideCm = Math.cbrt(Vcm3);               // 边长 cm（下潜深度比较用）
+    this.side = sideCm / 100;                     // m（视觉/比例）
     const rhoObj = this.p.rhoObj || 0.9, rhoL = this.p.rhoLiquid || 1.0;
     let rhoEff = rhoObj;
-    if (this.p.hollow === 'hollow') rhoEff = rhoObj * 0.45;
+    if (this.p.hollow === 'hollow') rhoEff *= 0.45;
     // 潜艇注水
     if (this.p.ballast) rhoEff *= (1 + this.p.ballast / 100 * 0.8);
-    this.side = Math.cbrt(V);
-    // 浸没深度：按「物块高度的比例」映射，0~30cm 整程都在 0~100% 范围，不再上半程全被 clamp
-    const subFrac = clamp((this.p.submerge != null ? this.p.submerge : 8) / 30, 0, 1);
-    const sub = subFrac * this.side;
+    this.rhoEff = rhoEff;
+    // 浮沉自洽：ρ_eff 与 ρ液 比较决定状态，ε=0.02
+    const eps = 0.02;
+    let state;
+    if (rhoEff > rhoL + eps) state = 'sink';
+    else if (Math.abs(rhoEff - rhoL) <= eps) state = 'susp';
+    else state = 'float';
+    this._subState = state;
+    const diveCm = this.p.submerge != null ? this.p.submerge : 5;   // 下潜深度（物块底部在液面下）
+    let subFrac;
+    if (state === 'sink') subFrac = clamp(diveCm / sideCm, 0, 1);
+    else if (state === 'susp') subFrac = 1;                          // 悬浮：完全浸没
+    else subFrac = clamp(rhoEff / rhoL, 0, 1);                       // 漂浮：浸没比例=ρ_eff/ρ液
     this.subFrac = subFrac;
-    const Vsub = this.side * this.side * sub;
+    this._diveFull = state === 'sink' && diveCm >= sideCm;           // 完全浸没后 F浮恒定（教材观察点）
+    const Vsub = V * subFrac;                                        // m³
     this.G = rhoEff * 1000 * V * G;
     this.Fb = rhoL * 1000 * Vsub * G;
-    this.read = Math.max(0, this.G - this.Fb);
+    this.read = state === 'sink' ? Math.max(0, this.G - this.Fb) : 0; // 漂浮/悬浮示数恒 0
+    // 液色随 ρ液 渐变（与 A4 同锚点）
+    if (this.water) this.water.material.color.copy(A4.liquidColor(rhoL));
+    if (this.catchWater) this.catchWater.material.color.copy(A4.liquidColor(rhoL));
     if (this.ctx) this.ctx.emitReadout({ read: this.read });
     this.floatUp = this.Fb > this.G;
+    this._statusName();
+    this._updateInactive();
     this.layout();
   },
   layout() {
@@ -986,19 +1024,35 @@ const A5 = {
     // 物块显示尺寸放大到可读（物理量用真实 V，视觉用放大系数），避免 5cm 方块在 1.5m 缸里看不见
     const disp = clamp(s * 9, 0.5, 1.0);
     this.obj.scale.set(disp, disp, disp);
-    const subY = (this.subFrac || 0) * disp;   // 视觉浸没深度按显示高度
-    const bot = 2.0 - subY;                    // 器材组原点在底面，直接落在水线下方 subY
+    const diveCm = this.p.submerge != null ? this.p.submerge : 5;
+    const sideCm = this.side * 100 || 1;
+    let subY; // 视觉浸没/下潜深度（显示比例）
+    if (this._subState === 'sink') subY = clamp(diveCm / sideCm, 0, 1.5) * disp;        // 下沉：按滑块下潜，过 side 继续压深（示数恒定）
+    else if (this._subState === 'susp') subY = clamp(Math.max(1, diveCm / sideCm), 1, 1.5) * disp; // 悬浮：全浸没，停在设定深度
+    else subY = (this.subFrac || 0) * disp;                                              // 漂浮：只浸入 ρ_eff/ρ液 比例
+    const bot = Math.max(0.1, 2.0 - subY);                   // 器材组原点在底面，直接落在水线下方 subY（大深度时钳在缸底上方）
     this.obj.position.set(0, bot, 0);
     const cy = bot + disp / 2;                 // 物块几何中心（力矢起点）
-    this.string.geometry.setPositions([0, 2.55, 0, 0, bot + disp, 0]);
-    this.string.computeLineDistances();
+    // 吊绳只在示数>0（下沉中）才受力绷直；漂浮/悬浮示数 0，绳子不受力→隐藏（真实测力计松弛）
+    const ropeLoad = this.read > 0;
+    this.string.visible = ropeLoad;
+    if (ropeLoad) {
+      this.string.geometry.setPositions([0, 2.55, 0, 0, bot + disp, 0]);
+      this.string.computeLineDistances();
+    }
     const scl = 0.06;
     setArrow(this.aG, new THREE.Vector3(0, -1, 0), this.G * scl); this.aG.position.set(0, cy, 0);
     setArrow(this.aF, new THREE.Vector3(0, 1, 0), this.Fb * scl); this.aF.position.set(0, cy, 0);
     this.lG.position.set(0.45, cy - this.G * scl, 0); setLabel(this.lG, 'G=' + this.G.toFixed(2) + 'N');
     this.lF.position.set(-0.5, cy + this.Fb * scl, 0); setLabel(this.lF, 'F浮=' + this.Fb.toFixed(2) + 'N');
     this.lRead.position.set(0, 3.1, 0);
-    setLabel(this.lRead, (this.floatUp ? '上浮' : '下沉') + ' · 浸没 ' + Math.round(this.subFrac * 100) + '% · 示数 ' + this.read.toFixed(2) + 'N');
+    const pct = Math.round(this.subFrac * 100);
+    let txt;
+    if (this._subState === 'float') txt = '漂浮 · 浸没 ' + pct + '% · 示数 ' + this.read.toFixed(2) + ' N';
+    else if (this._subState === 'susp') txt = '悬浮 · 浸没 100% · 示数 0.00 N';
+    else if (this._diveFull) txt = '完全浸没 · 示数恒定 · 示数 ' + this.read.toFixed(2) + ' N';
+    else txt = '下沉中 · 浸没 ' + pct + '% · 示数 ' + this.read.toFixed(2) + ' N';
+    setLabel(this.lRead, txt);
     // 接水桶水位随排水体积（V排）上升——排水法的直观证据
     if (this.catchWater) {
       const ch = Math.max(0.03, (this.subFrac || 0) * 0.62);
@@ -1389,7 +1443,7 @@ Object.assign(A5, {
       rd('浮力 F浮', this.Fb, 'N'),
       rd('测力计示数', this.read, 'N'),
       rd('浸没比例', (this.subFrac || 0) * 100, '%', 0),
-      { label: '浮沉状态', value: this.floatUp ? '上浮' : '下沉', unit: '' },
+      { label: '浮沉状态', value: this._status || '漂浮', unit: '' },
     ];
   },
 });

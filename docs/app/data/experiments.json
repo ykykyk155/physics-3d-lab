@@ -68,15 +68,15 @@
       "quantities": ["F浮", "V排", "rho物", "rho液", "G"],
       "params": [
         { "id": "volume", "label": "物体体积 V", "min": 20, "max": 500, "step": 10, "default": 200, "unit": "cm³" },
-        { "id": "rhoObj", "label": "物体密度 ρ物", "min": 0.4, "max": 8.0, "step": 0.1, "default": 0.9, "unit": "g/cm³" },
-        { "id": "rhoLiquid", "label": "液体密度 ρ液", "min": 0.8, "max": 1.3, "step": 0.05, "default": 1.0, "unit": "g/cm³" },
-        { "id": "submerge", "label": "浸没深度", "min": 0, "max": 30, "step": 1, "default": 8, "unit": "cm" },
+        { "id": "rhoObj", "label": "物体密度 ρ物", "min": 0.4, "max": 8.0, "step": 0.1, "default": 0.9, "unit": "g/cm³", "presets": [ { "label": "木", "value": 0.6 }, { "label": "塑料", "value": 0.9 }, { "label": "铝", "value": 2.7 }, { "label": "铁", "value": 7.8 } ] },
+        { "id": "rhoLiquid", "label": "液体密度 ρ液", "min": 0.8, "max": 1.3, "step": 0.05, "default": 1.0, "unit": "g/cm³", "presets": [ { "label": "酒精", "value": 0.8 }, { "label": "水", "value": 1.0 }, { "label": "盐水", "value": 1.1 }, { "label": "硫酸铜", "value": 1.3 } ] },
+        { "id": "submerge", "label": "下潜深度", "min": 0, "max": 30, "step": 1, "default": 5, "unit": "cm" },
         { "id": "hollow", "label": "空心/实心", "type": "enum", "options": [ { "label": "实心", "value": "solid" }, { "label": "空心", "value": "hollow" } ], "default": "solid", "unit": "" },
         { "id": "ballast", "label": "潜水艇水舱注水量", "min": 0, "max": 100, "step": 5, "default": 0, "unit": "%" }
       ],
       "formula": "F浮 = ρ液·g·V排 ; 浮沉由 ρ物 与 ρ液 比较",
       "result": { "id": "read", "label": "测力计示数 F = G − F浮", "unit": "N" },
-      "phenomenon": "入水过程示数线性下降、溢水杯溢出液重与 F浮 实时相等；完全浸没后再下压示数不变（与深度无关）；露出体积比 = 1 − ρ物/ρ液；悬浮可停任意深度；潜水艇注水越过临界后下沉；密度计在 ρ 大的液体里浮更高"
+      "phenomenon": "浸没比例随下潜单调增大、示数线性下降；完全浸没后再下潜示数不变（浮力与深度无关）；ρ_eff<ρ液 自动漂浮、浸没比例=ρ_eff/ρ液、示数0；ρ_eff=ρ液 悬浮停在任意深度；潜水艇注水越过临界后下沉；液体密度越大同物体浮得越高"
     },
     {
       "id": "A6-energy", "module": "mechanics", "priority": "P0", "duration": 6.22,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：duration = 4T，T = 2π√(pendLen/9.8)；默认 pendLen=0.6 → T=1.5547 → 6.2188，实现取 6.22。已按实现复算吻合（独立算得 4T=6.22）。改摆长会跟着变，以 getter 为准",
