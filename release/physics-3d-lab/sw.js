@@ -1,5 +1,5 @@
 /* Service Worker：整站本地缓存 —— 打开过一次后，全部资源走本地缓存，秒开、断网也能用。
- * 版本号 ecad17a 由 tools/make-release.ps1 在发布时替换为 git 短哈希：
+ * 版本号 7da8708 由 tools/make-release.ps1 在发布时替换为 git 短哈希：
  * 每次发布自动换缓存名；新 SW 安装完成后清掉旧缓存，保证新旧版本绝不混用。
  * 策略（为发布一致性 + 跨境提速而设计）：
  *   - 安装：容错 precache 核心清单（某项失败不影响整体安装），skipWaiting 立即接管
@@ -8,7 +8,7 @@
  *     「新 HTML + 旧 JS」的混合状态（发布后第一次打开仍是旧版，刷新一次即新版）
  *   - 其他同源 GET：cache-first，miss 才走网络并写入缓存
  */
-const VERSION = 'ecad17a';
+const VERSION = '7da8708';
 const CACHE = 'phlab-' + VERSION;
 
 const PRECACHE = [
@@ -33,7 +33,8 @@ const PRECACHE = [
   './exp/acoustics.js',
   './exp/electricity.js',
   './exp/thermal.js',
-  './vendor/ammo/ammo.js',
+  // 注意：vendor/ammo/ammo.js 故意不在预缓存清单——首屏必须 0 次引擎请求（A2 专用引擎，gzip 314KB）。
+  // 首次在线进入 A2 时由下面 fetch 的 cache-first 逻辑自然写入缓存，之后 A2 即可离线使用。
 ];
 
 self.addEventListener('install', (e) => {

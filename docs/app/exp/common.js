@@ -24,6 +24,9 @@ export const COLORS = {
   ink: '#E6EDF7',         // 3D 标签默认文字色
   energyEk: '#34D399',    // A6 动能条（与声学绿同值，语义独立）
   energyEp: '#60A5FA',    // A6 势能条
+  slideRail: '#60A5FA',   // A2 滑梯顶部包边管/护栏（--color-primary-hover，暂与 energyEp 同值，语义独立）
+  slideDeck: '#323F5C',   // A2 滑梯起滑平台（= :root --color-surface）
+  slideStep: '#3C4A6B',   // A2 滑梯台阶（= :root --color-surface-hover）
   altPink: '#F0ABFC',     // 次级数据粉：次级光路 / 反向电流 / 图线动点 / 焦点标记
   currentFwd: '#A78BFA',  // D7 正向电流（与光学紫同值，语义独立）
 };

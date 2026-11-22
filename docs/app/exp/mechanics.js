@@ -467,7 +467,7 @@ const A2 = {
       });
     }
     const n = this.list.length, ZSP = 0.6, BL = this.BL, XF0 = this.XF0;
-    const marks = [], ramps = [];
+    const marks = [], ramps = [], slideParts = [];
     const th = this.theta, sinT = Math.sin(th), cosT = Math.cos(th);
     this.list.forEach((o, idx) => {
       const z = -((n - 1) / 2) * ZSP + idx * ZSP;
@@ -495,9 +495,10 @@ const A2 = {
         sp.lineTo(g.XF0, bottomY); sp.lineTo(g.Tx, bottomY); sp.closePath();
         const eg = new THREE.ExtrudeGeometry(sp, { depth: 0.44, bevelEnabled: false, curveSegments: 4 });
         eg.translate(0, 0, -0.22);
-        const rampMesh = new THREE.Mesh(eg, MATS.woodLight());
-        rampMesh.position.z = z; rampMesh.castShadow = true; rampMesh.receiveShadow = false; rampMesh.userData.noFit = true;
+        const rampMesh = new THREE.Mesh(eg, mat(COLORS.mechanics, { roughness: 0.45, metalness: 0 }));
+        rampMesh.position.z = z; rampMesh.castShadow = false; rampMesh.receiveShadow = false; rampMesh.userData.noFit = true;
         this.tracksG.add(rampMesh);
+        slideParts.push(...this._slideParts(g, z, this.H_ramp));
         // 理想光滑 μ=0：配「无阻力 → 循环往复」说明（到末端自动回坡顶重滑，永不停止）
         if (o.mu <= 1e-6) {
           const lb = mkLabel('无阻力 → 循环往复', '#9ad2ff');
@@ -507,6 +508,62 @@ const A2 = {
     });
     if (marks.length) { const mg = mergeByMaterial(marks); mg.children.forEach(c => { c.castShadow = false; c.receiveShadow = false; }); this.tracksG.add(mg); }
     if (ramps.length) this.tracksG.add(mergeByMaterial(ramps));
+    if (slideParts.length) { const sg = mergeByMaterial(slideParts); sg.children.forEach(c => { c.castShadow = false; c.receiveShadow = false; c.userData.noFit = true; }); this.tracksG.add(sg); }
+  },
+  // ===== 02 滑梯外观（纯视觉层，规格见 docs/design/A2-滑梯坡道设计规格.md）=====
+  // 所有尺寸由 _geometry() 的 g 与 H(=H_ramp) 推导，禁止硬编码 0.35；全部 noFit、无阴影、无碰撞体。
+  // 只挂在 buildTracks 的 isSel 分支，随现有 traverse dispose 在切材料/切高度时整体清理，无残留。
+  _slideParts(g, z, H) {
+    const parts = [];
+    const P = (m) => { m.userData.noFit = true; m.castShadow = false; m.receiveShadow = false; parts.push(m); return m; };
+    const cPanel = mat(COLORS.primary, { roughness: 0.5, metalness: 0 });
+    const cRail = mat(COLORS.slideRail, { roughness: 0.35, metalness: 0.05 });
+    const cDeck = mat(COLORS.slideDeck, { roughness: 0.8, metalness: 0 });
+    const cStep = mat(COLORS.slideStep, { roughness: 0.85, metalness: 0 });
+    const cAmber = mat(COLORS.mechanics, { roughness: 0.45, metalness: 0 });
+    const HT = 0.13;                 // 侧板高（低于车侧栏顶 ≈0.1975，车身始终可见）
+    // 坡面顶边采样点（T → 圆弧 → B），直线段取 6 段、圆弧取 NA 段，供包边管复用
+    const edge = (offY) => {
+      const pts = [], N = 6;
+      for (let i = 0; i <= N; i++) { const t = i / N; pts.push([g.Tx + (g.Ax - g.Tx) * t, g.Ty + (g.Ay - g.Ty) * t + offY]); }
+      for (let i = 1; i <= g.NA; i++) { const phi = g.theta * (1 - i / g.NA); pts.push([g.XF0 - g.R * Math.sin(phi), g.R * (1 - Math.cos(phi)) + offY]); }
+      return pts;
+    };
+    // ①② 侧板（低护带）×2 + 顶部包边圆管 ×2 + 圆头
+    [1, -1].forEach(sgn => {
+      const shp = new THREE.Shape();
+      shp.moveTo(g.Tx, g.Ty);
+      for (let i = 0; i <= g.NA; i++) { const phi = g.theta * (1 - i / g.NA); shp.lineTo(g.XF0 - g.R * Math.sin(phi), g.R * (1 - Math.cos(phi))); }
+      shp.lineTo(g.XF0, HT);
+      for (let i = g.NA - 1; i >= 0; i--) { const phi = g.theta * (1 - i / g.NA); shp.lineTo(g.XF0 - g.R * Math.sin(phi), g.R * (1 - Math.cos(phi)) + HT); }
+      shp.lineTo(g.Tx, g.Ty + HT);
+      shp.closePath();
+      const eg = new THREE.ExtrudeGeometry(shp, { depth: 0.05, bevelEnabled: false, curveSegments: 4 });
+      eg.translate(0, 0, -0.025);
+      const panel = new THREE.Mesh(eg, cPanel);
+      panel.position.z = z + sgn * 0.25;                 // 内面 ±0.225、外面 ±0.275（轮外缘 0.219 → 6mm 间隙）
+      P(panel);
+      const etp = edge(HT).map(([x, y]) => new THREE.Vector3(x, y, z + sgn * 0.25));
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(etp), 48, 0.024, 8, false), cRail);
+      P(tube);                                            // 内缘 0.25−0.024=0.226 > 0.219
+      const cap = sphere(0.024, cRail); cap.position.set(g.XF0, HT, z + sgn * 0.25); P(cap);
+    });
+    // ④ 起滑平台（顶面 y=H，x∈[Tx-0.45, Tx]，z±0.22）
+    const deck = box(0.45, 0.05, 0.44, cDeck); deck.position.set(g.Tx - 0.225, H - 0.025, z); P(deck);
+    const deckTrim = box(0.02, 0.012, 0.44, cAmber); deckTrim.position.set(g.Tx - 0.01, H + 0.006, z); P(deckTrim);
+    // ⑤ 平台护栏（U 形，前方无横杆=小车出口）；railH 随坡高缩放
+    const railH = clamp(0.6 * H, 0.12, 0.26);
+    [g.Tx - 0.45, g.Tx - 0.02].forEach(px => [1, -1].forEach(sgn => { const c = cyl(0.02, 0.02, railH, cRail); c.position.set(px, H + railH / 2, z + sgn * 0.25); P(c); }));
+    [1, -1].forEach(sgn => { const bar = cyl(0.018, 0.018, 0.43, cRail); bar.rotation.z = Math.PI / 2; bar.position.set(g.Tx - 0.235, H + railH, z + sgn * 0.25); P(bar); });
+    const backBar = cyl(0.018, 0.018, 0.5, cRail); backBar.rotation.x = Math.PI / 2; backBar.position.set(g.Tx - 0.45, H + railH, z); P(backBar);
+    // ⑥ 背后台阶 ×3（实体盒从 y=-0.06 叠到各自顶面 i·H/3）
+    for (let i = 1; i <= 3; i++) {
+      const x0 = g.Tx - 0.45 - (4 - i) * 0.16, x1 = g.Tx - 0.45 - (3 - i) * 0.16;
+      const top = i * H / 3, hgt = top + 0.06;
+      const st = box(0.16, hgt, 0.44, cStep); st.position.set((x0 + x1) / 2, (-0.06 + top) / 2, z); P(st);
+      const tr = box(0.015, 0.012, 0.44, cAmber); tr.position.set(x1 - 0.0075, top + 0.006, z); P(tr);
+    }
+    return parts;
   },
   _render(t) {
     const tt = t == null ? 0 : t;

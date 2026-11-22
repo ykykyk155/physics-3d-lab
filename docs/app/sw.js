@@ -33,7 +33,8 @@ const PRECACHE = [
   './exp/acoustics.js',
   './exp/electricity.js',
   './exp/thermal.js',
-  './vendor/ammo/ammo.js',
+  // 注意：vendor/ammo/ammo.js 故意不在预缓存清单——首屏必须 0 次引擎请求（A2 专用引擎，gzip 314KB）。
+  // 首次在线进入 A2 时由下面 fetch 的 cache-first 逻辑自然写入缓存，之后 A2 即可离线使用。
 ];
 
 self.addEventListener('install', (e) => {

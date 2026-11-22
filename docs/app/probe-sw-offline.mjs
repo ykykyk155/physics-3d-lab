@@ -68,6 +68,24 @@ const cached = await page.evaluate(async () => {
 });
 check('缓存含 index.html', Array.isArray(cached) && cached.includes('index.html'), `缓存 ${cached.length} 项`);
 check('缓存含 three.module.js', Array.isArray(cached) && cached.includes('three.module.js'));
+check('预缓存不含引擎（首屏 0 次引擎请求）', Array.isArray(cached) && !cached.includes('ammo.js'));
+
+// A2 引擎不在 PRECACHE：首次在线进入 A2 时由 fetch cache-first 自然写入缓存，之后断网可用
+await page.evaluate(() => window.__LAB.switch('A2-newton-first'));
+let ammoLoaded = false;
+for (let i = 0; i < 60 && !ammoLoaded; i++) {
+  ammoLoaded = await page.evaluate(() => (window.__LAB.ammoRequests ? window.__LAB.ammoRequests() : 0) >= 1);
+  if (!ammoLoaded) await sleep(500);
+}
+check('在线首次进入 A2 引擎加载完成', ammoLoaded);
+const cachedAmmo = await page.evaluate(async () => {
+  const keys = await caches.keys();
+  if (!keys.length) return false;
+  const c = await caches.open(keys[keys.length - 1]);
+  const names = await c.keys();
+  return names.some(r => r.url.endsWith('/vendor/ammo/ammo.js'));
+});
+check('进入 A2 后引擎已自然写入缓存', cachedAmmo);
 
 // 2) 断网
 await page.setOfflineMode(true);
