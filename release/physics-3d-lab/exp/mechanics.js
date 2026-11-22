@@ -827,11 +827,19 @@ const A4 = {
     this.tank.position.set(-1, 1.5, 0); this.tank.castShadow = false; ctx.scene.add(this.tank);
     this.water = new THREE.Mesh(new THREE.CylinderGeometry(1.24, 1.24, 2.6, 32), mat('#3b82f6', { transparent: true, opacity: 0.35, roughness: 0.15, depthWrite: false }));
     this.water.position.set(-1, 1.3, 0); this.water.castShadow = false; ctx.scene.add(this.water);
-    // 探头：带橡皮膜的金属盒（压强计探头）+ 可绕竖直轴转的指针
+    // 探头：带橡皮膜的金属盒（压强计探头）。盒+膜做成 probeHead，四向按钮→盒整体转到膜朝 下/右/上/左
     this.probeArm = new THREE.Group();
-    const probeBox = box(0.22, 0.14, 0.22, MATS.steel()); probeBox.position.y = 0; this.probeArm.add(probeBox);
-    const membrane = cyl(0.11, 0.11, 0.03, MATS.rubberRed()); membrane.position.y = -0.085; this.probeArm.add(membrane);
+    this.probeHead = new THREE.Group();
+    const probeBox = box(0.22, 0.14, 0.22, MATS.steel()); this.probeHead.add(probeBox);
+    const membrane = cyl(0.11, 0.11, 0.03, MATS.rubberRed()); membrane.position.y = -0.085; this.probeHead.add(membrane);
+    this.probeArm.add(this.probeHead);
     this.probeArm.position.set(-1, 2.0, 0); ctx.scene.add(this.probeArm);
+    // U 形管上方大号 Δh(cm) 标签（醒目，教学结论直读）
+    this.lblCm = mkLabel('', '#ffe08a');
+    const dCm = this.lblCm.userData.div.style;
+    dCm.fontSize = '21px'; dCm.fontWeight = '700'; dCm.padding = '3px 10px';
+    dCm.background = 'rgba(11,17,32,.85)'; dCm.border = '1.5px solid rgba(255,224,138,.55)'; dCm.borderRadius = '8px';
+    ctx.scene.add(this.lblCm);
     // 橡胶软管：从探头连到 U 形管（压强计的传动链）
     this.hose = fatLine([new THREE.Vector3(-1, 2.0, 0), new THREE.Vector3(0.6, 2.0, 0), new THREE.Vector3(1.6, 1.6, 0), new THREE.Vector3(2.2, 1.9, 0)], '#4a4550', 5);
     ctx.scene.add(this.hose);
@@ -861,16 +869,27 @@ const A4 = {
     if (this.ctx) this.ctx.emitReadout({ dh: this.dhmm });
     // 探头深度
     const y = 2.55 - (hcm / 30) * 2.4;
+    const orient = Number(this.p.orient) || 0;
+    // 四向枚举 → 膜朝向：0=下(-y) 90=右(+x) 180=上(+y) 270=左(-x)；p/Δh 与朝向无关（同深度各方向压强相等）
+    this._dirName = orient === 90 ? '右' : orient === 180 ? '上' : orient === 270 ? '左' : '下';
     if (this.probeArm) {
       this.probeArm.position.y = y;
-      this.probeArm.rotation.y = (this.p.orient || 0) * DEG;   // 朝向：绕竖直轴转，读数不变（学生能看到探针在转）
-      this.lbl.position.set(-1, y + 0.35, 0); setLabel(this.lbl, 'h=' + hcm + 'cm · 朝向 ' + Math.round(this.p.orient || 0) + '°');
+      const rot = this.probeHead ? this.probeHead.rotation : null;
+      if (rot) {
+        if (orient === 90) rot.set(0, 0, Math.PI / 2);
+        else if (orient === 180) rot.set(Math.PI, 0, 0);
+        else if (orient === 270) rot.set(0, 0, -Math.PI / 2);
+        else rot.set(0, 0, 0);
+      }
+      this.lbl.position.set(-1, y + 0.35, 0);
+      setLabel(this.lbl, 'h=' + hcm + 'cm · 朝向 ' + this._dirName);
     }
     // U 管液面
     const baseH = 1.6, d = this.dhmm / 1000 * 3.2;      // 视觉放大
     if (this.colA) { this.colA.scale.y = Math.max(0.05, (baseH - d) ); this.colA.position.y = (baseH - d) / 2 + 0.2; }
     if (this.colB) { this.colB.scale.y = Math.max(0.05, (baseH + d)); this.colB.position.y = (baseH + d) / 2 + 0.2; }
-    if (this.lblDh) { this.lblDh.position.set(2.55, 3.1, 0); setLabel(this.lblDh, 'Δh=' + this.dhmm.toFixed(0) + ' mm'); }
+    if (this.lblDh) { this.lblDh.position.set(2.55, 3.05, 0); setLabel(this.lblDh, 'Δh=' + this.dhmm.toFixed(0) + ' mm'); }
+    if (this.lblCm) { this.lblCm.position.set(2.55, 3.6, 0); setLabel(this.lblCm, 'Δh = ' + (rho * hcm).toFixed(1) + ' cm'); }
   },
   step() {},
   reset() { this.recompute(); },
@@ -1326,7 +1345,7 @@ Object.assign(A4, {
       rd('深度 h', this.p.depth || 0, 'cm', 0),
       rd('液体密度 ρ', this.p.liquid || 0, 'g/cm³'),
       rd('U 管液面差 Δh', this.dhmm, 'mm', 0),
-      rd('探头朝向', this.p.orient || 0, '°', 0),
+      { label: '探头朝向', value: this._dirName || '下', unit: '' },
     ];
   },
 });

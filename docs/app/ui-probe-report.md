@@ -1,6 +1,6 @@
 # UI→引擎通路探针报告
 
-时间：2026-11-22T07:53:16.637Z
+时间：2026-11-22T08:33:37.364Z
 方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
 
 | 实验 | 控件 | 类型 | onParam 送达 | 判定 |
@@ -35,7 +35,7 @@
 | A3-friction | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
 | A4-liquid-pressure | depth | number | 1（store=30） | ✅ |
 | A4-liquid-pressure | liquid | enum | 1（store=1） | ✅ |
-| A4-liquid-pressure | orient | number | 1（store=0） | ✅ |
+| A4-liquid-pressure | orient | enum | 1（store=0） | ✅ |
 | A4-liquid-pressure | vessel | enum | 1（store=cyl） | ✅ |
 | A4-liquid-pressure | zeroKind=static | 参数极值下恒 0 | | ✅ |
 | A4-liquid-pressure | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
