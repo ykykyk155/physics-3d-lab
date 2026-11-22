@@ -818,6 +818,37 @@ const A3 = {
 /* ===================== A4 液体内部压强 ===================== */
 const A4 = {
   p: {},
+  // 液体密度 → 液面颜色：分段线性插值，锚点为真实特殊液体本色
+  // 0.8 酒精淡琥珀 / 1.0 水蓝(与旧版一致) / 1.1 盐水蓝绿 / 1.3 硫酸铜深蓝
+  liquidColor(rho) {
+    // 锚点色 = 真实特殊液体本色（CEO 规格，不许改）：0.8 酒精 / 1.0 水 / 1.1 盐水 / 1.3 硫酸铜
+    const anchors = [
+      [0.8, '#E6D17E'],
+      [1.0, '#3B82F6'],
+      [1.1, '#2FA89A'],
+      [1.3, '#1E4FA6'],
+    ];
+    const pick = i => new THREE.Color(anchors[i][1]);
+    if (rho <= anchors[0][0]) return pick(0);
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const r0 = anchors[i][0], r1 = anchors[i + 1][0];
+      if (rho <= r1) {
+        const t = (rho - r0) / (r1 - r0);
+        if (t === 0) return pick(i);
+        if (t === 1) return pick(i + 1);
+        // 中间密度：RGB lerp 后提饱和、保亮度下限（琥珀→蓝的 RGB 插值中途会经过灰区，观感像脏色）
+        // lerp 后的色相是正确的（琥珀→蓝经过紫），只是饱和度掉到 0.2~0.3；提到 0.68 且亮度保持 ≥0.32 让过渡带通透、不发闷
+        const c = pick(i).clone().lerp(pick(i + 1), t);
+        const hsl = { h: 0, s: 0, l: 0 };
+        c.getHSL(hsl);
+        if (hsl.s < 0.68) hsl.s = 0.68;
+        if (hsl.l < 0.32) hsl.l = 0.32;
+        c.setHSL(hsl.h, hsl.s, hsl.l);
+        return c;
+      }
+    }
+    return pick(anchors.length - 1);
+  },
   build(ctx) {
     this.scene = ctx.scene; this.ctx = ctx;
     registerMaterials(ctx);
@@ -863,6 +894,8 @@ const A4 = {
   },
   recompute() {
     const rho = Number(this.p.liquid) || 1.0, hcm = this.p.depth || 10;
+    // 液面颜色随密度渐变（滑块连续变化时平滑过渡，锚点处即特殊液体本色）
+    if (this.water) this.water.material.color.copy(this.liquidColor(rho));
     const p = rho * 1000 * G * (hcm / 100);           // Pa
     this.press = p;
     this.dhmm = rho * hcm * 10;                        // mm（水柱）

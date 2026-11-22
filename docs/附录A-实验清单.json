@@ -54,7 +54,7 @@
       "quantities": ["p", "h", "rho"],
       "params": [
         { "id": "depth", "label": "探头深度", "min": 1, "max": 30, "step": 1, "default": 10, "unit": "cm" },
-        { "id": "liquid", "label": "液体密度 ρ", "type": "enum", "options": [ { "label": "酒精 0.8", "value": 0.8 }, { "label": "水 1.0", "value": 1.0 }, { "label": "盐水 1.1", "value": 1.1 }, { "label": "硫酸铜 1.3", "value": 1.3 } ], "default": 1.0, "unit": "g/cm³" },
+        { "id": "liquid", "label": "液体密度 ρ", "min": 0.8, "max": 1.3, "step": 0.01, "default": 1.0, "unit": "g/cm³" },
         { "id": "orient", "label": "探头朝向", "type": "enum", "options": [ { "label": "上", "value": 180 }, { "label": "下", "value": 0 }, { "label": "左", "value": 270 }, { "label": "右", "value": 90 } ], "default": 0, "unit": "" },
         { "id": "vessel", "label": "容器形状", "type": "enum", "options": [ { "label": "柱形", "value": "cyl" }, { "label": "上宽下窄", "value": "flare" }, { "label": "上窄下宽", "value": "neck" } ], "default": "cyl", "unit": "" }
       ],
