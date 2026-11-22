@@ -698,6 +698,11 @@ const A3 = {
     this.blockG = woodBlock({ w: 0.72, h: 0.20, d: 0.40 });
     this.block = this.blockG;
     ctx.scene.add(this.blockG);
+    // 砝码堆（槽码）：独立 group，不挂 blockG —— area=small 时 block.scale.x/z 会缩到 0.55/0.7，挂进去会被压扁
+    this.weightsG = new THREE.Group();
+    this.weightsG.userData.noFit = true;
+    ctx.scene.add(this.weightsG);
+    this._weightsN = 0; this._weightsH = 0;
     // 铁架台：底座 + 立杆 + 横臂夹持弹簧测力计（不让测力计悬空）
     this.stand = new THREE.Group();
     const sb = box(0.62, 0.07, 0.44, MATS.iron()); sb.position.y = 0.035; sb.receiveShadow = true;
@@ -717,6 +722,39 @@ const A3 = {
     this.fArrow = mkArrow('#ff8a5a'); ctx.scene.add(this.fArrow);
     this.lbl = mkLabel('', C); ctx.scene.add(this.lbl);
     this.x = 0;
+    this._rebuildWeights();
+    this.weightsG.position.set(this.x, 0.20, 0);
+  },
+  _rebuildWeights() {
+    const cnt = clamp(Math.round((this.p.normal || 2) / 0.5), 1, 10);
+    if (cnt === this._weightsN) return;
+    this._weightsN = cnt;
+    const g = this.weightsG;
+    if (!g) return;
+    for (let i = g.children.length - 1; i >= 0; i--) {
+      const c = g.children[i]; g.remove(c);
+      c.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    }
+    const R = 0.115, H = 0.045;
+    // 每片槽码：浅钢色圆盘 + 略深上缘凸环，片间留缝，能一眼数出片数（不是一根圆柱）
+    // 材质只建一次并复用，避免每片/每次拖动重新建材质
+    if (!this._discMat) this._discMat = mat('#cfd6df', { roughness: 0.46, metalness: 0.32 });
+    if (!this._rimMat) this._rimMat = mat('#93a0b2', { roughness: 0.50, metalness: 0.42 });
+    const discMat = this._discMat, rimMat = this._rimMat;
+    const discs = [], rims = [];
+    for (let i = 0; i < cnt; i++) {
+      const y0 = i * H;
+      const d = cyl(R, R, H * 0.82, discMat); d.position.y = y0 + H * 0.41; discs.push(d);
+      const rim = cyl(R * 1.03, R * 1.03, H * 0.12, rimMat); rim.position.y = y0 + H * 0.9; rims.push(rim);
+    }
+    g.add(mergeByMaterial(discs));
+    g.add(mergeByMaterial(rims));
+    // 中心吊杆 + 顶部提环：套在吊杆上的槽码组
+    const postH = cnt * H + 0.08;
+    const post = cyl(0.014, 0.014, postH, MATS.steelBright()); post.position.y = postH / 2; g.add(post);
+    const hook = torus(R * 0.42, 0.016, MATS.steelBright()); hook.position.y = postH + R * 0.2; g.add(hook);
+    g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    this._weightsH = cnt * H + 0.12;
   },
   onParam(k, v) {
     this.p[k] = v;
@@ -726,10 +764,10 @@ const A3 = {
   recompute() {
     const f = (this.p.mu || 0.4) * (this.p.normal || 2);
     this.f = f;
-    // 时间轴：木块被匀速拖动的观察窗（读数 f 是静态量，拖动本身只是过程呈现）
-    // 系数取 1.2 让 pull 全档（0.05~0.3）都能在 4~12s 之间活动：pull=0.3→4s，pull=0.1→12s
-    const v = Math.max(this.p.pull || 0.1, 0.02);
-    this.duration = clamp(1.2 / v, 4, 12);
+    // 固定 12s 观察窗：x = pull·t，同一时刻不同速度档位置差一眼可见
+    // （pull=0.05→0.6m、0.1→1.2m、0.3→3.6m；x 上限 4 不变）
+    this.duration = 12;
+    this._rebuildWeights();
     if (this.ctx) this.ctx.emitReadout({ read: f });
   },
   drawAt(tPres) {
@@ -738,19 +776,20 @@ const A3 = {
     this._t = Math.min(Math.max(Number.isFinite(tPres) ? tPres : 0, 0), d);
     this.x = Math.min(v * this._t, 4);
     this.block.position.set(this.x, 0.0, 0);
+    if (this.weightsG) this.weightsG.position.set(this.x, 0.20, 0);
     // 测力计固定在铁架台横臂上，指针随拉力下移（不再悬空、也不跟着木块跑）
     setSpringScale(this.scaleG, clamp(this.f / 4, 0.04, 1));
     // 提环挂到横臂上
     this.hang.geometry.setPositions([0.16, 2.02, 0, -0.05, 2.0, 0]);
     this.hang.computeLineDistances();
-    // 底部挂钩勾住木块：一条细绳从挂钩斜拉到木块挂点
-    this.hook.geometry.setPositions([0.16, 0.98, 0, this.x, 0.18, 0]);
+    // 底部挂钩勾住木块左侧挂钩：细绳从木块侧钩斜拉到测力计挂钩，让开块顶砝码堆
+    this.hook.geometry.setPositions([0.16, 0.98, 0, this.x - 0.44 * (this.block.scale ? this.block.scale.x : 1), 0.11, 0]);
     this.hook.computeLineDistances();
     setArrow(this.pullArrow, new THREE.Vector3(1, 0, 0), clamp(this.f * 0.35, 0.2, 1.2));
     this.pullArrow.position.set(this.x + 0.46, 0.22, 0);
     setArrow(this.fArrow, new THREE.Vector3(-1, 0, 0), clamp(this.f * 0.35, 0.2, 1.2));
     this.fArrow.position.set(this.x - 0.46, 0.08, 0);
-    this.lbl.position.set(this.x, 0.48, 0);
+    this.lbl.position.set(this.x, clamp(0.20 + (this._weightsH || 0) + 0.13, 0.48, 0.86), 0);
     setLabel(this.lbl, 'f=' + this.f.toFixed(2) + ' N');
   },
   step(dt) { this.drawAt((this._t || 0) + Math.max(dt, 0)); },

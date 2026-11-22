@@ -7,13 +7,13 @@
     },
     {
       "id": "A2-newton-first",
-      "calls": 16,
-      "tris": 1832
+      "calls": 21,
+      "tris": 5728
     },
     {
       "id": "A3-friction",
-      "calls": 21,
-      "tris": 2068
+      "calls": 25,
+      "tris": 3572
     },
     {
       "id": "A4-liquid-pressure",

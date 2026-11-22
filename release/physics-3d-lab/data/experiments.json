@@ -35,7 +35,7 @@
       "phenomenon": "μ 逐档减小 → 滑行距离逐档拉长（三条轨迹同轨叠放）；μ=0 → 匀速直线永不停下，速度条恒定"
     },
     {
-      "id": "A3-friction", "module": "mechanics", "priority": "P0", "duration": 12,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师已改系数）：duration = clamp(1.2/pull, 4, 12)（pull=匀速拉动速度，定义域 0.05~0.3）。旧式 4/pull 在全档位恒为 12，是无效依赖，已废。按 CEO 规则代入两端验过：pull=0.3 → 4s、pull=0.1 → 12s、pull=0.05 → 24 被夹回 12s。默认 pull=0.1 → 快照 12",
+      "id": "A3-friction", "module": "mechanics", "priority": "P0", "duration": 12,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "固定 12s 观察窗，行程随 pull 变化 0.6~3.6m：duration 恒为 12（pull=匀速拉动速度，定义域 0.05~0.3）；drawAt 取 x=pull·t，x 上限 4 不变，同一时刻不同速度档位置差一眼可见（t=12s：pull=0.05→0.6m、0.1→1.2m、0.3→3.6m）。旧式 clamp(1.2/pull,4,12) 令行程恒为 1.2m、各档看起来无差别，已废",
       "name": "探究滑动摩擦力大小的因素", "chapter": "八下 第八章 第3节 摩擦力",
       "quantities": ["f", "N", "mu"],
       "params": [
