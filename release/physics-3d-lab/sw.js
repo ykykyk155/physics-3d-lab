@@ -1,5 +1,5 @@
 /* Service Worker：整站本地缓存 —— 打开过一次后，全部资源走本地缓存，秒开、断网也能用。
- * 版本号 6057b1f 由 tools/make-release.ps1 在发布时替换为 git 短哈希：
+ * 版本号 31a2549 由 tools/make-release.ps1 在发布时替换为 git 短哈希：
  * 每次发布自动换缓存名；新 SW 安装完成后清掉旧缓存，保证新旧版本绝不混用。
  * 策略（为发布一致性 + 跨境提速而设计）：
  *   - 安装：容错 precache 核心清单（某项失败不影响整体安装），skipWaiting 立即接管
@@ -8,7 +8,7 @@
  *     「新 HTML + 旧 JS」的混合状态（发布后第一次打开仍是旧版，刷新一次即新版）
  *   - 其他同源 GET：cache-first，miss 才走网络并写入缓存
  */
-const VERSION = '6057b1f';
+const VERSION = '31a2549';
 const CACHE = 'phlab-' + VERSION;
 
 const PRECACHE = [
@@ -49,8 +49,20 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('phlab-') && k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+      .then((keys) => {
+        // 有旧版本缓存 = 这是一次版本升级（不是首次安装）
+        const isUpdate = keys.some((k) => k.startsWith('phlab-') && k !== CACHE);
+        return Promise.all(keys.filter((k) => k.startsWith('phlab-') && k !== CACHE).map((k) => caches.delete(k)))
+          .then(() => self.clients.claim())
+          .then(() => {
+            if (!isUpdate) return;
+            // 版本升级：把打开中的页面强制刷新一次，让用户立刻看到新版本。
+            // 不依赖页面里的 JS（旧版本页面没有自动更新代码也能切新）。
+            return self.clients.matchAll({ type: 'window' }).then((cs) =>
+              Promise.allSettled(cs.map((c) => c.navigate(c.url).catch(() => {})))
+            );
+          });
+      })
   );
 });
 

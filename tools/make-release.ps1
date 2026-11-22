@@ -39,6 +39,12 @@ if (Test-Path $swSrc) {
     $swContent = [System.IO.File]::ReadAllText($swSrc, [System.Text.Encoding]::UTF8)
     $swContent = $swContent.Replace('__VERSION__', $swVer)
     [System.IO.File]::WriteAllText((Join-Path $out 'sw.js'), $swContent, (New-Object System.Text.UTF8Encoding($false)))
+    # stamp the page build version too: index.html compares it with the live sw.js VERSION
+    # and reloads through an unregistered SW when a new release is detected.
+    $idxOut = Join-Path $out 'index.html'
+    $idxContent = [System.IO.File]::ReadAllText($idxOut, [System.Text.Encoding]::UTF8)
+    $idxContent = $idxContent.Replace('__VERSION__', $swVer)
+    [System.IO.File]::WriteAllText($idxOut, $idxContent, (New-Object System.Text.UTF8Encoding($false)))
     Write-Host "  sw.js  version $swVer"
 } else {
     Write-Host "  [WARN] sw.js missing - no offline cache" -ForegroundColor Yellow

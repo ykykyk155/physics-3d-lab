@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>初中物理 3D 可视化实验室</title>
+<meta name="build-version" content="31a2549">
 <link rel="icon" href="data:,">
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -1501,11 +1502,57 @@ boot().then(() => { window.__LAB.ready = true; });
 })();
 </script>
 <script>
-/* Service Worker 注册：发布时在 sw.js 内注入版本号，首次打开后全站资源本地缓存，之后秒开、离线可用 */
+/* Service Worker 注册：发布时在 sw.js 内注入版本号，首次打开后全站资源本地缓存，之后秒开、离线可用。
+   更新链路：①主动 update()；②页面带着构建版本，直接 fetch 线上 sw.js 的 VERSION 做比对，
+   不一致就注销旧 SW 并带 ?v= 重载——绕开浏览器对 SW 更新检查的节流，发布后刷新即得新版。 */
 (function () {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  var BUILD = (document.querySelector('meta[name="build-version"]') || {}).content || '';
+  var VER_KEY = 'phlab-ver-check';
+  function check(reg) { if (reg) reg.update().catch(function () {}); }
+  function checkBuildVersion() {
+    if (!BUILD || BUILD.indexOf('__') === 0 || !navigator.onLine) return;
+    fetch('./sw.js?ts=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (txt) {
+        var m = /const VERSION = '([^']+)'/.exec(txt || '');
+        if (!m) return;
+        var remote = m[1];
+        if (remote === BUILD) return;
+        var guard = '';
+        try { guard = sessionStorage.getItem(VER_KEY) || ''; } catch (e) {}
+        if (guard === remote) return; // 同一版本只尝试一次，防循环
+        try { sessionStorage.setItem(VER_KEY, remote); } catch (e) {}
+        // 旧 SW 的导航处理会用 cached ./index.html 兜底，连 ?v= 也会被拦；先清掉 phlab-* 缓存，
+        // 这样即使 unregister 还没生效，导航也会落到网络拿到新 HTML。
+        (window.caches ? caches.keys().then(function (keys) {
+          return Promise.all(keys.filter(function (k) { return k.indexOf('phlab-') === 0; })
+            .map(function (k) { return caches.delete(k); }));
+        }) : Promise.resolve()).catch(function () {}).then(function () {
+          // 注销旧 SW 不必等它完成：清缓存已经足够让下一次导航走网络
+          navigator.serviceWorker.getRegistration().then(function (reg) {
+            if (reg) reg.unregister().catch(function () {});
+          }).catch(function () {});
+          var u = new URL(location.href);
+          u.searchParams.set('v', remote);
+          location.replace(u.toString());
+        });
+      })
+      .catch(function () { /* 离线或网络失败：继续用本地缓存 */ });
+  }
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js').catch(function () { /* 静默失败：SW 只是加速，不阻碍使用 */ });
+    checkBuildVersion();
+    // 不依赖 register() 的返回时序：已有注册时也主动查一次新版本
+    navigator.serviceWorker.getRegistration().then(function (reg) { check(reg); }).catch(function () {});
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then(function (reg) {
+        check(reg);
+        setInterval(function () { check(reg); }, 60 * 1000);
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') check(reg);
+        });
+      })
+      .catch(function () { /* 静默失败：SW 只是加速，不阻碍使用 */ });
   });
 })();
 </script>

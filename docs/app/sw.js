@@ -49,8 +49,20 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('phlab-') && k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+      .then((keys) => {
+        // 有旧版本缓存 = 这是一次版本升级（不是首次安装）
+        const isUpdate = keys.some((k) => k.startsWith('phlab-') && k !== CACHE);
+        return Promise.all(keys.filter((k) => k.startsWith('phlab-') && k !== CACHE).map((k) => caches.delete(k)))
+          .then(() => self.clients.claim())
+          .then(() => {
+            if (!isUpdate) return;
+            // 版本升级：把打开中的页面强制刷新一次，让用户立刻看到新版本。
+            // 不依赖页面里的 JS（旧版本页面没有自动更新代码也能切新）。
+            return self.clients.matchAll({ type: 'window' }).then((cs) =>
+              Promise.allSettled(cs.map((c) => c.navigate(c.url).catch(() => {})))
+            );
+          });
+      })
   );
 });
 
