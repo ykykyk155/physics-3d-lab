@@ -94,6 +94,13 @@ input[type=range]:focus-visible::-moz-range-thumb{box-shadow:var(--shadow-glow)}
 /* ---------- 实验动作按钮（meta.actions → exp.actions 转发，如 A7 一键平衡） ---------- */
 .exp-actions{display:flex;gap:8px;margin-top:14px}
 .exp-action{flex:1;height:36px;padding:0 10px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);font-size:13px;cursor:pointer;transition:background var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
+/* 数据记录（meta.dataRecord 驱动，D1 探究流程）：表格 + I-U 描点图 */
+.rec-actions{display:flex;gap:8px;margin-bottom:10px}
+.rec-table{width:100%;border-collapse:collapse;font-size:12px;color:var(--color-text)}
+.rec-table th,.rec-table td{border:1px solid var(--color-border);padding:5px 8px;text-align:center}
+.rec-table th{color:var(--color-text-secondary);font-weight:500;background:var(--color-surface)}
+.rec-empty{font-size:12px;color:var(--color-text-secondary);padding:8px 2px;line-height:1.5}
+#recChart{width:100%;height:180px;display:block;margin-top:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface)}
 .exp-action:hover{background:var(--color-surface-hover);border-color:var(--color-primary)}
 .exp-action:active{transform:translateY(1px)}
 .tab:hover{background:var(--color-surface)}
@@ -351,6 +358,19 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <section>
         <div class="section-title">参数调节</div>
         <div id="paramsArea"></div>
+      </section>
+      <section id="dataRecordSection" style="display:none">
+        <div class="section-title">数据记录</div>
+        <div class="rec-actions">
+          <button class="btn btn-secondary" id="recBtn" type="button">📝 记录数据</button>
+          <button class="btn btn-secondary" id="recClearBtn" type="button">清空</button>
+        </div>
+        <table class="rec-table" id="recTable">
+          <thead><tr><th>序号</th><th id="recXHead">电压 U / V</th><th id="recYHead">电流 I / A</th></tr></thead>
+          <tbody id="recTableBody"></tbody>
+        </table>
+        <div class="rec-empty" id="recEmpty">暂无数据，请闭合开关、正确接好两只表后点击「记录数据」</div>
+        <canvas id="recChart" height="180"></canvas>
       </section>
     </div>
     <footer class="p-footer">
@@ -1064,6 +1084,93 @@ function renderParams(meta){
     box.appendChild(aw);
   }
   renderReadouts();
+  renderDataRecord(meta);                              // 数据记录 section（meta.dataRecord 才显示，D1 探究流程）
+}
+/* ---------- 数据记录（记录表格 + I-U 描点图；行数据以 exp.recordData() 为唯一源，外壳零算法） ---------- */
+let recSig = '';
+function d1RecInst(){                                  // 记录 API 在场景实例上（api 包装不透传，绑 _impl）
+  const exp = current && current.exp;
+  const inst = exp && exp._impl ? exp._impl : exp;
+  return inst && typeof inst.recordData === 'function' ? inst : null;
+}
+function renderDataRecord(meta){
+  const sec = $('#dataRecordSection');
+  const cfg = meta && meta.dataRecord;
+  sec.style.display = cfg ? '' : 'none';
+  if(!cfg) return;
+  $('#recXHead').textContent = cfg.xLabel + ' / ' + cfg.xUnit;
+  $('#recYHead').textContent = cfg.yLabel + ' / ' + cfg.yUnit;
+  recSig = '';
+  syncDataRecord();
+}
+function syncDataRecord(){
+  const sec = $('#dataRecordSection');
+  if(sec.style.display === 'none') return;
+  const meta = DATA.byId[store.experimentId];
+  if(!meta || !meta.dataRecord) return;
+  const inst = d1RecInst();
+  let rows = [];
+  try{ rows = inst ? inst.recordData() : []; }catch(e){ console.error('[recordData]', e); }
+  const body = $('#recTableBody'); body.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + Number(r.x).toFixed(2) + '</td><td>' + Number(r.y).toFixed(3) + '</td>';
+    body.appendChild(tr);
+  });
+  $('#recEmpty').style.display = rows.length ? 'none' : '';
+  const last = rows.length ? rows[rows.length - 1] : null;
+  const sig = rows.length + '|' + (last ? last.x + ',' + last.y : '');
+  if(sig !== recSig){ recSig = sig; drawRecChart(rows, meta.dataRecord); }
+}
+function drawRecChart(rows, cfg){
+  const cv = $('#recChart');
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 280, h = 180;
+  const pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+  if(cv.width !== pw || cv.height !== ph){ cv.width = pw; cv.height = ph; }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement);
+  const cPri = css.getPropertyValue('--color-primary').trim() || '#3B82F6';
+  const cBor = css.getPropertyValue('--color-border').trim() || '#46557A';
+  const cTxt = css.getPropertyValue('--color-text-secondary').trim() || '#B4C0D4';
+  const L = 46, R = 12, T = 16, B = 32;
+  const xs = rows.map(r => Number(r.x)), ys = rows.map(r => Number(r.y));
+  const xMax = Math.max(7, xs.length ? Math.max.apply(null, xs) : 0) * 1.08;
+  const yMax = Math.max(0.7, ys.length ? Math.max.apply(null, ys) : 0) * 1.08;
+  const X = v => L + (w - L - R) * (v / xMax);
+  const Y = v => (h - B) - (h - T - B) * (v / yMax);
+  g.strokeStyle = cBor; g.lineWidth = 1; g.globalAlpha = .4;      // 网格
+  for(let i = 1; i < 5; i++){
+    const gy = T + (h - T - B) * i / 5, gx = L + (w - L - R) * i / 5;
+    g.beginPath(); g.moveTo(L, gy); g.lineTo(w - R, gy); g.stroke();
+    g.beginPath(); g.moveTo(gx, T); g.lineTo(gx, h - B); g.stroke();
+  }
+  g.globalAlpha = 1;
+  g.strokeStyle = cTxt;                                            // 坐标轴
+  g.beginPath(); g.moveTo(L, T); g.lineTo(L, h - B); g.lineTo(w - R, h - B); g.stroke();
+  g.fillStyle = cTxt; g.font = '11px system-ui, sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  for(let i = 0; i <= 5; i++){
+    g.fillText((xMax * i / 5).toFixed(1), X(xMax * i / 5), h - B + 14);
+    if(i > 0){ g.textAlign = 'right'; g.fillText((yMax * i / 5).toFixed(2), L - 5, Y(yMax * i / 5) + 4); g.textAlign = 'center'; }
+  }
+  g.textAlign = 'right'; g.fillText(cfg.xLabel + ' / ' + cfg.xUnit, w - R, h - 4);
+  g.textAlign = 'left'; g.fillText(cfg.yLabel + ' / ' + cfg.yUnit, L + 2, T - 4);
+  if(rows.length >= 2){                                            // 折线：≥2 点按 x 排序连线
+    const pts = rows.slice().sort((a, b) => a.x - b.x);
+    g.strokeStyle = cPri; g.lineWidth = 2; g.globalAlpha = .9;
+    g.beginPath();
+    pts.forEach((p, i) => { const px = X(p.x), py = Y(p.y); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+    g.stroke(); g.globalAlpha = 1;
+  }
+  g.fillStyle = cPri;                                              // 散点
+  rows.forEach(p => { g.beginPath(); g.arc(X(p.x), Y(p.y), 4, 0, Math.PI * 2); g.fill(); });
+  if(rows.length < 2){                                             // 空态提示
+    g.fillStyle = cTxt; g.font = '12px system-ui, sans-serif'; g.textAlign = 'center';
+    g.fillText('记录 2 组以上数据后自动描点', (L + w - R) / 2, (T + h - B) / 2);
+  }
 }
 function makeParamBlock(p){
   const block = el('div', 'param-block');
@@ -1241,6 +1348,11 @@ const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
 function resetAll(){
   const meta = DATA.byId[store.experimentId];
   if(!meta) return;
+  if(meta.dataRecord){                                   // 数据记录随「重置」清空（规格 §6.2）
+    const inst = d1RecInst();
+    if(inst && typeof inst.clearRecords === 'function'){ try{ inst.clearRecords(); }catch(e){ console.error('[clearRecords]', e); } }
+    recSig = '';
+  }
   if(REDUCE_MOTION.matches){                             // 不做补间：一步写默认值，收尾与补间末帧一致
     meta.params.forEach(p => { store.params[p.id] = p.default; pending.add(p.id); });
     meta.params.forEach(p => { if(p.type === 'enum') paintEnum(p.id); else syncSlider(p.id); });
@@ -1442,6 +1554,21 @@ function bindChrome(){
   $('#btnPlay').addEventListener('click', () => setPlaying(!store.playback.playing));
   $('#btnTimeReset').addEventListener('click', resetTime);
   $('#btnReset').addEventListener('click', resetAll);
+  // 数据记录按钮（meta.dataRecord 实验才有用；行数据以 exp.recordData() 为唯一源）
+  $('#recBtn').addEventListener('click', () => {
+    const inst = d1RecInst();
+    if(!inst || typeof inst.recordSample !== 'function'){ toast('当前实验暂不支持数据记录'); return; }
+    let r = null;
+    try{ r = inst.recordSample(); }catch(e){ console.error('[recordSample]', e); }
+    if(r && r.ok){ recSig = ''; syncDataRecord(); }
+    else toast((r && r.msg) || '请先闭合开关并正确接入两只表');
+  });
+  $('#recClearBtn').addEventListener('click', () => {
+    const inst = d1RecInst();
+    if(inst && typeof inst.clearRecords === 'function'){ try{ inst.clearRecords(); }catch(e){ console.error('[clearRecords]', e); } }
+    recSig = ''; syncDataRecord();
+  });
+  window.addEventListener('resize', () => { recSig = ''; syncDataRecord(); });   // 画布宽度自适应重画
   $('#btnFull').addEventListener('click', () => {
     if(!document.fullscreenElement) $('#app').requestFullscreen().catch(() => {});
     else document.exitFullscreen();
@@ -1454,6 +1581,7 @@ function bindChrome(){
   setStatsCollapsed(window.matchMedia('(max-width:767px)').matches);   // 窄屏默认收起（抽屉化）
   window.matchMedia('(max-width:767px)').addEventListener?.('change', e => setStatsCollapsed(e.matches));
   setInterval(renderStats, 100);                        // 实时数据 100ms 刷新（readouts() 由实验实现）
+  setInterval(syncDataRecord, 100);                     // 数据记录表格/描点图同步（行源 exp.recordData()，模式切换/清空自动跟随）
   // 音频开关：默认静音、localStorage 记忆；AudioContext 保持挂起，用户手势后才唤醒
   const ab = $('#audioBtn');
   paintAudioBtn(false);

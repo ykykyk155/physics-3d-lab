@@ -37,39 +37,39 @@ function filingsTexture() {
   const tex = new THREE.CanvasTexture(cv); tex.needsUpdate = true; return tex;
 }
 
-/* ===================== D1 串并联（点选测量型） ===================== */
+/* ===================== D1 串并联（双表常显 · 点选换位） ===================== */
 const D1 = {
   p: {}, elec: [],
+  /* ---------- 构建 ---------- */
   build(ctx) {
     this.scene = ctx.scene; this.ctx = ctx;
     registerMaterials(ctx);
     addGround(ctx.scene, 0x3a3514);
     this._timers = []; this._down = null; this._conclTimer = null;
-    // 电池组（兼作电压测量点）
-    this.battG = battery({ cells: 2, h: 0.5 }); this.battG.position.set(-3.2, 1.2, 0); ctx.scene.add(this.battG);
-    this.battG.userData.pickTarget = { kind: 'vol-point', id: 'batt' };
+    this.records = [];
+    // 电池组（底边，坐在导线上）
+    this.battG = battery({ cells: 2, h: 0.5 }); this.battG.position.set(-1.15, 1.02, 0); ctx.scene.add(this.battG);
+    this.battG.userData.pickTarget = { kind: 'slot', id: 'batt' };
     this.batt = this.battG;
-    // 两只小灯泡（玻璃泡 + 灯丝 + 螺口），兼作电压测量点
-    this.bulb1G = bulb({ r: 0.24 }); this.bulb1G.position.set(-0.6, 2.4, 0); ctx.scene.add(this.bulb1G);
-    this.bulb2G = bulb({ r: 0.24 }); this.bulb2G.position.set(2.0, 2.4, 0); ctx.scene.add(this.bulb2G);
-    this.bulb1G.userData.pickTarget = { kind: 'vol-point', id: 'L1' };
-    this.bulb2G.userData.pickTarget = { kind: 'vol-point', id: 'L2' };
+    // 两只小灯泡（顶边 / 并联两条支路，坐在导线上）
+    this.bulb1G = bulb({ r: 0.22 }); ctx.scene.add(this.bulb1G);
+    this.bulb2G = bulb({ r: 0.22 }); ctx.scene.add(this.bulb2G);
+    this.bulb1G.userData.pickTarget = { kind: 'slot', id: 'L1' };
+    this.bulb2G.userData.pickTarget = { kind: 'slot', id: 'L2' };
     this.res1 = this.bulb1G; this.res2 = this.bulb2G;
-    // 闸刀开关
-    this.switchG = knifeSwitch(); this.switchG.position.set(1.2, 1.0, 0.7); ctx.scene.add(this.switchG);
-    // 两只仪表：左电流表、右电压表（点表身选中，点触点接入）
-    this.meterG = ammeter({ w: 0.66, h: 0.54 }); this.meterG.position.set(-1.98, 3.15, 0.6); ctx.scene.add(this.meterG);
-    this.meterG.userData.meter = 'amp';
-    this.volMeterG = voltmeter({ w: 0.66, h: 0.54 }); this.volMeterG.position.set(3.1, 3.15, 0.6); ctx.scene.add(this.volMeterG);
-    this.volMeterG.userData.meter = 'vol';
+    // 闸刀开关（底边，点击刀片/底座通断）
+    this.switchG = knifeSwitch(); this.switchG.position.set(1.45, 1.0, 0); this.switchG.scale.setScalar(1.7); ctx.scene.add(this.switchG);
+    this.switchG.userData.pickTarget = { kind: 'switch' };
+    // 两只仪表（位置由槽位决定，build 后由 _layoutMeters 摆）
+    this.meterG = ammeter({ w: 0.66, h: 0.54 }); this.meterG.userData.meter = 'amp'; ctx.scene.add(this.meterG);
+    this.volMeterG = voltmeter({ w: 0.66, h: 0.54 }); this.volMeterG.userData.meter = 'vol'; ctx.scene.add(this.volMeterG);
     this.activeMeter = 'amp';
-    // 选中表的光环（青色圆环，环住表身）
-    const ringM = new THREE.MeshBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.85, depthWrite: false });
-    this.ampRing = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.02, 8, 32), ringM);
-    this.ampRing.rotation.x = Math.PI / 2; this.ampRing.position.z = -0.05; this.meterG.add(this.ampRing);
-    this.volRing = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.02, 8, 32), ringM);
-    this.volRing.rotation.x = Math.PI / 2; this.volRing.position.z = -0.05; this.volMeterG.add(this.volRing);
-    this._syncRings();
+    // 选中表的光环（青色圆环，正面可见：位于 XY 平面、贴在表体前方，不压表盘）
+    const ringM = new THREE.MeshBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.9, depthWrite: false });
+    this.ampRing = new THREE.Mesh(new THREE.TorusGeometry(0.40, 0.018, 10, 40), ringM);
+    this.ampRing.rotation.x = 0; this.ampRing.position.z = 0.10; this.meterG.add(this.ampRing);
+    this.volRing = new THREE.Mesh(new THREE.TorusGeometry(0.40, 0.018, 10, 40), ringM);
+    this.volRing.rotation.x = 0; this.volRing.position.z = 0.10; this.volMeterG.add(this.volRing);
     // 表笔引线（红/黑各一条，接入时显形）
     const redW = '#e0563d', blkW = '#3d4350';
     this.probes = {
@@ -77,13 +77,12 @@ const D1 = {
       vol: [fatLine([], redW, 2.5), fatLine([], blkW, 2.5)],
     };
     Object.keys(this.probes).forEach(k => this.probes[k].forEach(l => { l.visible = false; ctx.scene.add(l); }));
-    // 表读数大字标签（表盘下方）
-    this.ampVal = mkLabel('电流表 I = —', '#ffe066'); this.ampVal.position.set(-1.98, 2.66, 0.7); ctx.scene.add(this.ampVal);
-    this.volVal = mkLabel('电压表 U = —', '#7dd3fc'); this.volVal.position.set(3.1, 2.66, 0.7); ctx.scene.add(this.volVal);
-    // 顶栏与电流大字
-    this.wires = [];
-    this.lbl = mkLabel('', C); this.lbl.position.set(0, 4.0, 0); ctx.scene.add(this.lbl);
-    this.lblI = mkLabel('', '#ffe066'); ctx.scene.add(this.lblI);
+    // 表读数标签（表盘下方）
+    this.ampVal = mkLabel('电流表 I = —', '#ffe066'); ctx.scene.add(this.ampVal);
+    this.volVal = mkLabel('电压表 U = —', '#7dd3fc'); ctx.scene.add(this.volVal);
+    // 顶栏（只保留一个总状态标签）
+    this.wires = []; this.parts = []; this.points = []; this.junctions = [];
+    this.lbl = mkLabel('', C); this.lbl.position.set(0, 4.28, 0); ctx.scene.add(this.lbl);
     // 结论卡（绿色大字，可手动关闭，5s 自动隐）
     this.conclDiv = document.createElement('div');
     Object.assign(this.conclDiv.style, {
@@ -101,15 +100,15 @@ const D1 = {
     xBtn.onclick = () => this._hideConcl();
     this.conclDiv.appendChild(xBtn);
     this.concl = new CSS2DObject(this.conclDiv);
-    this.concl.position.set(0, 3.6, 0);
+    this.concl.position.set(0, 3.95, 0);
     ctx.scene.add(this.concl);
     // 拾取交互：自建 raycast（不依赖 OrbitControls）
     this.raycaster = new THREE.Raycaster();
-    this.points = [];
-    this.ampTargetId = null; this.volTargetId = null;
-    this.ampPoints = new Set(); this.volPoints = new Set();   // 已测点累积（跨参数刷新保留，用于「测齐」结论）
+    this.ampSlot = 'A'; this.volSlot = 'L1';
+    this.ampPoints = new Set(); this.volPoints = new Set();
     this.ampReading = null; this.volReading = null;
     this.ampError = false; this.volError = false;
+    this.ampLeadEnds = null; this.volLeadEnds = null;
     this.pointBallM = new THREE.MeshStandardMaterial({ color: '#0f3d33', emissive: '#34d399', emissiveIntensity: 1.1, roughness: .3, metalness: .1 });
     this.pointRingM = new THREE.MeshStandardMaterial({ color: '#d9fbe8', emissive: '#b7f7dc', emissiveIntensity: .5, roughness: .4 });
     this._vp = document.getElementById('viewport');
@@ -119,7 +118,8 @@ const D1 = {
       this._vp.addEventListener('pointerup', this._hUp = e => this._onUp(e));
     }
     this.t = 0;
-    this.duration = 4;          // 电子环行一个完整过程（build 期就有值：外壳切场景时立刻读 duration）
+    this.duration = 4;          // 电子环行一个完整过程（build 期就有值）
+    this.recompute();
   },
   /* ---------- 物理量（红线公式） ---------- */
   _vals() {
@@ -130,20 +130,29 @@ const D1 = {
     const I = on ? U / Req : 0;
     return { U, r1, r2, par, on, Req, I };
   },
-  /* 电流表读数：串联 A/B/C 处处相等；并联 a=干路 b=I1 c=I2 */
   _ampVal(id, v) {
-    if (!v.par) return v.I;
-    if (id === 'a') return v.U * (v.r1 + v.r2) / (v.r1 * v.r2);
-    if (id === 'b') return v.U / v.r1;
-    return v.U / v.r2;                         // c
+    if (!v.par) return v.I;                          // 串联 A/B/C 处处相等
+    if (id === 'a') return v.U * (v.r1 + v.r2) / (v.r1 * v.r2);   // 干路
+    if (id === 'b') return v.U / v.r1;               // L1 支路
+    return v.U / v.r2;                               // c: L2 支路
   },
-  /* 电压表读数：串联分压 L1=U·R1/(R1+R2) L2=U·R2/(R1+R2)；并联各支路=U；电池=U；断路电池=U 灯泡=0 */
   _volVal(id, v) {
-    if (!v.on) return id === 'batt' ? v.U : 0;
     if (id === 'batt') return v.U;
+    if (!v.on) return 0;
     if (v.par) return v.U;
     return id === 'L1' ? v.U * v.r1 / (v.r1 + v.r2) : v.U * v.r2 / (v.r1 + v.r2);
   },
+  /* ---------- 槽位 ---------- */
+  _validSlots() { return this.p.mode === 'parallel' ? ['a', 'b', 'c', 'L1', 'L2', 'batt'] : ['A', 'B', 'C', 'L1', 'L2', 'batt']; },
+  _slotKind(id) { return ['A', 'B', 'C', 'a', 'b', 'c'].includes(id) ? 'current' : (['L1', 'L2', 'batt'].includes(id) ? 'voltage' : null); },
+  _slotC(id) {
+    const par = this.p.mode === 'parallel';
+    const map = par
+      ? { a: { cx: 2.30, y: 1.0 }, b: { cx: -1.20, y: 2.95 }, c: { cx: -1.20, y: 1.75 } }
+      : { A: { cx: -1.45, y: 2.65 }, B: { cx: 0.50, y: 2.65 }, C: { cx: 2.25, y: 2.65 } };
+    return map[id] || null;
+  },
+  _hasMeter(slot) { return this.ampSlot === slot || this.volSlot === slot; },
   /* ---------- 拾取与点选 ---------- */
   _pickMeta(obj) {
     let o = obj;
@@ -160,99 +169,123 @@ const D1 = {
     const hits = this.raycaster.intersectObjects(this.scene.children, true);
     let hover = null;
     for (const h of hits) { const m = this._pickMeta(h.object); if (m && (m.pickTarget || m.meter)) { hover = m; break; } }
-    const hOver = hover && hover.pickTarget && hover.pickTarget.kind === 'amp-point' ? hover.pickTarget.id : null;
-    this.points.forEach(p => { p.scale.setScalar(hOver === p.userData.pid ? 1.35 : 1); });
+    const hoverId = hover && hover.pickTarget && hover.pickTarget.kind === 'slot' ? hover.pickTarget.id : null;
+    this.points.forEach(p => { p.scale.setScalar(hoverId === p.userData.pid ? 1.35 : 1); });
     this._vp.style.cursor = hover ? 'pointer' : '';
   },
   _onUp(e) {
     if (!this._down || !this._vp) return;
     const dx = e.clientX - this._down.x, dy = e.clientY - this._down.y;
     this._down = null;
-    if (dx * dx + dy * dy > 49) return;        // 拖拽（旋转/平移）→ 不是点击
+    if (dx * dx + dy * dy > 49) return;
     this.raycaster.setFromCamera(this._ndc(e), this.ctx.camera);
     const hits = this.raycaster.intersectObjects(this.scene.children, true);
     for (const h of hits) {
       const m = this._pickMeta(h.object);
       if (!m) continue;
-      if (m.meter) { this.activeMeter = m.meter; this._syncRings(); return; }
-      if (m.pickTarget) { this._tap(m.pickTarget); return; }
-    }
-  },
-  /* 探针/程序化入口：id ∈ A/B/C/a/b/c/L1/L2/batt */
-  tapPoint(id) {
-    const kind = { A: 'amp-point', B: 'amp-point', C: 'amp-point', a: 'amp-point', b: 'amp-point', c: 'amp-point', L1: 'vol-point', L2: 'vol-point', batt: 'vol-point' }[id];
-    if (!kind) return;
-    this._tap({ kind, id });
-  },
-  selectMeter(m) { this.activeMeter = (m === 'vol') ? 'vol' : 'amp'; this._syncRings(); },
-  _tap(pt) {
-    const v = this._vals();
-    if (!v.on) {                                  // 断路
-      this.ctx.toast('电路已断开，请先闭合开关');
-      if (pt.kind === 'amp-point') { this.ampError = false; this.ampTargetId = pt.id; this.ampReading = 0; this.ampPoints.add(pt.id); }
-      else { this.volError = false; this.volTargetId = pt.id; this.volReading = pt.id === 'batt' ? v.U : 0; this.volPoints.add(pt.id); }
-      this._connectProbe(pt); this._refreshMeters(v); this._syncNeedles(); this._renderValLabels(); this._refreshConcl(v);
-      return;
-    }
-    if (pt.kind === 'amp-point') {
-      if (this.activeMeter === 'vol') {           // 误接：电压表串进导线
-        this.volError = true; this.volTargetId = null; this.volReading = '—';
-        this.volPoints.delete(pt.id);
-        this.ctx.toast('错误：电压表应与被测元件并联，不能串联进电路！');
-        this.probes.vol.forEach(l => l.visible = false);
-        this._flashWires(); this._refreshConcl(v);
-        return;
+      if (m.meter) { this.selectMeter(m.meter); return; }
+      if (m.pickTarget) {
+        if (m.pickTarget.kind === 'switch') { this.toggleSwitch(); return; }
+        if (m.pickTarget.kind === 'slot') { this.placeMeter(this.activeMeter, m.pickTarget.id); return; }
       }
-      this.ampError = false; this.ampTargetId = pt.id; this.ampReading = this._ampVal(pt.id, v);
-      this.ampPoints.add(pt.id);
-      this._connectProbe(pt); this._refreshMeters(v); this._syncNeedles(); this._renderValLabels(); this._refreshConcl(v);
-      return;
     }
-    // vol-point
-    if (this.activeMeter === 'amp') {             // 误接：电流表并到元件上
-      this.ampError = true; this.ampTargetId = null; this.ampReading = '—';
-      this.ampPoints.delete(pt.id);
-      this.ctx.toast('错误：电流表应串联接入被测电路，不能并联在元件两端！');
-      this.probes.amp.forEach(l => l.visible = false);
-      this._dimBulbs(); this._refreshConcl(v);
-      return;
+  },
+  /* 程序 API：点测量点 = 当前选中的表放到该槽 */
+  tapPoint(id) { return this.placeMeter(this.activeMeter, id); },
+  selectMeter(m) { this.activeMeter = (m === 'vol') ? 'vol' : 'amp'; this._syncRings(); },
+  /* ---------- 换位 ---------- */
+  placeMeter(m, slot) {
+    if (!this._validSlots().includes(slot)) return false;
+    const other = m === 'amp' ? 'vol' : 'amp';
+    const cur = m === 'amp' ? this.ampSlot : this.volSlot;
+    const otherSlot = other === 'amp' ? this.ampSlot : this.volSlot;
+    if (otherSlot === slot && slot !== cur) {           // 目标槽被另一只表占用 → 两表互换
+      if (other === 'amp') this.ampSlot = cur; else this.volSlot = cur;
     }
-    this.volError = false; this.volTargetId = pt.id; this.volReading = this._volVal(pt.id, v);
-    this.volPoints.add(pt.id);
-    this._connectProbe(pt); this._refreshMeters(v); this._syncNeedles(); this._renderValLabels(); this._refreshConcl(v);
+    if (m === 'amp') this.ampSlot = slot; else this.volSlot = slot;
+    this._applySlotState('amp', m !== 'amp');
+    this._applySlotState('vol', m !== 'vol');
+    const v = this._vals();
+    this._refreshMeters(v); this._syncNeedles(); this._renderValLabels();
+    this._layoutMeters();
+    this._refreshConcl(v);
+    if (this.ampError || this.volError) {
+      if (this.ampError) this._dimBulbs(); else this._flashWires();
+    }
+    return true;
+  },
+  _applySlotState(which, quiet) {
+    const slot = which === 'amp' ? this.ampSlot : this.volSlot;
+    const kind = this._slotKind(slot);
+    const expect = which === 'amp' ? 'current' : 'voltage';
+    const err = slot != null && kind !== expect;
+    if (which === 'amp') { this.ampError = err; if (err) this.ampPoints.delete(slot); else if (slot) this.ampPoints.add(slot); }
+    else { this.volError = err; if (err) this.volPoints.delete(slot); else if (slot) this.volPoints.add(slot); }
+    if (err && !quiet) {
+      this.ctx.toast(which === 'amp'
+        ? '错误：电流表应串联接入被测电路，不能并联在元件两端！'
+        : '错误：电压表应与被测元件并联，不能串联进电路！');
+    }
+  },
+  getMeterState() {
+    const mk = (which) => {
+      const slot = which === 'amp' ? this.ampSlot : this.volSlot;
+      const ends = which === 'amp' ? this.ampLeadEnds : this.volLeadEnds;
+      return {
+        slot: slot,
+        reading: which === 'amp' ? this.ampReading : this.volReading,
+        error: which === 'amp' ? this.ampError : this.volError,
+        leadEnds: ends ? [ends[0].clone(), ends[1].clone()] : [],
+      };
+    };
+    return { amp: mk('amp'), vol: mk('vol') };
+  },
+  /* ---------- 仪表摆位与引线 ---------- */
+  _slotPos(slot) {
+    if (!slot) return null;
+    const c = this._slotC(slot);
+    if (c) return { bodyX: c.cx, bodyY: c.y + 0.02, bodyZ: 0.22, ends: [new THREE.Vector3(c.cx - 0.55, c.y, 0.1), new THREE.Vector3(c.cx + 0.55, c.y, 0.1)] };
+    if (slot === 'batt') {
+      const b = this.battG.position;
+      return { bodyX: b.x, bodyY: 2.35, bodyZ: 0.22, ends: [new THREE.Vector3(b.x - 0.46, 1.54, 0.1), new THREE.Vector3(b.x + 0.46, 1.54, 0.1)] };
+    }
+    const g = slot === 'L1' ? this.bulb1G : this.bulb2G;
+    return { bodyX: g.position.x, bodyY: g.position.y + 0.85, bodyZ: 0.22, ends: [new THREE.Vector3(g.position.x - 0.40, g.position.y + 0.06, 0.1), new THREE.Vector3(g.position.x + 0.40, g.position.y + 0.06, 0.1)] };
+  },
+  _layoutMeters() {
+    ['amp', 'vol'].forEach(which => {
+      const g = which === 'amp' ? this.meterG : this.volMeterG;
+      const label = which === 'amp' ? this.ampVal : this.volVal;
+      const slot = which === 'amp' ? this.ampSlot : this.volSlot;
+      const sp = this._slotPos(slot);
+      if (!sp) { g.visible = false; label.visible = false; return; }
+      g.visible = true; label.visible = true;
+      g.position.set(sp.bodyX, sp.bodyY, sp.bodyZ);
+      const pair = this.probes[which];
+      const postA = new THREE.Vector3(sp.bodyX - 0.198, sp.bodyY - 0.30, sp.bodyZ + 0.09);
+      const postB = new THREE.Vector3(sp.bodyX + 0.198, sp.bodyY - 0.30, sp.bodyZ + 0.09);
+      setFatLine(pair[0], [postA, sp.ends[0]]);
+      setFatLine(pair[1], [postB, sp.ends[1]]);
+      pair.forEach(l => { l.visible = true; });
+      if (which === 'amp') this.ampLeadEnds = sp.ends; else this.volLeadEnds = sp.ends;
+      if (which === 'vol') label.position.set(sp.bodyX + 0.90, sp.bodyY + 0.06, 0.3);  // 电压表读数放表体右侧，避开灯泡光晕与表盘
+      else label.position.set(sp.bodyX, sp.bodyY - 0.47, 0.3);                        // 电流表读数保持表体下方
+    });
+    this._syncRings();
   },
   _syncRings() {
     if (this.ampRing) this.ampRing.visible = this.activeMeter === 'amp';
     if (this.volRing) this.volRing.visible = this.activeMeter === 'vol';
   },
-  _pointPos(id) {
-    if (id === 'L1') return this.bulb1G.position.clone();
-    if (id === 'L2') return this.bulb2G.position.clone();
-    if (id === 'batt') return this.battG.position.clone();
-    const p = this.points.find(p => p.userData.pid === id);
-    return p ? p.position.clone() : new THREE.Vector3(0, 0, 0);
-  },
-  /* 从仪表底部两个接线柱拉两条表笔线到测量点 */
-  _connectProbe(pt) {
-    const which = pt.kind === 'amp-point' ? 'amp' : 'vol';
-    const base = which === 'amp' ? this.meterG.position : this.volMeterG.position;
-    const a = new THREE.Vector3(base.x - 0.198, base.y - 0.30, base.z + 0.09);
-    const b = new THREE.Vector3(base.x + 0.198, base.y - 0.30, base.z + 0.09);
-    const p = this._pointPos(pt.id);
-    const t = new THREE.Vector3(p.x, p.y, pt.kind === 'amp-point' ? Math.max(p.z, 0.12) : p.z);
-    const pair = this.probes[which];
-    setFatLine(pair[0], [a, t]); setFatLine(pair[1], [b, t]);
-    pair.forEach(l => { l.visible = true; });
-  },
   /* ---------- 读数刷新 ---------- */
   _refreshMeters(v) {
-    if (!v.on) {
-      this.ampReading = this.ampError ? '—' : (this.ampTargetId ? 0 : null);
-      this.volReading = this.volError ? '—' : (this.volTargetId ? (this.volTargetId === 'batt' ? v.U : 0) : null);
-      return;
-    }
-    this.ampReading = this.ampError ? '—' : (this.ampTargetId ? this._ampVal(this.ampTargetId, v) : null);
-    this.volReading = this.volError ? '—' : (this.volTargetId ? this._volVal(this.volTargetId, v) : null);
+    if (this.ampError) this.ampReading = '—';
+    else if (!this.ampSlot) this.ampReading = null;
+    else if (!v.on) this.ampReading = 0;
+    else this.ampReading = this._ampVal(this.ampSlot, v);
+    if (this.volError) this.volReading = '—';
+    else if (!this.volSlot) this.volReading = null;
+    else this.volReading = this._volVal(this.volSlot, v);
   },
   _syncNeedles() {
     const a = Number(this.ampReading);
@@ -266,22 +299,30 @@ const D1 = {
     const u = this.volReading;
     setLabel(this.volVal, '电压表 U = ' + (u == null || u === '—' ? '—' : Number(u).toFixed(2)) + ' V');
   },
-  /* 模式切换后旧测量点失效则清空该表 */
-  _validateTargets(v) {
-    const validAmp = v.par ? ['a', 'b', 'c'] : ['A', 'B', 'C'];
-    if (this.ampTargetId && !validAmp.includes(this.ampTargetId)) { this.ampTargetId = null; this.ampError = false; this.ampReading = null; this.probes.amp.forEach(l => l.visible = false); }
-    // 模式切换后旧拓扑的点不复存在：累积集合同步清（新模式下重新测）
-    const keptAmp = [...this.ampPoints].filter(id => validAmp.includes(id));
-    if (keptAmp.length !== this.ampPoints.size) { this.ampPoints = new Set(keptAmp); }
-    const validVol = ['L1', 'L2', 'batt'];
-    const keptVol = [...this.volPoints].filter(id => validVol.includes(id));
-    if (keptVol.length !== this.volPoints.size) { this.volPoints = new Set(keptVol); }
+  /* ---------- 开关 ---------- */
+  toggleSwitch() {
+    const next = this.p.switch === 'off' ? 'on' : 'off';
+    this.p.switch = next;
+    if (this.ctx && this.ctx.ui && this.ctx.ui.setParamValue) this.ctx.ui.setParamValue('switch', next);
+    this.recompute();
+    return next;
   },
+  /* ---------- 数据记录 ---------- */
+  recordSample() {
+    const v = this._vals();
+    if (!v.on) return { ok: false, msg: '请先闭合开关并正确接入两只表' };
+    if (this.ampError || this.volError || !this.ampSlot || !this.volSlot) return { ok: false, msg: '请先闭合开关并正确接入两只表' };
+    const x = Number(this.volReading), y = Number(this.ampReading);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, msg: '请先闭合开关并正确接入两只表' };
+    this.records.push({ x, y });
+    return { ok: true, x, y };
+  },
+  recordData() { return this.records.map(r => ({ x: r.x, y: r.y })); },
+  clearRecords() { this.records = []; },
   /* ---------- 结论卡 ---------- */
   _refreshConcl(v) {
     const par = v.par;
-    const ampSet = this.ampPoints;
-    const volSet = this.volPoints;
+    const ampSet = this.ampPoints, volSet = this.volPoints;
     const lines = [];
     if (par) {
       if (ampSet.has('a') && ampSet.has('b') && ampSet.has('c')) lines.push('干路电流等于各支路电流之和：I = I1 + I2');
@@ -322,99 +363,203 @@ const D1 = {
     const t = setTimeout(() => { if (this.scene) this.recompute(); }, 600);
     this._timers.push(t);
   },
-  /* ---------- 生命周期（原电子环行保留为过程呈现） ---------- */
-  onParam(k, v) { this.p[k] = v; this.recompute(); },
+  /* ---------- 生命周期 ---------- */
+  onParam(k, v) {
+    this.p[k] = v;
+    if (k === 'mode') {
+      this.ampSlot = (v === 'parallel') ? 'a' : 'A';
+      this.volSlot = 'L1';
+      this.ampPoints = new Set(); this.volPoints = new Set();
+      this.ampError = false; this.volError = false;
+      this.records = [];
+    }
+    this.recompute();
+  },
   recompute() {
     const v = this._vals();
     this.Req = v.Req; this.I = v.I;
     if (this.ctx) this.ctx.emitReadout({ cur: v.I });
-    // 灯泡亮度随电流
     const bright = clamp(v.I * 3.0, 0, 1);
     setBulbGlow(this.bulb1G, bright);
     setBulbGlow(this.bulb2G, bright * 0.85);
     setSwitch(this.switchG, v.on);
-    this._validateTargets(v);
-    // 表读数（随参数实时刷新）与指针
+    this.buildCircuit();
+    this._layoutMeters();
     this._refreshMeters(v);
     this._syncNeedles();
     this._renderValLabels();
-    this.lbl.position.set(0, 4.0, 0);
-    setLabel(this.lbl, (v.par ? '并联' : '串联') + ' R总=' + v.Req.toFixed(1) + 'Ω  I=' + v.I.toFixed(2) + 'A');
-    this.lblI.position.set(3.2, 3.2, 0); setLabel(this.lblI, v.on ? '电流 ' + v.I.toFixed(2) + 'A' : '断路');
-    this.buildCircuit();
-    // 触点重建后再接探笔
-    if (this.ampTargetId) this._connectProbe({ kind: 'amp-point', id: this.ampTargetId });
-    if (this.volTargetId) this._connectProbe({ kind: 'vol-point', id: this.volTargetId });
+    setLabel(this.lbl, (v.par ? '并联电路' : '串联电路') + ' · R总=' + v.Req.toFixed(1) + 'Ω');
     this._refreshConcl(v);
   },
+  /* ---------- 电路图 ---------- */
   buildCircuit() {
     this.wires.forEach(w => { w.geometry.dispose(); this.scene.remove(w); }); this.wires = [];
-    this.elec.forEach(e => this.scene.remove(e)); this.elec = [];
+    this.elec.forEach(e => { if (e.geometry) e.geometry.dispose(); this.scene.remove(e); }); this.elec = [];
     this.points.forEach(p => this.scene.remove(p)); this.points = [];
+    this.parts.forEach(p => this.scene.remove(p)); this.parts = [];
+    this.junctions.forEach(j => this.scene.remove(j)); this.junctions = [];
     const par = this.p.mode === 'parallel';
-    const x0 = -3.2, x1 = 0.9, x2 = 2.0;
-    let path;
-    if (!par) path = [[-3.2, 1.7, 0], [-3.2, 3.2, 0], [x2 + 0.6, 3.2, 0], [x2 + 0.6, 1.2, 0], [-3.2, 1.2, 0]];
-    else path = [[-3.2, 1.7, 0], [-3.2, 3.4, 0], [x2 + 0.6, 3.4, 0], [x2 + 0.6, 1.2, 0], [-3.2, 1.2, 0]];
-    const pts = path.map(a => new THREE.Vector3(a[0], a[1], a[2]));
-    const w = fatLine(pts, WIRE, 3); this.scene.add(w); this.wires.push(w);
-    if (par) {
-      const br = fatLine([new THREE.Vector3(x1, 3.4, 0), new THREE.Vector3(x1, 2.6, 0), new THREE.Vector3(x1, 1.2, 0)], WIRE, 3);
-      this.scene.add(br); this.wires.push(br);
-      this.bulb1G.position.set(x1, 2.5, 0); this.bulb2G.position.set(x2, 2.5, 0);
+    const xL = -2.2, xR = 2.95, yB = 1.0;
+    const yT = par ? 2.95 : 2.65, yM = 1.75;
+    const battX = -1.15, swX = 1.45;
+    const bL = battX - 0.44, bR = battX + 0.44;
+    const sL = swX - 0.22, sR = swX + 0.22;
+    let bulbs;
+    if (!par) bulbs = [{ g: this.bulb1G, x: -0.35 }, { g: this.bulb2G, x: 1.35 }];
+    else bulbs = [{ g: this.bulb1G, x: 0.55 }, { g: this.bulb2G, x: 0.55 }];
+    bulbs[0].g.position.set(bulbs[0].x, yT + 0.01, 0);
+    bulbs[1].g.position.set(bulbs[1].x, (par ? yM : yT) + 0.01, 0);
+    const l1L = bulbs[0].x - 0.20, l1R = bulbs[0].x + 0.20;
+    const l2L = bulbs[1].x - 0.20, l2R = bulbs[1].x + 0.20;
+    const segs = [];
+    const post = (x, y, z) => {
+      const p = cyl(0.03, 0.03, 0.10, MATS.brass()); p.position.set(x, y + 0.05, z);
+      this.parts.push(p); this.scene.add(p);
+    };
+    if (!par) {
+      const A = this._slotC('A'), B = this._slotC('B'), Cc = this._slotC('C');
+      segs.push([[xL, yB], [bL, yB]]);
+      segs.push([[bR, yB], [sL, yB]]);
+      if (this._hasMeter('C')) {
+        segs.push([[sR, yB], [xR, yB], [xR, yT], [Cc.cx + 0.55, yT]]);
+        segs.push([[Cc.cx - 0.55, yT], [l2R, yT]]);
+      } else {
+        segs.push([[sR, yB], [xR, yB], [xR, yT], [l2R, yT]]);
+      }
+      if (this._hasMeter('B')) {
+        segs.push([[l2L, yT], [B.cx - 0.55, yT]]);
+        segs.push([[B.cx + 0.55, yT], [l1R, yT]]);
+      } else segs.push([[l2L, yT], [l1R, yT]]);
+      if (this._hasMeter('A')) {
+        segs.push([[l1L, yT], [A.cx - 0.55, yT]]);
+        segs.push([[A.cx + 0.55, yT], [xL, yT], [xL, yB]]);
+      } else segs.push([[l1L, yT], [xL, yT], [xL, yB]]);
+      post(bL, yB, 0); post(bR, yB, 0); post(sL, yB, 0); post(sR, yB, 0);
+      post(l1L, yT, 0); post(l1R, yT, 0); post(l2L, yT, 0); post(l2R, yT, 0);
+      if (this._hasMeter('A')) { post(A.cx - 0.55, yT, 0); post(A.cx + 0.55, yT, 0); }
+      if (this._hasMeter('B')) { post(B.cx - 0.55, yT, 0); post(B.cx + 0.55, yT, 0); }
+      if (this._hasMeter('C')) { post(Cc.cx - 0.55, yT, 0); post(Cc.cx + 0.55, yT, 0); }
     } else {
-      this.bulb1G.position.set(-0.6, 3.1, 0); this.bulb2G.position.set(x2 - 0.6, 3.1, 0);
+      const a = this._slotC('a'), b = this._slotC('b'), c = this._slotC('c');
+      segs.push([[xL, yB], [bL, yB]]);
+      segs.push([[bR, yB], [sL, yB]]);
+      if (this._hasMeter('a')) {
+        segs.push([[sR, yB], [a.cx - 0.55, yB]]);
+        segs.push([[a.cx + 0.55, yB], [xR, yB]]);
+      } else segs.push([[sR, yB], [xR, yB]]);
+      segs.push([[xL, yB], [xL, yT]]);
+      segs.push([[xR, yB], [xR, yT]]);
+      // 上支路（L1）
+      if (this._hasMeter('b')) {
+        segs.push([[xL, yT], [b.cx - 0.55, yT]]);
+        segs.push([[b.cx + 0.55, yT], [l1L, yT]]);
+      } else segs.push([[xL, yT], [l1L, yT]]);
+      segs.push([[l1R, yT], [xR, yT]]);
+      // 下支路（L2）
+      if (this._hasMeter('c')) {
+        segs.push([[xL, yM], [c.cx - 0.55, yM]]);
+        segs.push([[c.cx + 0.55, yM], [l2L, yM]]);
+      } else segs.push([[xL, yM], [l2L, yM]]);
+      segs.push([[l2R, yM], [xR, yM]]);
+      post(bL, yB, 0); post(bR, yB, 0); post(sL, yB, 0); post(sR, yB, 0);
+      post(l1L, yT, 0); post(l1R, yT, 0); post(l2L, yM, 0); post(l2R, yM, 0);
+      if (this._hasMeter('a')) { post(a.cx - 0.55, yB, 0); post(a.cx + 0.55, yB, 0); }
+      if (this._hasMeter('b')) { post(b.cx - 0.55, yT, 0); post(b.cx + 0.55, yT, 0); }
+      if (this._hasMeter('c')) { post(c.cx - 0.55, yM, 0); post(c.cx + 0.55, yM, 0); }
+      // 分支节点实心圆点
+      [[xL, yM], [xR, yM]].forEach(([jx, jy]) => {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), MATS.brass());
+        dot.position.set(jx, jy, 0.02); this.junctions.push(dot); this.scene.add(dot);
+      });
     }
-    // 电流测量触点（导线上的青色小球，点选=电流表接入）
-    if (!par) { this._addPoint('A', -1.9, 3.2, 0); this._addPoint('B', 0.4, 3.2, 0); this._addPoint('C', 2.15, 3.2, 0); }
-    else { this._addPoint('a', -3.2, 2.9, 0); this._addPoint('b', x1, 3.0, 0); this._addPoint('c', x2, 3.0, 0); }
-    // 电流粒子沿折线
-    this.curve = new THREE.CatmullRomCurve3(pts, true);
-    const n = 40;
+    segs.forEach(pts => {
+      const w = fatLine(this._roundedPath(pts, 0.12), WIRE, 3);
+      this.scene.add(w); this.wires.push(w);
+    });
+    // 空槽位的测量点标记（青绿色小球 + 环）
+    const slots = par ? ['a', 'b', 'c'] : ['A', 'B', 'C'];
+    slots.forEach(id => {
+      if (this._hasMeter(id)) return;
+      const c = this._slotC(id);
+      const g = new THREE.Group();
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 14), this.pointBallM);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.10, 0.011, 8, 24), this.pointRingM);
+      ring.rotation.x = Math.PI / 2;
+      g.add(ball, ring);
+      g.position.set(c.cx, c.y, 0.16);
+      g.name = 'd1-point-' + id;
+      g.userData.pid = id;
+      g.userData.pickTarget = { kind: 'slot', id };
+      this.scene.add(g); this.points.push(g);
+    });
+    // 电子粒子沿外圈（直线段折线，不能用 CatmullRom——会把矩形拉成椭圆）
+    this._loopPoly = [[xL, yB], [xR, yB], [xR, yT], [xL, yT]].map(a => new THREE.Vector3(a[0], a[1], 0));
+    this._loopLen = 0;
+    for (let i = 0; i < this._loopPoly.length; i++) this._loopLen += this._loopPoly[i].distanceTo(this._loopPoly[(i + 1) % this._loopPoly.length]);
+    const n = 30;
     this.elec = [electrons(n)];
     this.elec.forEach(e => this.scene.add(e));
     this.phases = new Array(n).fill(0).map((_, i) => i / n);
   },
-  _addPoint(id, x, y, z) {
-    const g = new THREE.Group();
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 14), this.pointBallM);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 8, 24), this.pointRingM);
-    ring.rotation.x = Math.PI / 2;
-    g.add(ball, ring);
-    g.position.set(x, y, z + 0.12);
-    g.name = 'd1-point-' + id;
-    g.userData.pid = id;
-    g.userData.pickTarget = { kind: 'amp-point', id };
-    this.scene.add(g); this.points.push(g);
+  _roundedPath(pts, r) {
+    const P = pts.map(p => new THREE.Vector2(p[0], p[1]));
+    const out = [P[0].clone()];
+    const seg = 6;
+    for (let i = 1; i < P.length - 1; i++) {
+      const prev = P[i - 1], cur = P[i], next = P[i + 1];
+      const d1 = prev.clone().sub(cur); const l1 = d1.length(); if (l1 < 1e-6) continue; d1.normalize();
+      const d2 = next.clone().sub(cur); const l2 = d2.length(); if (l2 < 1e-6) continue; d2.normalize();
+      const dd = Math.min(r, l1 * 0.45, l2 * 0.45);
+      const a = cur.clone().add(d1.clone().multiplyScalar(dd));
+      const b = cur.clone().add(d2.clone().multiplyScalar(dd));
+      for (let k = 0; k <= seg; k++) {
+        const t = k / seg;
+        const q = a.clone().multiplyScalar((1 - t) * (1 - t))
+          .add(cur.clone().multiplyScalar(2 * (1 - t) * t))
+          .add(b.clone().multiplyScalar(t * t));
+        out.push(q);
+      }
+    }
+    out.push(P[P.length - 1].clone());
+    return out.map(v => new THREE.Vector3(v.x, v.y, 0));
+  },
+  _loopAt(u) {
+    const P = this._loopPoly; if (!P || !P.length || !this._loopLen) return new THREE.Vector3();
+    let d = ((u % 1) + 1) % 1 * this._loopLen;
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      const L = a.distanceTo(b);
+      if (d <= L) return a.clone().lerp(b, d / L);
+      d -= L;
+    }
+    return P[0].clone();
   },
   step(dt) {
-    if (!this.elec.length || !this.curve) return;
+    if (!this.elec.length || !this._loopPoly) return;
     if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
     this.renderAt(this.t || 0);
   },
-  // 时间轴：电子沿导线环行。整段时间走 k 圈，k 随电流变（电流越大跑得越快），
-  // 断路时 I=0 → 电子不动，但时间轴仍在（这是参数状态，不是「没有这个实验过程」）。
   seek(t) {
-    if (!this.elec.length || !this.curve) return;
+    if (!this.elec.length || !this._loopPoly) return;
     this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
     this.renderAt(this.t);
   },
   renderAt(t) {
-    if (!this.elec.length || !this.curve) return;
+    if (!this.elec.length || !this._loopPoly) return;
     const I = this.I || 0;
-    const k = clamp(I / 0.15, 0.2, 3);                 // 整段时间绕行的圈数
+    const k = clamp(I / 0.15, 0.2, 3);
     const inst = this.elec[0];
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(0.42, 0.42, 0.42);
     for (let i = 0; i < this.phases.length; i++) {
       const p = (this.phases[i] + (t / (this.duration || 4)) * k) % 1;
-      const pos = this.curve.getPointAt(p);
+      const pos = this._loopAt(p); pos.z = -0.03;
       m.compose(pos, q, s);
       inst.setMatrixAt(i, m);
     }
     inst.instanceMatrix.needsUpdate = true;
-    inst.visible = I > 0.001;
+    inst.visible = I > 0.001 && this.p.switch !== 'off';
   },
-  reset() { this.t = 0; this.recompute(); if (this.renderAt) this.renderAt(0); },
+  reset() { this.t = 0; this.records = []; this.recompute(); if (this.renderAt) this.renderAt(0); },
   dispose() {
     this._timers.forEach(id => { try { clearInterval(id); } catch (e) {} try { clearTimeout(id); } catch (e) {} });
     this._timers = [];
@@ -428,6 +573,7 @@ const D1 = {
     this._vp = null;
   },
 };
+
 
 /* ===================== D2 电阻大小因素 ===================== */
 const D2 = {

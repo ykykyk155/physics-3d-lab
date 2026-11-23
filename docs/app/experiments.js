@@ -25,7 +25,7 @@ const CAM = {
   'C1-sound-medium': { p: [0, 3.2, 7.0], t: [0, 1.8, 0] },
   'C2-sound-chars': { p: [0, 2.0, 8.29], t: [0, 2.0, 0] },   // 拉远 12%：示波器面板 6 单位宽
   'C3-noise-control': { p: [0, 3.06, 9.89], t: [0, 1.1, 0] },   // 拉远 15%：反射墙在 x=4，别落进统计面板
-  'D1-series-parallel': { p: [0, 2.1, 6.2], t: [0, 1.55, 0] },
+  'D1-series-parallel': { p: [0, 2.4, 7.0], t: [0, 1.8, 0] },   // 双表+完整电路图取景：上下留出结论卡与电压表
   'D2-resistance-factor': { p: [0, 2.2, 5.8], t: [0.3, 1.3, 0] },
   'D3-rheostat-lamp': { p: [0, 2.07, 5.82], t: [0, 1.4, 0] },   // 拉远 12%
   'D4-ohm-law': { p: [0.3, 2.6, 8.6], t: [0.2, 1.5, 0] },
@@ -136,6 +136,13 @@ for (const id in RAW) {
     // 三段平均速度数据表接口（A1）：返回完整分段数据，供前端数据表直接消费；
     // 不受 readouts 6 行上限限制。字段见 exp/mechanics.js A1.segments()。
     segments() { if (typeof impl.segments === 'function') return impl.segments(); return null; },
+    // D1 双表点选换位 / 数据记录程序接口（其他实验返回安全默认值，外壳可统一调用）
+    placeMeter(m, slot) { return typeof impl.placeMeter === 'function' ? impl.placeMeter(m, slot) : false; },
+    getMeterState() { return typeof impl.getMeterState === 'function' ? impl.getMeterState() : null; },
+    toggleSwitch() { return typeof impl.toggleSwitch === 'function' ? impl.toggleSwitch() : null; },
+    recordSample() { return typeof impl.recordSample === 'function' ? impl.recordSample() : { ok: false, msg: '本实验不支持数据记录' }; },
+    recordData() { return typeof impl.recordData === 'function' ? impl.recordData() : []; },
+    clearRecords() { if (typeof impl.clearRecords === 'function') impl.clearRecords(); },
     // 声音：audioAt(t) → null（不出声）或 { mode:'tone'|'noise'|'pulse', gain, freq?, wave?, interval?, filterHz? }
     // 外壳每帧都会调，所以这里只做校验和兜底：gain 非法 / 非正一律回 null（当成静音），
     // 频率、间隔、截止频率都钳到能用的范围。不做缓存、不产生副作用。

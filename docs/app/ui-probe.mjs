@@ -327,7 +327,7 @@ md += `- 表实一致门禁（有 duration 必带 durationIsSnapshot 或 duratio
 await page.evaluate(i => window.__LAB.switch(i), ids[0]);
 await sleep(900);
 const cam0 = await page.evaluate(() => { const t = window.__LAB.controls().target; return { x: t.x, y: t.y, z: t.z }; });
-const cbox = await page.evaluate(() => { const r = document.querySelector('canvas').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+const cbox = await page.evaluate(() => { const r = document.querySelector('#viewport canvas').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });  // D1 起面板内有数据记录 canvas，必须取视口内的 WebGL 画布
 await page.mouse.move(cbox.x, cbox.y);
 await page.mouse.down({ button: 'right' });
 for (let i = 1; i <= 12; i++) await page.mouse.move(cbox.x + 12 * i, cbox.y - 7 * i);
