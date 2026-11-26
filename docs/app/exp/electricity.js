@@ -205,6 +205,7 @@ const D1 = {
     if (m === 'amp') this.ampSlot = slot; else this.volSlot = slot;
     this._applySlotState('amp', m !== 'amp');
     this._applySlotState('vol', m !== 'vol');
+    this.buildCircuit();                                 // 换槽后重建导线断口/接线柱/空槽触点，断口跟随仪表
     const v = this._vals();
     this._refreshMeters(v); this._syncNeedles(); this._renderValLabels();
     this._layoutMeters();
@@ -427,12 +428,12 @@ const D1 = {
         segs.push([[sR, yB], [xR, yB], [xR, yT], [l2R, yT]]);
       }
       if (this._hasMeter('B')) {
-        segs.push([[l2L, yT], [B.cx - 0.55, yT]]);
-        segs.push([[B.cx + 0.55, yT], [l1R, yT]]);
+        segs.push([[l2L, yT], [B.cx + 0.55, yT]]);
+        segs.push([[B.cx - 0.55, yT], [l1R, yT]]);
       } else segs.push([[l2L, yT], [l1R, yT]]);
       if (this._hasMeter('A')) {
-        segs.push([[l1L, yT], [A.cx - 0.55, yT]]);
-        segs.push([[A.cx + 0.55, yT], [xL, yT], [xL, yB]]);
+        segs.push([[l1L, yT], [A.cx + 0.55, yT]]);
+        segs.push([[A.cx - 0.55, yT], [xL, yT], [xL, yB]]);
       } else segs.push([[l1L, yT], [xL, yT], [xL, yB]]);
       post(bL, yB, 0); post(bR, yB, 0); post(sL, yB, 0); post(sR, yB, 0);
       post(l1L, yT, 0); post(l1R, yT, 0); post(l2L, yT, 0); post(l2R, yT, 0);

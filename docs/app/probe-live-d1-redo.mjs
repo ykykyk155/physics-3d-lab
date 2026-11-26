@@ -1,4 +1,4 @@
-// D1(08) 重做验收：双表常显/换位/双接线/误接/开关/记录表格+描点图/结论/readouts/环境
+// D1(08) 重做验收（线上版，73 项）：双表常显/换位/双接线/误接/开关/记录表格+描点图/结论/readouts/槽口几何/环境
 import fs from "node:fs"; import path from "node:path"; import puppeteer from "puppeteer-core";
 const ROOT = path.resolve(import.meta.dirname);
 const LIVE = "https://ykykyk155.github.io/physics-3d-lab/";
@@ -57,6 +57,27 @@ const toggle = async () => { const r = await pg.evaluate(() => window.__LAB.curr
 const clearToast = () => pg.evaluate(() => { const t = document.querySelector('#toast'); if (t) { t.textContent = ''; t.classList.remove('show'); } });
 const click = async sel => { await pg.evaluate(sel => { const n = document.querySelector(sel); if (n) n.click(); }, sel); await sl(200); };
 const snip = async name => { if (!/mis/.test(name)) await clearToast(); await sl(50); return pg.screenshot({ path: path.join(outDir, name) }); };
+// 读取电路导线线段（Line2 的 instanceStart 每段 6 个 float：x1,y1,z1,x2,y2,z2），统计某槽口是否被导线跨越
+const gapCross = slots => pg.evaluate((slots) => {
+  const e = window.__LAB.current().exp._impl;
+  const segs = [];
+  for (const w of e.wires) {
+    const a = w.geometry && w.geometry.attributes && w.geometry.attributes.instanceStart;
+    if (!a) continue;
+    const d = a.data.array;
+    for (let i = 0; i + 5 < d.length; i += 6) segs.push([d[i], d[i + 1], d[i + 3], d[i + 4]]);
+  }
+  const out = {};
+  for (const s of slots) {
+    const c = e._slotC(s); if (!c) continue;
+    const L = c.cx - 0.55, R = c.cx + 0.55, y = c.y;
+    out[s] = segs.filter(([x1, y1, x2, y2]) =>
+      Math.abs(y1 - y) < 0.03 && Math.abs(y2 - y) < 0.03 &&
+      Math.min(x1, x2) < R - 0.005 && Math.max(x1, x2) > L + 0.005
+    ).length;
+  }
+  return out;
+}, slots);
 
 // ===== 1) 默认串联：双表常显 =====
 let s = await st();
@@ -72,6 +93,9 @@ ok("默认 leadEnds 距离>0.3 (amp)", s.ampLeadDist > 0.3, `d=${s.ampLeadDist}`
 ok("默认 leadEnds 距离>0.3 (vol)", s.volLeadDist > 0.3, `d=${s.volLeadDist}`);
 ok("数据记录 section 显示", s.recordSectionDisplay !== 'none' && s.recordSectionDisplay !== 'missing', `display=${s.recordSectionDisplay}`);
 ok("空表格显示占位提示", s.recRowCount === 0 && s.recEmptyDisplay !== 'none' && s.recEmptyDisplay !== 'missing', `rows=${s.recRowCount} emptyDisplay=${s.recEmptyDisplay}`);
+let g = await gapCross(['A', 'B', 'C']);
+ok("默认 A 槽断口真实断开", g.A === 0, JSON.stringify(g));
+ok("默认 B 槽未占用（导线连续）", g.B > 0, JSON.stringify(g));
 await snip("d1r-default-series.png");
 
 // ===== 2) 电压 6V =====
@@ -79,6 +103,14 @@ await setU(6); s = await st();
 ok("6V → 0.20A", near(s.ampReading, 0.20), `amp=${s.ampReading}`);
 ok("6V → 2.00V", near(s.volReading, 2.00), `vol=${s.volReading}`);
 await setU(3);
+
+// ===== 2b) R1/R2 参数变化（读数必须跟随） =====
+await set('r1', 20); await set('r2', 10); s = await st();
+ok("R1=20/R2=10 → 0.10A", near(s.ampReading, 0.10), `amp=${s.ampReading}`);
+ok("R1=20/R2=10 → U1=2.00V", near(s.volReading, 2.00), `vol=${s.volReading}`);
+await set('r1', 5); await set('r2', 25); s = await st();
+ok("R1=5/R2=25 → U1=0.50V", near(s.volReading, 0.50), `vol=${s.volReading}`);
+await set('r1', 10); await set('r2', 20);
 
 // ===== 3) 开关点击（API 同源）+ 参数同步 =====
 await toggle(); s = await st();
@@ -94,9 +126,15 @@ ok("恢复 → store switch=on", s.switchParam === 'on', `switchParam=${s.switch
 await place('amp', 'B'); s = await st();
 ok("amp 换到 B → 0.10A", near(s.ampReading, 0.10), `amp=${s.ampReading} slot=${s.ampSlot}`);
 ok("B leadEnds>0.3", s.ampLeadDist > 0.3, `d=${s.ampLeadDist}`);
+g = await gapCross(['A', 'B', 'C']);
+ok("换到 B → B 槽断口真实断开", g.B === 0, JSON.stringify(g));
+ok("换到 B → A 槽导线恢复连续", g.A > 0, JSON.stringify(g));
 await place('amp', 'C'); s = await st();
 ok("amp 换到 C → 0.10A", near(s.ampReading, 0.10), `amp=${s.ampReading} slot=${s.ampSlot}`);
 ok("C leadEnds>0.3", s.ampLeadDist > 0.3, `d=${s.ampLeadDist}`);
+g = await gapCross(['A', 'B', 'C']);
+ok("换到 C → C 槽断口真实断开", g.C === 0, JSON.stringify(g));
+ok("换到 C → B 槽导线恢复连续", g.B > 0, JSON.stringify(g));
 
 // ===== 5) 电压表换位 L2 / batt =====
 await place('vol', 'L2'); s = await st();
@@ -113,6 +151,11 @@ await place('amp', 'L1'); s = await st();
 ok("误接 amp→L1 toast 含「电流表应串联接入被测电路」", /电流表应串联接入被测电路/.test(s.toast || ''), `toast=${s.toast}`);
 ok("误接 amp→L1 读数 —", s.ampReading === '—' || s.ampReading === '-', `amp=${s.ampReading}`);
 await snip("d1r-mis-amp.png");
+// 误接时记录必须被拒（规格 §6.1）
+const recBefore = s.records ? s.records.length : 0;
+await clearToast(); await click('#recBtn'); s = await st();
+ok("误接时记录被拒 toast", /请先闭合开关并正确接入两只表/.test(s.toast || ''), `toast=${s.toast}`);
+ok("误接时记录不增加", (s.records ? s.records.length : 0) === recBefore, `before=${recBefore} now=${s.records && s.records.length}`);
 // 恢复正确接线
 await place('vol', 'L1'); await place('amp', 'A'); s = await st();
 ok("恢复正确接线 0.10A/1.00V", near(s.ampReading, 0.10) && near(s.volReading, 1.00) && !s.ampError && !s.volError, `${s.ampReading}/${s.volReading} err=${s.ampError}/${s.volError}`);
@@ -155,10 +198,14 @@ ok("并联默认 0.45A", near(s.ampReading, 0.45), `amp=${s.ampReading} slot=${s
 ok("并联默认 3.00V", near(s.volReading, 3.00), `vol=${s.volReading} slot=${s.volSlot}`);
 ok("并联顶栏 R总=6.7Ω", /R总=6\.7Ω/.test(s.lbl || ''), `lbl=${s.lbl}`);
 await snip("d1r-default-parallel.png");
+g = await gapCross(['a', 'b', 'c']);
+ok("并联默认 a 槽断口真实断开", g.a === 0, JSON.stringify(g));
 for (const [slot, want] of [['a', 0.45], ['b', 0.30], ['c', 0.15]]) {
   await place('amp', slot); s = await st();
   ok(`并联 amp ${slot} → ${want}A`, near(s.ampReading, want, 1e-6), `amp=${s.ampReading} slot=${s.ampSlot}`);
 }
+g = await gapCross(['a', 'b', 'c']);
+ok("并联 amp 换到 c → c 槽断口真实断开且 a 恢复连续", g.c === 0 && g.a > 0, JSON.stringify(g));
 ok("并联结论含 I = I1 + I2", /I = I1 \+ I2/.test(s.concl || ''), `concl=${s.concl}`);
 await snip("d1r-parallel-amp3.png");
 await place('vol', 'L2'); s = await st();
@@ -181,6 +228,16 @@ await snip("d1r-record-chart.png");
 await click('#recClearBtn'); s = await st();
 ok("清空 → 0 条", Array.isArray(s.records) && s.records.length === 0, `len=${s.records && s.records.length}`);
 ok("清空 → 表格回到占位提示", s.recRowCount === 0 && s.recEmptyDisplay !== 'none', `rows=${s.recRowCount} emptyDisplay=${s.recEmptyDisplay}`);
+// 模式切换清空记录（规格 §6.2）
+await setU(3); await click('#recBtn'); s = await st();
+ok("模式切换前记录 1 条", Array.isArray(s.records) && s.records.length === 1, `len=${s.records && s.records.length}`);
+await set('mode', 'parallel'); s = await st();
+ok("模式切换清空记录", Array.isArray(s.records) && s.records.length === 0 && s.recRowCount === 0, `len=${s.records && s.records.length} rows=${s.recRowCount}`);
+await set('mode', 'series');
+// 底部「重置」清空记录（规格 §6.2）
+await setU(3); await click('#recBtn'); await sl(100);
+await pg.evaluate(() => window.__LAB.reset()); await sl(900); s = await st();
+ok("重置清空记录", Array.isArray(s.records) && s.records.length === 0, `len=${s.records && s.records.length}`);
 // 断路时记录被拒
 await toggle(); await clearToast(); await click('#recBtn'); s = await st();
 ok("断路记录 → toast 含「请先闭合开关并正确接入两只表」", /请先闭合开关并正确接入两只表/.test(s.toast || ''), `toast=${s.toast}`);
@@ -206,4 +263,4 @@ ok("视口 WebGL canvas 存在", env.vpCanvas && env.vpW > 0, JSON.stringify(env
 ok("0 pageerror / console.error", errs.length === 0, errs.join(' | '));
 console.log(checks.join('\n'));
 console.log('SUMMARY', checks.filter(x => x.includes('FAIL')).length === 0 ? 'ALL PASS' : 'HAS FAIL', checks.length);
-await b.close();
+await b.close(); 
