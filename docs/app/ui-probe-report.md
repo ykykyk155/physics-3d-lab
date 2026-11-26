@@ -1,6 +1,6 @@
 # UI→引擎通路探针报告
 
-时间：2026-11-26T10:06:06.085Z
+时间：2026-11-26T12:21:10.117Z
 方法：包裹每个实验的 exp.onParam 计数；滑杆用原生 input 事件、枚举用真实点击驱动；每控件触发后等 2 帧再读计数。
 
 | 实验 | 控件 | 类型 | onParam 送达 | 判定 |
@@ -81,15 +81,17 @@
 | D1-series-parallel | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | D1-series-parallel | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 1×（期望 1×） | ✅ |
 | D1-series-parallel | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
-| D2-resistance-factor | len | number | 1（store=100） | ✅ |
-| D2-resistance-factor | area | number | 1（store=4） | ✅ |
-| D2-resistance-factor | mat | enum | 1（store=1.1） | ✅ |
-| D2-resistance-factor | temp | number | 1（store=100） | ✅ |
-| D2-resistance-factor | strands | number | 1（store=1） | ✅ |
-| D2-resistance-factor | zeroKind=static | 参数极值下恒 0 | | ✅ |
-| D2-resistance-factor | 统计面板 | readouts() | 5/5 项渲染一致、无NaN | ✅ |
+| D2-resistance-factor | len | number | 1（store=10） | ✅ |
+| D2-resistance-factor | area | number | 1（store=0.5） | ✅ |
+| D2-resistance-factor | mat | enum | 1（store=6） | ✅ |
+| D2-resistance-factor | temp | number | 1（store=0） | ✅ |
+| D2-resistance-factor | strands | number | 1（store=4） | ✅ |
+| D2-resistance-factor | switch | enum | 1（store=off） | ✅ |
+| D2-resistance-factor | duration 快照校验 | getter | actual=4 vs 快照 4（±10%） | ✅ |
+| D2-resistance-factor | seek 拖动一致性 | 1.48→2.92→1.48 | simTime 回位=true、无NaN=true | ✅ |
+| D2-resistance-factor | 统计面板 | readouts() | 6/6 项渲染一致、无NaN | ✅ |
 | D2-resistance-factor | 速度六档 | playbar | 档位[0.25×,0.5×,1×,2×,4×,8×] 高亮 1×（期望 1×） | ✅ |
-| D2-resistance-factor | 表实门禁 | duration | 有时长=false snap=false kind=static | ✅ |
+| D2-resistance-factor | 表实门禁 | duration | 有时长=true snap=true kind=— | ✅ |
 | D3-rheostat-lamp | wiper | number | 1（store=100） | ✅ |
 | D3-rheostat-lamp | rating | enum | 1（store=20） | ✅ |
 | D3-rheostat-lamp | voltage | number | 1（store=6） | ✅ |
@@ -242,11 +244,11 @@
 
 ## 结论
 
-- 控件总数 115，onParam 送达 115。**UI→引擎通路完好：所有控件都能把改动送进 onParam。**画面不动的问题出在实验侧 onParam 实现。
-- duration 快照校验（durationIsSnapshot 场景）：14/14 通过。getter 与 JSON 快照一致，无脱节。
+- 控件总数 116，onParam 送达 116。**UI→引擎通路完好：所有控件都能把改动送进 onParam。**画面不动的问题出在实验侧 onParam 实现。
+- duration 快照校验（durationIsSnapshot 场景）：15/15 通过。getter 与 JSON 快照一致，无脱节。
 - 无界时长断言（duration=Infinity 场景）：0/0 通过。（尚无场景声明 ∞）
-- seek 拖动一致性（验收第 9 条，有 seek 且 duration>0 的场景）：13/13 通过。
-- durationZeroKind 双类断言：static（任何参数下恒 0）11/11；branch（默认与触发参数下 0↔非 0）3/3。两类分开统计，断言不同。
+- seek 拖动一致性（验收第 9 条，有 seek 且 duration>0 的场景）：14/14 通过。
+- durationZeroKind 双类断言：static（任何参数下恒 0）10/10；branch（默认与触发参数下 0↔非 0）3/3。两类分开统计，断言不同。
 - branch 置灰文案取 JSON zeroHint：3/3 通过。
 - 统计面板收起/展开：默认展开 → 点击收起 → 再点恢复，✅。
 - 统计面板（exp.readouts() → 100ms 渲染）：25/25 通过。

@@ -245,19 +245,20 @@
       "dataRecord": { "xLabel": "电压 U", "xUnit": "V", "yLabel": "电流 I", "yUnit": "A" }
     },
     {
-      "id": "D2-resistance-factor", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "id": "D2-resistance-factor", "module": "electricity", "priority": "P0", "duration": 4, "durationIsSnapshot": true, "snapshotTolerance": 0.1, "durationSource": "实现值 4s：电子粒子沿闭合回路环行，整段圈数随电流变 k=clamp(I/1.5,0.2,3)。断路 I=0 时粒子停（参数状态，非无过程）——与 D1 同机制",
       "name": "探究影响电阻大小的因素", "chapter": "九全 第十六章 第3节 电阻",
       "quantities": ["R", "L", "S", "ρ", "温度"],
       "params": [
         { "id": "len", "label": "导体长度 L", "min": 10, "max": 100, "step": 5, "default": 50, "unit": "cm" },
         { "id": "area", "label": "横截面积 S", "min": 0.5, "max": 4.0, "step": 0.1, "default": 1.0, "unit": "mm²" },
-        { "id": "mat", "label": "材料 ρ", "type": "enum", "options": [ { "label": "镍铬 1.10", "value": 1.1 }, { "label": "锰铜 0.44", "value": 0.44 }, { "label": "铜 0.017", "value": 0.017 }, { "label": "铁 0.10", "value": 0.1 } ], "default": 1.1, "unit": "Ω·mm²/m" },
+        { "id": "mat", "label": "材料 ρ", "type": "enum", "options": [ { "label": "镍铬 8", "value": 8 }, { "label": "锰铜 6", "value": 6 }, { "label": "铜 2", "value": 2 }, { "label": "铁 4", "value": 4 } ], "default": 8, "unit": "Ω·mm²/m" },
         { "id": "temp", "label": "温度", "min": 0, "max": 100, "step": 5, "default": 20, "unit": "℃" },
-        { "id": "strands", "label": "并联根数", "min": 1, "max": 4, "step": 1, "default": 1, "unit": "根" }
+        { "id": "strands", "label": "并联根数", "min": 1, "max": 4, "step": 1, "default": 1, "unit": "根" },
+        { "id": "switch", "label": "开关", "type": "enum", "options": [ { "label": "闭合", "value": "on" }, { "label": "断开", "value": "off" } ], "default": "on", "unit": "" }
       ],
       "formula": "R = ρL/S",
       "result": { "id": "r", "label": "接入电阻 R", "unit": "Ω" },
-      "phenomenon": "L↑ → 电阻条变长、电流下降、灯变暗；S↑ 或多根并联 → 电阻下降；换铜 → 同尺寸电阻骤降；温度↑ → 金属电阻缓慢上升（灯丝冷/热态对比）"
+      "phenomenon": "完整串联电路型：电池 6V + 闸刀开关 + 待测导体 + 电流表 + 小灯泡组成闭合回路；改材料（镍铬/锰铜/铁/铜）、长度 L、横截面积 S 或并联根数 → 导体外观实时变、电流表读数随之变（L↑I↓、S↑I↑、换铜 I 骤增）；点击闸刀开关通断电路，闭合后导线内电子流流动、灯泡随电流变亮、电流表指针摆动（量程 0~3A，超量程示警）；断开后电流归零、粒子停；读数含 R、I、L、S、ρ、温度"
     },
     {
       "id": "D3-rheostat-lamp", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",

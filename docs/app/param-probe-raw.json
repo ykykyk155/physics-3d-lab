@@ -4,98 +4,98 @@
     "param": "theta",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→6: 读数 acc:0.37→0.54 | 标签 [0]θ=5°GNf→θ=6°GNf,[1]θ=5°→θ=6° | 场景 10处(#5(Group:q),#10(ArrowHelper:p),#13(ArrowHelper:p/q),#14(Line:s))"
+    "evidence": "5→6: 读数 acc:0.37→0.54 | 标签 [0]θ=5°GNf→θ=6°GNf,[1]θ=5°→θ=6° | 场景 12处(#5(Group:q),#17(ArrowHelper:p),#20(ArrowHelper:p/q),#21(Line:s))"
   },
   {
     "id": "A1-incline-speed",
     "param": "length",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.5→0.55: 场景 9处(#6(Mesh:p/s),#7(Mesh:p),#10(ArrowHelper:p),#13(ArrowHelper:p))"
+    "evidence": "0.5→0.55: 场景 12处(#6(Mesh:p/s),#7(Group:p/s),#9(Group:p/s),#17(ArrowHelper:p))"
   },
   {
     "id": "A1-incline-speed",
     "param": "mu",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→0.01: 读数 acc:6.93→6.86 | 场景 4处(#16(ArrowHelper:vis),#17(Line:s),#18(Mesh:p/s),#21(Object3D:p))"
+    "evidence": "0→0.01: 读数 acc:6.93→6.86 | 场景 4处(#23(ArrowHelper:vis),#24(Line:s),#25(Mesh:p/s),#28(Object3D:p))"
   },
   {
     "id": "A1-incline-speed",
     "param": "mass",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.1→0.2: 场景 9处(#11(Line:s),#12(Mesh:p/s),#14(Line:s),#15(Mesh:p/s))"
+    "evidence": "0.1→0.2: 场景 9处(#18(Line:s),#19(Mesh:p/s),#21(Line:s),#22(Mesh:p/s))"
   },
   {
     "id": "A2-newton-first",
     "param": "surface",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "0.6→0.3: 读数 slide:0.25→0.5 | 标签 [0]毛巾：滑行 s=0.25 m毛巾 μ=0.60 →棉布：滑行 s=0.50 m毛巾 μ=0.60 ,[1]毛巾：滑行 s=0.25 m→棉布：滑行 s=0.50 m | 场景 3处(#6(Mesh:emiI/op),#8(Mesh:emiI/op),#16(Mesh:p))"
+    "evidence": "0.6→0.3: 读数 slide:0.58→1.17 | 场景 8处(#6(Mesh:col/emi/emiI/op),#7(Mesh:p/col/emi/emiI/geo),#8(Mesh:p/col/emiI/op/geo),#16(Mesh:geo))"
   },
   {
     "id": "A2-newton-first",
     "param": "height",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.05→0.06: 标签 [0]理想光滑：理想光滑 → 匀速直线永不停止毛巾 μ→理想光滑：理想光滑 → 匀速直线永不停止毛巾 μ,[2]毛巾 μ=0.60  s=0.08m→毛巾 μ=0.60  s=0.10m | 场景 1处(#16(Mesh:p))"
+    "evidence": "0.05→0.06: 场景 10处(#11(Mesh:geo),#14(Mesh:geo),#15(Mesh:geo),#17(Mesh:geo))"
   },
   {
     "id": "A2-newton-first",
     "param": "mass",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.1→0.2: 场景 1处(#16(Mesh:s))"
+    "evidence": "0.1→0.2: 场景 1处(obj#31增删)"
   },
   {
     "id": "A3-friction",
     "param": "normal",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.5→1: 读数 read:0.2→0.4 | 标签 [0]f=0.20 N→f=0.40 N,[1]f=0.20 N→f=0.40 N"
+    "evidence": "0.5→1: 读数 read:0.2→0.4 | 标签 [0]f=0.20 N→f=0.40 N,[1]f=0.20 N→f=0.40 N | 场景 6处(#14(Mesh:geo),#16(Mesh:geo),#17(Mesh:p/geo),#18(Mesh:p))"
   },
   {
     "id": "A3-friction",
     "param": "mu",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.1→0.15: 读数 read:0.5→0.75 | 标签 [0]f=0.50 N→f=0.75 N,[1]f=0.50 N→f=0.75 N | 场景 4处(#9(Line:s),#10(Mesh:p/s),#12(Line:s),#13(Mesh:p/s))"
+    "evidence": "0.1→0.15: 读数 read:0.5→0.75 | 标签 [0]f=0.50 N→f=0.75 N,[1]f=0.50 N→f=0.75 N | 场景 3处(#30(Mesh:p),#38(Line:s),#39(Mesh:p/s))"
   },
   {
     "id": "A3-friction",
     "param": "area",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "big→small: 场景 1处(#5(Mesh:s))"
+    "evidence": "big→small: 场景 6处(#7(Group:p/q),#12(Group:p),#19(Group:p),#33(Line2:geo))"
   },
   {
     "id": "A3-friction",
     "param": "pull",
     "type": "number",
-    "verdict": "EFFECTIVE(dynamic)",
-    "evidence": "静态同,播放1.5s后 0.05→0.3: 场景 6处(#5(Mesh:p),#6(Mesh:p),#7(Line2:geo),#8(ArrowHelper:p))"
+    "verdict": "EFFECTIVE",
+    "evidence": "0.05→0.06: 场景 7处(#7(Group:p),#12(Group:p),#19(Group:p),#33(Line2:geo))"
   },
   {
     "id": "A4-liquid-pressure",
     "param": "depth",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1→2: 读数 dh:10→20 | 标签 [0]h=1cm · 朝向 0°Δh=10 mm→h=2cm · 朝向 0°Δh=20 mm,[1]h=1cm · 朝向 0°→h=2cm · 朝向 0° | 场景 4处(#6(Group:p),#12(Mesh:p/s),#13(Mesh:p/s),#14(Object3D:p))"
+    "evidence": "1→2: 读数 dh:10→20 | 标签 [0]Δh = 1.0 cmh=1cm · 朝向 下Δ→Δh = 2.0 cmh=2cm · 朝向 下Δ,[1]Δh = 1.0 cm→Δh = 2.0 cm | 场景 4处(#6(Group:p),#15(Mesh:p/s),#16(Mesh:p/s),#17(Object3D:p))"
   },
   {
     "id": "A4-liquid-pressure",
     "param": "liquid",
-    "type": "enum",
+    "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.8→1: 读数 dh:240→300 | 标签 [0]h=30cm · 朝向 0°Δh=240 mm→h=30cm · 朝向 0°Δh=300 mm,[2]Δh=240 mm→Δh=300 mm | 场景 2处(#12(Mesh:p/s),#13(Mesh:p/s))"
+    "evidence": "0.8→0.81: 读数 dh:240→243 | 标签 [0]Δh = 24.0 cmh=30cm · 朝向 →Δh = 24.3 cmh=30cm · 朝向 ,[1]Δh = 24.0 cm→Δh = 24.3 cm | 场景 3处(#5(Mesh:col),#15(Mesh:p/s),#16(Mesh:p/s))"
   },
   {
     "id": "A4-liquid-pressure",
     "param": "orient",
-    "type": "number",
+    "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "0→5: 标签 [0]h=30cm · 朝向 0°Δh=390 mm→h=30cm · 朝向 5°Δh=390 mm,[1]h=30cm · 朝向 0°→h=30cm · 朝向 5° | 场景 1处(#6(Group:q))"
+    "evidence": "180→0: 标签 [0]Δh = 39.0 cmh=30cm · 朝向 →Δh = 39.0 cmh=30cm · 朝向 ,[2]h=30cm · 朝向 上→h=30cm · 朝向 下 | 场景 1处(#7(Group:q))"
   },
   {
     "id": "A4-liquid-pressure",
@@ -109,42 +109,42 @@
     "param": "volume",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "20→30: 读数 read:0.12→0.19 | 标签 [0]G=0.18NF浮=0.05N下沉 · 浸没 2→G=0.26NF浮=0.08N下沉 · 浸没 2,[1]G=0.18N→G=0.26N | 场景 6处(#9(Line:s),#10(Mesh:p/s),#12(Line:s),#13(Mesh:p/s))"
+    "evidence": "20→30: 标签 [0]G=0.18NF浮=0.18N漂浮 · 浸没 9→G=0.26NF浮=0.26N漂浮 · 浸没 9,[1]G=0.18N→G=0.26N | 场景 6处(#24(Line:s),#25(Mesh:p/s),#27(Line:s),#28(Mesh:p/s))"
   },
   {
     "id": "A5-buoyancy",
     "param": "rhoObj",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.4→0.5: 读数 read:0.65→1.14 | 标签 [0]G=1.96NF浮=1.31N下沉 · 浸没 2→G=2.45NF浮=1.31N下沉 · 浸没 2,[1]G=1.96N→G=2.45N | 场景 3处(#9(Line:s),#10(Mesh:p/s),#14(Object3D:p))"
+    "evidence": "0.4→0.5: 标签 [0]G=1.96NF浮=1.96N漂浮 · 浸没 4→G=2.45NF浮=2.45N漂浮 · 浸没 5,[1]G=1.96N→G=2.45N | 场景 10处(#15(Mesh:p/s),#17(Group:p),#23(ArrowHelper:p),#24(Line:s))"
   },
   {
     "id": "A5-buoyancy",
     "param": "rhoLiquid",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.8→0.85: 读数 read:38.2→38.1 | 标签 [0]G=39.20NF浮=1.05N下沉 · 浸没 →G=39.20NF浮=1.11N下沉 · 浸没 ,[2]F浮=1.05N→F浮=1.11N | 场景 3处(#12(Line:s),#13(Mesh:p/s),#15(Object3D:p))"
+    "evidence": "0.8→0.85: 读数 read:36.7→36.6 | 标签 [0]G=39.20NF浮=2.47N下沉中 · 浸没→G=39.20NF浮=2.62N下沉中 · 浸没,[2]F浮=2.47N→F浮=2.62N | 场景 5处(#15(Mesh:col),#16(Mesh:col),#27(Line:s),#28(Mesh:p/s))"
   },
   {
     "id": "A5-buoyancy",
     "param": "submerge",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→1: 读数 read:39.2→39 | 标签 [0]G=39.20NF浮=0.00N下沉 · 浸没 →G=39.20NF浮=0.21N下沉 · 浸没 ,[2]F浮=0.00N→F浮=0.21N | 场景 8处(#6(Mesh:p),#7(Line2:geo),#8(ArrowHelper:p),#11(ArrowHelper:vis/p))"
+    "evidence": "0→1: 读数 read:39.2→38.4 | 标签 [0]G=39.20NF浮=0.00N下沉中 · 浸没→G=39.20NF浮=0.80N下沉中 · 浸没,[2]F浮=0.00N→F浮=0.80N | 场景 9处(#15(Mesh:p/s),#17(Group:p),#22(Line2:geo),#23(ArrowHelper:p))"
   },
   {
     "id": "A5-buoyancy",
     "param": "hollow",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "solid→hollow: 读数 read:32.8→11.3 | 标签 [0]G=39.20NF浮=6.37N下沉 · 浸没 →G=17.64NF浮=6.37N下沉 · 浸没 ,[1]G=39.20N→G=17.64N | 场景 3处(#9(Line:s),#10(Mesh:p),#14(Object3D:p))"
+    "evidence": "solid→hollow: 读数 read:32.8→11.3 | 标签 [0]G=39.20NF浮=6.37N完全浸没 · 示→G=17.64NF浮=6.37N完全浸没 · 示,[1]G=39.20N→G=17.64N | 场景 3处(#24(Line:s),#25(Mesh:p),#29(Object3D:p))"
   },
   {
     "id": "A5-buoyancy",
     "param": "ballast",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→5: 读数 read:11.3→12 | 标签 [0]G=17.64NF浮=6.37N下沉 · 浸没 →G=18.35NF浮=6.37N下沉 · 浸没 ,[1]G=17.64N→G=18.35N | 场景 3处(#9(Line:s),#10(Mesh:p),#14(Object3D:p))"
+    "evidence": "0→5: 读数 read:11.3→12 | 标签 [0]G=17.64NF浮=6.37N完全浸没 · 示→G=18.35NF浮=6.37N完全浸没 · 示,[1]G=17.64N→G=18.35N | 场景 3处(#24(Line:s),#25(Mesh:p),#29(Object3D:p))"
   },
   {
     "id": "A6-energy",
@@ -158,147 +158,147 @@
     "param": "height",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.05→0.06: 读数 ek:0.25→0.29 | 标签 [0]Ek 0.00JEp 0.25JT=1.55s→Ek 0.00JEp 0.29JT=1.55s,[2]Ep 0.25J→Ep 0.29J | 场景 2处(#5(Mesh:p/q),#6(Mesh:p))"
+    "evidence": "0.05→0.06: 读数 ek:0.25→0.29 | 标签 [0]Ek 0.00JEp 0.25JT=1.55s→Ek 0.00JEp 0.29JT=1.55s,[2]Ep 0.25J→Ep 0.29J | 场景 2处(#9(Mesh:p/q),#10(Mesh:p))"
   },
   {
     "id": "A6-energy",
     "param": "pendLen",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.2→0.25: 读数 ek:0.89→1.12 | 标签 [0]Ek 0.00JEp 0.89JT=0.90s→Ek 0.00JEp 1.12JT=1.00s,[2]Ep 0.89J→Ep 1.12J | 场景 2处(#5(Mesh:p/s),#6(Mesh:p))"
+    "evidence": "0.2→0.25: 读数 ek:0.89→1.12 | 标签 [0]Ek 0.00JEp 0.89JT=0.90s→Ek 0.00JEp 1.12JT=1.00s,[2]Ep 0.89J→Ep 1.12J | 场景 2处(#9(Mesh:p/s),#10(Mesh:p))"
   },
   {
     "id": "A6-energy",
     "param": "angle",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→6: 读数 ek:0.03→0.04 | 标签 [0]Ek 0.00JEp 0.03JT=2.46s→Ek 0.00JEp 0.04JT=2.46s,[2]Ep 0.03J→Ep 0.04J | 场景 2处(#5(Mesh:p/q),#6(Mesh:p))"
+    "evidence": "5→6: 读数 ek:0.03→0.04 | 标签 [0]Ek 0.00JEp 0.03JT=2.46s→Ek 0.00JEp 0.04JT=2.46s,[2]Ep 0.03J→Ep 0.04J | 场景 2处(#9(Mesh:p/q),#10(Mesh:p))"
   },
   {
     "id": "A6-energy",
     "param": "damping",
     "type": "number",
     "verdict": "EFFECTIVE(dynamic)",
-    "evidence": "静态同,播放1.5s后 0→0.3: 标签 [0]Ek 0.66JEp 1.75JT=2.46s→Ek 0.47JEp 1.16JT=2.46s,[1]Ek 0.66J→Ek 0.47J | 场景 6处(#5(Mesh:p/q),#6(Mesh:p),#7(Mesh:p/s),#8(Mesh:p/s))"
+    "evidence": "静态同,播放1.5s后 0→0.3: 标签 [0]Ek 0.56JEp 1.85JT=2.46s→Ek 0.42JEp 1.22JT=2.46s,[1]Ek 0.56J→Ek 0.42J | 场景 6处(#9(Mesh:p/q),#10(Mesh:p),#11(Mesh:p/s),#12(Mesh:p/s))"
   },
   {
     "id": "A7-lever",
     "param": "f1",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.5→1: 读数 torque:2.0 / 8.0→4.0 / 8.0 | 标签 [0]F1=0.5N · L1=4F2=4N · L2→F1=1N · L1=4F2=4N · L2=2,[1]F1=0.5N · L1=4→F1=1N · L1=4 | 场景 1处(#7(Mesh:s))"
+    "evidence": "0.5→1: 标签 [0]F1=0.5N · L1=4F2=4N · L2→F1=1N · L1=4F2=4N · L2=2,[1]F1=0.5N · L1=4→F1=1N · L1=4 | 场景 1处(#11(Group:s))"
   },
   {
     "id": "A7-lever",
     "param": "l1",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1→2: 读数 torque:5.0 / 8.0→10.0 / 8.0 | 标签 [0]F1=5N · L1=1F2=4N · L2=2→F1=5N · L1=2F2=4N · L2=2,[1]F1=5N · L1=1→F1=5N · L1=2 | 场景 2处(#7(Mesh:p),#9(Object3D:p))"
+    "evidence": "1→2: 标签 [0]F1=5N · L1=1F2=4N · L2=2→F1=5N · L1=2F2=4N · L2=2,[1]F1=5N · L1=1→F1=5N · L1=2 | 场景 2处(#10(Group:p),#22(Object3D:p))"
   },
   {
     "id": "A7-lever",
     "param": "f2",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.5→1: 读数 torque:50.0 / 1.0→50.0 / 2.0 | 标签 [0]F1=5N · L1=10F2=0.5N · L→F1=5N · L1=10F2=1N · L2=,[2]F2=0.5N · L2=2→F2=1N · L2=2 | 场景 1处(#8(Mesh:s))"
+    "evidence": "0.5→1: 标签 [0]F1=5N · L1=10F2=0.5N · L→F1=5N · L1=10F2=1N · L2=,[2]F2=0.5N · L2=2→F2=1N · L2=2 | 场景 1处(#17(Group:s))"
   },
   {
     "id": "A7-lever",
     "param": "l2",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1→2: 读数 torque:50.0 / 5.0→50.0 / 10.0 | 标签 [0]F1=5N · L1=10F2=5N · L2=→F1=5N · L1=10F2=5N · L2=,[2]F2=5N · L2=1→F2=5N · L2=2 | 场景 2处(#8(Mesh:p),#10(Object3D:p))"
-  },
-  {
-    "id": "A7-lever",
-    "param": "tilt",
-    "type": "number",
-    "verdict": "EFFECTIVE",
-    "evidence": "0→1: 场景 5处(#4(Mesh:q),#7(Mesh:p),#8(Mesh:p),#9(Object3D:p))"
+    "evidence": "1→2: 标签 [0]F1=5N · L1=10F2=5N · L2=→F1=5N · L1=10F2=5N · L2=,[2]F2=5N · L2=1→F2=5N · L2=2 | 场景 2处(#16(Group:p),#23(Object3D:p))"
   },
   {
     "id": "D1-series-parallel",
     "param": "voltage",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1.5→2: 读数 cur:0.05→0.07 | 标签 [0]串联 R总=30.0Ω  I=0.05A电流 0→串联 R总=30.0Ω  I=0.07A电流 0,[1]串联 R总=30.0Ω  I=0.05A→串联 R总=30.0Ω  I=0.07A | 场景 1处(#10(Mesh:inst))"
+    "evidence": "1.5→2: 读数 cur:0.05→0.07 | 标签 [0]电流表 I = 0.05 A电压表 U = 0.→电流表 I = 0.07 A电压表 U = 0.,[1]电流表 I = 0.05 A→电流表 I = 0.07 A | 场景 7处(#17(Mesh:op),#21(Mesh:emiI),#24(Mesh:op),#28(Mesh:emiI))"
   },
   {
     "id": "D1-series-parallel",
     "param": "r1",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→6: 读数 cur:0.24→0.23 | 标签 [0]串联 R总=25.0Ω  I=0.24A电流 0→串联 R总=26.0Ω  I=0.23A电流 0,[1]串联 R总=25.0Ω  I=0.24A→串联 R总=26.0Ω  I=0.23A | 场景 1处(#10(Mesh:inst))"
+    "evidence": "5→6: 读数 cur:0.24→0.23 | 标签 [0]电流表 I = 0.24 A电压表 U = 1.→电流表 I = 0.23 A电压表 U = 1.,[1]电流表 I = 0.24 A→电流表 I = 0.23 A | 场景 7处(#17(Mesh:op),#21(Mesh:emiI),#24(Mesh:op),#28(Mesh:emiI))"
   },
   {
     "id": "D1-series-parallel",
     "param": "r2",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→6: 标签 [0]串联 R总=55.0Ω  I=0.11A电流 0→串联 R总=56.0Ω  I=0.11A电流 0,[1]串联 R总=55.0Ω  I=0.11A→串联 R总=56.0Ω  I=0.11A | 场景 1处(#10(Mesh:inst))"
+    "evidence": "5→6: 标签 [0]电流表 I = 0.11 A电压表 U = 5.→电流表 I = 0.11 A电压表 U = 5.,[2]电压表 U = 5.45 V→电压表 U = 5.36 V | 场景 7处(#17(Mesh:op),#21(Mesh:emiI),#24(Mesh:op),#28(Mesh:emiI))"
   },
   {
     "id": "D1-series-parallel",
     "param": "mode",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "series→parallel: 读数 cur:0.06→0.24 | 标签 [0]串联 R总=100.0Ω  I=0.06A电流 →并联 R总=25.0Ω  I=0.24A电流 0,[1]串联 R总=100.0Ω  I=0.06A→并联 R总=25.0Ω  I=0.24A | 场景 5处(#5(Mesh:p),#6(Mesh:p),#9(Line2:geo),#10(Mesh:emi/emiI/geo/inst))"
+    "evidence": "series→parallel: 读数 cur:0.06→0.24 | 标签 [0]电流表 I = 0.06 A电压表 U = 3.→电流表 I = 0.24 A电压表 U = 6.,[1]电流表 I = 0.06 A→电流表 I = 0.24 A | 场景 37处(#15(Group:p),#17(Mesh:op),#21(Mesh:emiI),#22(Group:p))"
   },
   {
     "id": "D1-series-parallel",
     "param": "switch",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "on→off: 读数 cur:0.24→0 | 标签 [0]并联 R总=25.0Ω  I=0.24A电流 0→并联 R总=25.0Ω  I=0.00A断路,[1]并联 R总=25.0Ω  I=0.24A→并联 R总=25.0Ω  I=0.00A | 场景 1处(#11(Mesh:vis/inst))"
+    "evidence": "on→off: 读数 cur:0.24→0 | 标签 [0]电流表 I = 0.24 A电压表 U = 6.→电流表 I = 0.00 A电压表 U = 0.,[1]电流表 I = 0.24 A→电流表 I = 0.00 A | 场景 8处(#17(Mesh:op),#21(Mesh:emiI),#24(Mesh:op),#28(Mesh:emiI))"
   },
   {
     "id": "D2-resistance-factor",
     "param": "len",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "10→15: 读数 r:0.11→0.17 | 标签 [0]R = ρL/S = 0.11 Ω→R = ρL/S = 0.17 Ω,[1]R = ρL/S = 0.11 Ω→R = ρL/S = 0.17 Ω | 场景 1处(#4(Mesh:s))"
+    "evidence": "10→15: 读数 r:0.83→1.25 | 标签 [0]⚠ 电流表 I = 7.212 AR = ρL/→⚠ 电流表 I = 4.808 AR = ρL/,[1]⚠ 电流表 I = 7.212 A→⚠ 电流表 I = 4.808 A | 场景 5处(#46(Line2:geo),#47(Line2:geo),#56(Group:s),#61(Mesh:p))"
   },
   {
     "id": "D2-resistance-factor",
     "param": "area",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.5→0.6: 读数 r:2.29→1.91 | 标签 [0]R = ρL/S = 2.29 Ω→R = ρL/S = 1.91 Ω,[1]R = ρL/S = 2.29 Ω→R = ρL/S = 1.91 Ω | 场景 1处(#4(Mesh:s))"
+    "evidence": "0.5→0.6: 读数 r:16.6→13.9 | 标签 [0]电流表 I = 0.361 AR = ρL/S →电流表 I = 0.433 AR = ρL/S ,[1]电流表 I = 0.361 A→电流表 I = 0.433 A | 场景 5处(#24(Mesh:op),#28(Mesh:emiI),#36(Group:q),#56(Group:s))"
   },
   {
     "id": "D2-resistance-factor",
     "param": "mat",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "1.1→0.44: 读数 r:0.29→0.11 | 标签 [0]R = ρL/S = 0.29 Ω→R = ρL/S = 0.11 Ω,[1]R = ρL/S = 0.29 Ω→R = ρL/S = 0.11 Ω | 场景 1处(#4(Mesh:col))"
+    "evidence": "8→6: 读数 r:2.08→1.56 | 标签 [0]电流表 I = 2.885 AR = ρL/S →⚠ 电流表 I = 3.846 AR = ρL/,[1]电流表 I = 2.885 A→⚠ 电流表 I = 3.846 A | 场景 3处(#36(Group:q),#58(Mesh:col),#63(Mesh:inst))"
   },
   {
     "id": "D2-resistance-factor",
     "param": "temp",
     "type": "number",
-    "verdict": "INERT",
-    "evidence": "取值 0/5/50/100 静态与播放后快照都完全相同"
+    "verdict": "EFFECTIVE",
+    "evidence": "0→5: 读数 r:1.04→1.01 | 标签 [0]⚠ 电流表 I = 5.769 AR = ρL/→⚠ 电流表 I = 5.941 AR = ρL/,[1]⚠ 电流表 I = 5.769 A→⚠ 电流表 I = 5.941 A"
   },
   {
     "id": "D2-resistance-factor",
     "param": "strands",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1→2: 读数 r:0.03→0.01 | 标签 [0]R = ρL/S = 0.03 Ω→R = ρL/S = 0.01 Ω,[1]R = ρL/S = 0.03 Ω→R = ρL/S = 0.01 Ω"
+    "evidence": "1→2: 读数 r:1.2→0.6 | 标签 [0]⚠ 电流表 I = 5.000 AR = ρL/→⚠ 电流表 I = 10.000 AR = ρL,[1]⚠ 电流表 I = 5.000 A→⚠ 电流表 I = 10.000 A | 场景 1处(#58(Mesh:geo))"
+  },
+  {
+    "id": "D2-resistance-factor",
+    "param": "switch",
+    "type": "enum",
+    "verdict": "EFFECTIVE",
+    "evidence": "on→off: 标签 [0]⚠ 电流表 I = 20.000 AR = ρL→电流表 I = 0.000 AR = ρL/S ,[1]⚠ 电流表 I = 20.000 A→电流表 I = 0.000 A | 场景 5处(#20(Group:q),#24(Mesh:op),#28(Mesh:emiI),#36(Group:q))"
   },
   {
     "id": "D3-rheostat-lamp",
     "param": "wiper",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→1: 标签 [0]规格 0~20Ω · R接入=20.5Ω · I→规格 0~20Ω · R接入=20.3Ω · I,[1]规格 0~20Ω · R接入=20.5Ω · I→规格 0~20Ω · R接入=20.3Ω · I | 场景 2处(#5(Mesh:p),#6(Mesh:emiI))"
+    "evidence": "0→1: 标签 [0]规格 0~20Ω · R接入=20.5Ω · I→规格 0~20Ω · R接入=20.3Ω · I,[1]规格 0~20Ω · R接入=20.5Ω · I→规格 0~20Ω · R接入=20.3Ω · I | 场景 3处(#8(Mesh:p),#11(Mesh:op),#15(Mesh:emiI))"
   },
   {
     "id": "D3-rheostat-lamp",
     "param": "rating",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "20→50: 标签 [0]规格 0~20Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I=,[1]规格 0~20Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I= | 场景 1处(#4(Mesh:s))"
+    "evidence": "20→50: 标签 [0]规格 0~20Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I=,[1]规格 0~20Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I= | 场景 1处(#4(Group:s))"
   },
   {
     "id": "D3-rheostat-lamp",
@@ -312,42 +312,42 @@
     "param": "wiring",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "correct→top: 标签 [0]规格 0~50Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I=,[1]规格 0~50Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I= | 场景 1处(#5(Mesh:p))"
+    "evidence": "correct→top: 标签 [0]规格 0~50Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I=,[1]规格 0~50Ω · R接入=0.5Ω · I=→规格 0~50Ω · R接入=0.5Ω · I= | 场景 1处(#8(Mesh:p))"
   },
   {
     "id": "D4-ohm-law",
     "param": "voltage",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→0.1: 读数 cur:0→0.01 | 标签 [0]I=U/R=0.000A · Rx=U/I=10→I=U/R=0.010A · Rx=U/I=10,[1]I=U/R=0.000A · Rx=U/I=10→I=U/R=0.010A · Rx=U/I=10 | 场景 1处(#9(Mesh:inst))"
+    "evidence": "0→0.1: 读数 cur:0→0.01 | 标签 [0]I / AU / V0.00.01.50.23.→I / AU / V0.00.01.50.23.,[13]I=U/R=0.000A · Rx=U/I=10→I=U/R=0.010A · Rx=U/I=10 | 场景 5处(#12(Group:q),#25(Group:q),#33(Mesh:op),#37(Mesh:emiI))"
   },
   {
     "id": "D4-ohm-law",
     "param": "rfix",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "5→10: 读数 cur:1.2→0.6 | 标签 [0]I=U/R=1.200A · Rx=U/I=5.→I=U/R=0.600A · Rx=U/I=10,[1]I=U/R=1.200A · Rx=U/I=5.→I=U/R=0.600A · Rx=U/I=10 | 场景 1处(#9(Mesh:inst))"
+    "evidence": "5→10: 读数 cur:1.2→0.6 | 标签 [0]I / AU / V0.00.01.50.23.→I / AU / V0.00.01.50.23.,[13]I=U/R=1.200A · Rx=U/I=5.→I=U/R=0.600A · Rx=U/I=10 | 场景 4处(#12(Group:q),#33(Mesh:op),#37(Mesh:emiI),#74(Mesh:inst))"
   },
   {
     "id": "D4-ohm-law",
     "param": "graph",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "iu→ir: 场景 2处(#8(Mesh:inst),#9(Mesh:inst))"
+    "evidence": "iu→ir: 标签 [0]I / AU / V0.00.01.50.23.→I / AU / V00.0140.2280.4,[3]0.0→0 | 场景 2处(#73(Mesh:inst),#74(Mesh:inst))"
   },
   {
     "id": "D4-ohm-law",
     "param": "dut",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "resistor→bulb: 读数 cur:0.12→0.23 | 标签 [0]I=U/R=0.120A · Rx=U/I=50→I=U/R=0.231A · Rx=U/I=26,[1]I=U/R=0.120A · Rx=U/I=50→I=U/R=0.231A · Rx=U/I=26 | 场景 1处(#9(Mesh:inst))"
+    "evidence": "resistor→bulb: 读数 cur:0.12→0.23 | 标签 [0]I / AU / V00.0140.2280.4→I / AU / V00.0140.2280.4,[13]I=U/R=0.120A · Rx=U/I=50→I=U/R=0.231A · Rx=U/I=26 | 场景 4处(#12(Group:q),#33(Mesh:op),#37(Mesh:emiI),#74(Mesh:inst))"
   },
   {
     "id": "D5-power-joule",
     "param": "voltage",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1.5→2: 读数 p:0.11→0.2 | 标签 [0]R甲 10Ω 20℃R乙 20Ω 20℃P=U²→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[3]P=U²/R=0.11W · t=3min · →P=U²/R=0.20W · t=3min ·  | 场景 2处(#6(Mesh:p/s),#7(Mesh:p/s))"
+    "evidence": "1.5→2: 读数 p:0.11→0.2 | 标签 [0]R甲 10Ω 20℃R乙 20Ω 20℃P=U²→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[3]P=U²/R=0.11W · t=3min · →P=U²/R=0.20W · t=3min · "
   },
   {
     "id": "D5-power-joule",
@@ -361,35 +361,35 @@
     "param": "time",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→0.5: 标签 [0]R甲 10Ω 20℃R乙 20Ω 20℃P=U²→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[3]P=U²/R=0.72W · t=0min · →P=U²/R=0.72W · t=0.5min  | 场景 2处(#6(Mesh:p/s),#7(Mesh:p/s))"
+    "evidence": "0→0.5: 标签 [0]R甲 10Ω 20℃R乙 20Ω 20℃P=U²→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[3]P=U²/R=0.72W · t=0min · →P=U²/R=0.72W · t=0.5min "
   },
   {
     "id": "D5-power-joule",
     "param": "ra",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→10: 标签 [0]R甲 10Ω 20℃R乙 20Ω 20℃P=U²→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[3]P=U²/R=0.72W · t=10min ·→P=U²/R=0.72W · t=10min ·"
+    "evidence": "5→10: 标签 [0]R甲 5Ω 20℃R乙 20Ω 20℃P=U²/→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[1]R甲 5Ω 20℃→R甲 10Ω 20℃"
   },
   {
     "id": "D5-power-joule",
     "param": "rb",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→10: 场景 1处(#7(Mesh:p/s))"
+    "evidence": "5→10: 标签 [0]R甲 50Ω 20℃R乙 5Ω 20℃P=U²/→R甲 50Ω 20℃R乙 10Ω 20℃P=U²,[2]R乙 5Ω 20℃→R乙 10Ω 20℃"
   },
   {
     "id": "D5-power-joule",
     "param": "link",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "series→parallel: 标签 [0]R甲 10Ω 20℃R乙 20Ω 20℃P=U²→R甲 10Ω 20℃R乙 20Ω 20℃P=U²,[3]P=U²/R=0.72W · t=10min ·→P=U²/R=0.72W · t=10min ·"
+    "evidence": "series→parallel: 标签 [0]R甲 50Ω 20℃R乙 50Ω 20℃P=U²→R甲 50Ω 20℃R乙 50Ω 20℃P=U²,[3]P=U²/R=0.72W · t=10min ·→P=U²/R=0.72W · t=10min ·"
   },
   {
     "id": "D6-magnet-solenoid",
     "param": "layout",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "bar→horseshoe: 场景 4处(#19(Line2:op/geo),#20(Line2:op/geo),#21(Line2:op/geo),#22(Line2:op/geo))"
+    "evidence": "bar→horseshoe: 场景 6处(#10(Mesh:vis),#11(Mesh:vis),#37(Line2:op/geo),#38(Line2:op/geo))"
   },
   {
     "id": "D6-magnet-solenoid",
@@ -417,49 +417,49 @@
     "param": "dir",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "1→-1: 场景 10处(#13(Mesh:q),#14(Mesh:q),#15(Mesh:q),#16(Mesh:q))"
+    "evidence": "1→-1: 场景 6处(#34(Mesh:geo),#36(Mesh:geo),#37(Line2:col),#38(Line2:col))"
   },
   {
     "id": "D6-magnet-solenoid",
     "param": "needles",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→1: 场景 9处(#14(Mesh:p/q/col/emi/emiI/op/geo),#15(Mesh:p/q/col/emi/emiI/op/geo),#16(Mesh:p/q/col/emi/emiI/op/geo),#17(Mesh:p/q/col/emi/emiI/op/geo))"
+    "evidence": "0→1: 场景 4处(#31(Mesh:geo),#32(Mesh:geo),#34(Mesh:geo),#36(Mesh:geo))"
   },
   {
     "id": "D7-motor-generator",
     "param": "mode",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "motor→cut: 读数 rpm:200→60 | 标签 [0]电动机：F=BIL 力矩 · 换向器→持续转 ·→切割磁感线：→指针偏转 · 60,[1]电动机：F=BIL 力矩 · 换向器→持续转 ·→切割磁感线：→指针偏转 · 60 | 场景 2处(#6(Group:vis),#10(Mesh:vis))"
+    "evidence": "motor→cut: 读数 rpm:200→60 | 标签 [0]电动机：F=BIL 力矩 · 换向器→持续转 ·→切割磁感线：→指针偏转 · 60,[1]电动机：F=BIL 力矩 · 换向器→持续转 ·→切割磁感线：→指针偏转 · 60 | 场景 2处(#11(Group:vis),#25(Mesh:vis/p))"
   },
   {
     "id": "D7-motor-generator",
     "param": "current",
     "type": "number",
-    "verdict": "INERT",
-    "evidence": "取值 0/0.1/1.5/3 静态与播放后快照都完全相同"
+    "verdict": "EFFECTIVE(dynamic)",
+    "evidence": "静态同,播放1.5s后 0→3: 场景 1处(#11(Group:q))"
   },
   {
     "id": "D7-motor-generator",
     "param": "field",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.1→0.15: 读数 rpm:120→180 | 标签 [0]发电机：感应电流正弦 · 120 r/min→发电机：感应电流正弦 · 180 r/min,[1]发电机：感应电流正弦 · 120 r/min→发电机：感应电流正弦 · 180 r/min"
+    "evidence": "0.1→0.15: 读数 rpm:120→180 | 标签 [0]发电机：感应电流正弦 · 120 r/min→发电机：感应电流正弦 · 180 r/min,[1]发电机：感应电流正弦 · 120 r/min→发电机：感应电流正弦 · 180 r/min | 场景 1处(#11(Group:q))"
   },
   {
     "id": "D7-motor-generator",
     "param": "speed",
     "type": "number",
-    "verdict": "INERT",
-    "evidence": "取值 0/0.1/2.5/5 静态与播放后快照都完全相同"
+    "verdict": "EFFECTIVE(dynamic)",
+    "evidence": "静态同,播放1.5s后 0→5: 场景 1处(#11(Group:q))"
   },
   {
     "id": "D7-motor-generator",
     "param": "moveDir",
     "type": "enum",
-    "verdict": "INERT",
-    "evidence": "取值 cut/along/rev 静态与播放后快照都完全相同"
+    "verdict": "EFFECTIVE(dynamic)",
+    "evidence": "静态同,播放1.5s后 cut→rev: 场景 1处(#11(Group:q))"
   },
   {
     "id": "D7-motor-generator",
@@ -501,28 +501,28 @@
     "param": "incidence",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→1: 读数 refl:0→1 | 标签 [0]r = i = 0°i=0°r=0°→r = i = 1°i=1°r=1°,[1]r = i = 0°→r = i = 1° | 场景 4处(#8(Object3D:p),#9(Object3D:p),#10(Line2:geo),#11(Line2:geo))"
+    "evidence": "0→1: 读数 refl:0→1 | 标签 [0]r = i = 0°i=0°r=0°→r = i = 1°i=1°r=1°,[1]r = i = 0°→r = i = 1° | 场景 4处(#20(Object3D:p),#21(Object3D:p),#22(Line2:geo),#23(Line2:geo))"
   },
   {
     "id": "B2-reflection",
     "param": "plane",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→5: 场景 1处(#6(Mesh:p/q))"
+    "evidence": "0→5: 场景 1处(#13(Mesh:p/q))"
   },
   {
     "id": "B2-reflection",
     "param": "kind",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "specular→diffuse: 标签 [0]r = i = 80°i=80°r=80°→r = i = 80° · 漫反射i=80°r=,[1]r = i = 80°→r = i = 80° · 漫反射 | 场景 7处(obj#12增删,obj#13增删,obj#14增删,obj#15增删)"
+    "evidence": "specular→diffuse: 标签 [0]r = i = 80°i=80°r=80°→r = i = 80° · 漫反射i=80°r=,[1]r = i = 80°→r = i = 80° · 漫反射 | 场景 7处(obj#24增删,obj#25增删,obj#26增删,obj#27增删)"
   },
   {
     "id": "B3-plane-mirror",
     "param": "objDist",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "2→2.5: 读数 imgDist:2→2.5 | 标签 [0]替代蜡烛 5cm物距=像距=2cm · 等大虚像→替代蜡烛 5cm物距=像距=2.5cm · 等大,[2]物距=像距=2cm · 等大虚像→物距=像距=2.5cm · 等大虚像 | 场景 5处(#6(Mesh:p),#7(Mesh:p),#8(Mesh:p),#9(Object3D:p))"
+    "evidence": "2→2.5: 读数 imgDist:2→2.5 | 标签 [0]替代蜡烛 5cm（与像等高✓）物距=像距=2cm→替代蜡烛 5cm（与像等高✓）物距=像距=2.5,[2]物距=像距=2cm · 等大虚像→物距=像距=2.5cm · 等大虚像 | 场景 5处(#12(Group:p),#19(Group:p),#26(Group:p),#33(Object3D:p))"
   },
   {
     "id": "B3-plane-mirror",
@@ -536,77 +536,77 @@
     "param": "altHeight",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1→1.5: 标签 [0]替代蜡烛 1cm物距=像距=20cm · 等大虚→替代蜡烛 1.5cm物距=像距=20cm · 等,[1]替代蜡烛 1cm→替代蜡烛 1.5cm | 场景 2处(#8(Mesh:p/s),#9(Object3D:p))"
+    "evidence": "1→1.5: 标签 [0]替代蜡烛 1cm物距=像距=20cm · 等大虚→替代蜡烛 1.5cm物距=像距=20cm · 等,[1]替代蜡烛 1cm→替代蜡烛 1.5cm | 场景 2处(#26(Group:s),#33(Object3D:p))"
   },
   {
     "id": "B3-plane-mirror",
     "param": "screen",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "off→on: 场景 1处(#10(Mesh:vis))"
+    "evidence": "off→on: 场景 1处(#34(Mesh:vis))"
   },
   {
     "id": "B4-refraction",
     "param": "incidence",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→1: 读数 refr:0→0.75 | 标签 [0]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1,[2]i=0°→i=1° | 场景 3处(#15(Object3D:p),#17(Line2:geo),#18(Line2:geo))"
+    "evidence": "0→1: 读数 refr:0→1.33 | 标签 [0]激光笔n₁sin i = n₂sin r · n→激光笔n₁sin i = n₂sin r · n,[3]i=0°→i=1° | 场景 6处(#9(Group:p/q),#14(Mesh:p),#15(Object3D:p),#24(Object3D:p))"
   },
   {
     "id": "B4-refraction",
     "param": "pair",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "air-water→air-glass: 读数 refr:48.5→41.6 | 标签 [0]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1,[1]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1 | 场景 1处(#18(Line2:geo))"
+    "evidence": "air-water→air-glass: 读数 refr:48.5→41.6 | 标签 [0]激光笔n₁sin i = n₂sin r · n→激光笔n₁sin i = n₂sin r · n,[2]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1 | 场景 1处(#27(Line2:geo))"
   },
   {
     "id": "B4-refraction",
     "param": "scene",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "laser→chopstick: 标签 [0]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1,[1]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1 | 场景 1处(#7(Group:vis))"
+    "evidence": "laser→chopstick: 标签 [0]激光笔n₁sin i = n₂sin r · n→激光笔n₁sin i = n₂sin r · n,[2]n₁sin i = n₂sin r · n₁=1→n₁sin i = n₂sin r · n₁=1 | 场景 1处(#16(Group:vis))"
   },
   {
     "id": "B5-convex-lens",
     "param": "focal",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "5→6: 读数 imgDist:6→7.5 | 标签 [0]1/v+1/u=1/f → v=6.0cm 实像→1/v+1/u=1/f → v=7.5cm 实像,[1]1/v+1/u=1/f → v=6.0cm 实像→1/v+1/u=1/f → v=7.5cm 实像 | 场景 7处(#19(Mesh:p/s),#21(Mesh:p),#22(Mesh:p),#23(Mesh:p))"
+    "evidence": "5→6: 读数 imgDist:6→7.5 | 标签 [0]1/v+1/u=1/f → v=6.0cm 实像→1/v+1/u=1/f → v=7.5cm 实像,[1]1/v+1/u=1/f → v=6.0cm 实像→1/v+1/u=1/f → v=7.5cm 实像 | 场景 8处(#17(Group:p),#44(Mesh:p/s),#46(Mesh:p),#47(Mesh:p))"
   },
   {
     "id": "B5-convex-lens",
     "param": "objDist",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "3→3.5: 读数 imgDist:-3.33→-3.96 | 标签 [0]1/v+1/u=1/f → v=-3.3cm 虚→1/v+1/u=1/f → v=-4.0cm 虚,[1]1/v+1/u=1/f → v=-3.3cm 虚→1/v+1/u=1/f → v=-4.0cm 虚 | 场景 5处(#7(Group:p),#19(Mesh:p/s),#26(Line2:geo),#27(Line2:geo))"
+    "evidence": "3→3.5: 读数 imgDist:-3.33→-3.96 | 标签 [0]1/v+1/u=1/f → v=-3.3cm 虚→1/v+1/u=1/f → v=-4.0cm 虚,[1]1/v+1/u=1/f → v=-3.3cm 虚→1/v+1/u=1/f → v=-4.0cm 虚 | 场景 5处(#24(Group:p),#44(Mesh:p/s),#51(Line2:geo),#52(Line2:geo))"
   },
   {
     "id": "B5-convex-lens",
     "param": "aperture",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "2→2.5: 场景 2处(#4(Mesh:s),#18(Mesh:p))"
+    "evidence": "2→2.5: 场景 2处(#10(Group:s),#43(Mesh:p))"
   },
   {
     "id": "B5-convex-lens",
     "param": "cover",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "off→half: 场景 2处(#18(Mesh:vis),#19(Mesh:op))"
+    "evidence": "off→half: 场景 2处(#43(Mesh:vis),#44(Mesh:op))"
   },
   {
     "id": "B5-convex-lens",
     "param": "source",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "F→candle: 场景 2处(#8(Group:vis),#12(Group:vis))"
+    "evidence": "F→candle: 场景 2处(#25(Group:vis),#30(Group:vis))"
   },
   {
     "id": "C1-sound-medium",
     "param": "medium",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "340→1500: 标签 [0]v=340m/s · 响度 66dB→v=1500m/s · 响度 66dB,[1]v=340m/s · 响度 66dB→v=1500m/s · 响度 66dB | 场景 4处(#11(Mesh:s/op),#12(Mesh:s/op),#13(Mesh:s/op),#14(Mesh:s/op))"
+    "evidence": "340→1500: 标签 [0]v=340m/s · 响度 66dB→v=1500m/s · 响度 66dB,[1]v=340m/s · 响度 66dB→v=1500m/s · 响度 66dB | 场景 4处(#17(Mesh:s/op),#18(Mesh:s/op),#19(Mesh:s/op),#20(Mesh:s/op))"
   },
   {
     "id": "C1-sound-medium",
@@ -620,14 +620,14 @@
     "param": "pressure",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→1: 读数 loud:0→0.65 | 标签 [0]v=5200m/s · 响度 0dB · 真空不→v=5200m/s · 响度 1dB · 真空不,[1]v=5200m/s · 响度 0dB · 真空不→v=5200m/s · 响度 1dB · 真空不 | 场景 5处(#10(Mesh:p),#11(Mesh:op),#12(Mesh:op),#13(Mesh:op))"
+    "evidence": "0→1: 读数 loud:0→0.65 | 标签 [0]v=5200m/s · 响度 0dB · 真空不→v=5200m/s · 响度 1dB · 真空不,[1]v=5200m/s · 响度 0dB · 真空不→v=5200m/s · 响度 1dB · 真空不 | 场景 5处(#16(Mesh:p),#17(Mesh:op),#18(Mesh:op),#19(Mesh:op))"
   },
   {
     "id": "C1-sound-medium",
     "param": "freq",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "256→512: 场景 3处(#7(Mesh:p),#8(Mesh:p),#10(Mesh:p))"
+    "evidence": "256→512: 场景 2处(#11(Group:q),#16(Mesh:p))"
   },
   {
     "id": "C1-sound-medium",
@@ -641,21 +641,21 @@
     "param": "freq",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "50→60: 读数 lambda:6.8→5.67 | 标签 [0]钢尺 15cm · f≈567Hz空气柱 20c→钢尺 15cm · f≈567Hz空气柱 20c,[4]λ = v/f = 6.800 m→λ = v/f = 5.667 m"
+    "evidence": "50→60: 读数 lambda:6.8→5.67 | 标签 [0]钢尺 15cm · f≈567Hz空气柱 20c→钢尺 15cm · f≈567Hz空气柱 20c,[3]f=50Hz · 振幅 60% · 约 0.7 →f=60Hz · 振幅 60% · 约 0.7 "
   },
   {
     "id": "C2-sound-chars",
     "param": "amp",
     "type": "number",
-    "verdict": "EFFECTIVE(dynamic)",
-    "evidence": "静态同,播放1.5s后 0→100: 标签 [0]钢尺 15cm · f≈567Hz空气柱 20c→钢尺 15cm · f≈567Hz空气柱 20c,[3]f=2000Hz · 振幅 60% · 约 12→f=2000Hz · 振幅 100% · 约 1 | 场景 1处(#6(Line2:geo))"
+    "verdict": "EFFECTIVE",
+    "evidence": "0→1: 标签 [0]钢尺 15cm · f≈567Hz空气柱 20c→钢尺 15cm · f≈567Hz空气柱 20c,[3]f=2000Hz · 振幅 60% · 约 12→f=2000Hz · 振幅 1% · 约 12. | 场景 1处(#6(Line2:geo))"
   },
   {
     "id": "C2-sound-chars",
     "param": "wave",
     "type": "enum",
-    "verdict": "EFFECTIVE(dynamic)",
-    "evidence": "静态同,播放1.5s后 sine→noise: 场景 1处(#6(Line2:geo))"
+    "verdict": "EFFECTIVE",
+    "evidence": "sine→square: 场景 1处(#6(Line2:geo))"
   },
   {
     "id": "C2-sound-chars",
@@ -690,91 +690,91 @@
     "param": "material",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "3→8: 标签 [0]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收,[1]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收 | 场景 1处(#6(Mesh:op))"
+    "evidence": "3→8: 标签 [0]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收,[1]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收 | 场景 1处(#16(Mesh:op))"
   },
   {
     "id": "C3-noise-control",
     "param": "stage",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "source→path: 标签 [0]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收,[1]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收 | 场景 1处(#22(Mesh:p))"
+    "evidence": "source→path: 标签 [0]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收,[1]s=vΔt/2 → Δt=2.941s · 接收→s=vΔt/2 → Δt=2.941s · 接收 | 场景 1处(#32(Mesh:p))"
   },
   {
     "id": "F1-melting-curve",
     "param": "substance",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "ice→hypo: 标签 [0]T / ℃t / minT = 0.0℃  t →T / ℃t / minT = 8.9℃  t ,[3]T = 0.0℃  t = 0.8min→T = 8.9℃  t = 0.8min | 场景 3处(#9(Line2:geo),#10(Mesh:p),#12(Mesh:p/s))"
+    "evidence": "ice→hypo: 标签 [0]T / ℃t / min55-22T = -10→T / ℃t / min103-22T = -1,[3]55→103 | 场景 3处(#23(Mesh:s),#40(Line2:geo),#41(Mesh:p))"
   },
   {
     "id": "F1-melting-curve",
     "param": "power",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "100→110: 标签 [0]T / ℃t / minT = 1.4℃  t →T / ℃t / minT = 2.6℃  t ,[3]T = 1.4℃  t = 0.8min→T = 2.6℃  t = 0.8min | 场景 2处(#9(Line2:geo),#10(Mesh:p))"
+    "evidence": "100→110: 场景 2处(#11(Mesh:s/emiI),#40(Line2:geo))"
   },
   {
     "id": "F1-melting-curve",
     "param": "mass",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "50→60: 读数 temp:127→104 | 标签 [0]T / ℃t / minT = 127.1℃  →T / ℃t / minT = 104.3℃  ,[3]T = 127.1℃  t = 0.8min→T = 104.3℃  t = 0.8min | 场景 2处(#9(Line2:geo),#10(Mesh:p))"
+    "evidence": "50→60: 场景 1处(#40(Line2:geo))"
   },
   {
     "id": "F1-melting-curve",
     "param": "t0",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "-20→-19: 读数 temp:-6.29→-5.29 | 标签 [0]T / ℃t / minT = -6.3℃  t→T / ℃t / minT = -5.3℃  t,[3]T = -6.3℃  t = 0.8min→T = -5.3℃  t = 0.8min | 场景 2处(#9(Line2:geo),#10(Mesh:p))"
+    "evidence": "-20→-19: 读数 temp:-20→-19 | 标签 [0]T / ℃t / min35-32T = -20→T / ℃t / min36-31T = -19,[3]35→36"
   },
   {
     "id": "F1-melting-curve",
     "param": "duration",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "1→2: 读数 temp:41.4→42.7 | 标签 [0]T / ℃t / minT = 41.4℃  t→T / ℃t / minT = 42.7℃  t,[3]T = 41.4℃  t = 0.1min→T = 42.7℃  t = 0.2min | 场景 2处(#9(Line2:geo),#10(Mesh:p))"
+    "evidence": "1→2: 场景 1处(#40(Line2:geo))"
   },
   {
     "id": "F2-boiling",
     "param": "pressure",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "70→70.3: 读数 boil:90→90.1 | 标签 [0]沸点 = 89.99℃（气压 70.0kPa）T→沸点 = 90.10℃（气压 70.3kPa）T,[1]沸点 = 89.99℃（气压 70.0kPa）→沸点 = 90.10℃（气压 70.3kPa）"
+    "evidence": "70→70.3: 读数 boil:90→90.1 | 标签 [0]沸点 = 89.99℃（气压 70.0kPa ·→沸点 = 90.10℃（气压 70.3kPa ·,[1]沸点 = 89.99℃（气压 70.0kPa ·→沸点 = 90.10℃（气压 70.3kPa ·"
   },
   {
     "id": "F2-boiling",
     "param": "volume",
     "type": "number",
     "verdict": "EFFECTIVE(dynamic)",
-    "evidence": "静态同,播放1.5s后 50→500: 标签 [0]沸点 = 99.96℃（气压 101.2kPa）→沸点 = 99.96℃（气压 101.2kPa）,[2]T=100.0℃ 沸腾→T=44.5℃ | 场景 2处(#5(Mesh:p/s),#7(Mesh:inst))"
+    "evidence": "静态同,播放1.5s后 50→500: 标签 [0]沸点 = 99.96℃（气压 101.2kPa →沸点 = 99.96℃（气压 101.2kPa ,[2]T=26.5℃→T=20.7℃ | 场景 1处(#20(Mesh:s))"
   },
   {
     "id": "F2-boiling",
     "param": "t0",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "20→21: 标签 [0]沸点 = 99.96℃（气压 101.2kPa）→沸点 = 99.96℃（气压 101.2kPa）,[2]T=20.0℃→T=21.0℃"
+    "evidence": "20→21: 标签 [0]沸点 = 99.96℃（气压 101.2kPa →沸点 = 99.96℃（气压 101.2kPa ,[2]T=20.0℃→T=21.0℃ | 场景 1处(#20(Mesh:s))"
   },
   {
     "id": "F2-boiling",
     "param": "flame",
     "type": "number",
-    "verdict": "EFFECTIVE(dynamic)",
-    "evidence": "静态同,播放1.5s后 1→5: 标签 [0]沸点 = 99.96℃（气压 101.2kPa）→沸点 = 99.96℃（气压 101.2kPa）,[2]T=97.7℃→T=100.0℃ 沸腾 | 场景 2处(#5(Mesh:p/s),#7(Mesh:inst))"
+    "verdict": "EFFECTIVE",
+    "evidence": "1→2: 标签 [0]沸点 = 99.96℃（气压 101.2kPa →沸点 = 99.96℃（气压 101.2kPa ,[1]沸点 = 99.96℃（气压 101.2kPa →沸点 = 99.96℃（气压 101.2kPa  | 场景 1处(#10(Mesh:s/emiI))"
   },
   {
     "id": "F3-heat-engine",
     "param": "material",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "4.2→2.1: 场景 2处(#4(Mesh:emi/emiI),#7(Mesh:emi/emiI))"
+    "evidence": "4.2→2.1: 场景 2处(#7(Mesh:emi/emiI),#13(Mesh:emi/emiI))"
   },
   {
     "id": "F3-heat-engine",
     "param": "mass",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0.1→0.2: 读数 dT:19→9.52 | 标签 [0]水 4.2×10³ΔT=19.0℃煤油 2.1×→水 4.2×10³ΔT=9.5℃煤油 2.1×1,[2]ΔT=19.0℃→ΔT=9.5℃ | 场景 7处(#4(Mesh:p/s),#6(Object3D:p),#7(Mesh:p/s),#9(Object3D:p))"
+    "evidence": "0.1→0.2: 读数 dT:35.7→19 | 标签 [0]水 4.2×10³ΔT=19.0℃煤油 2.1×→水 4.2×10³ΔT=9.5℃煤油 2.1×1,[2]ΔT=19.0℃→ΔT=9.5℃ | 场景 7处(#7(Mesh:p/s),#9(Object3D:p),#13(Mesh:p/s),#15(Object3D:p))"
   },
   {
     "id": "F3-heat-engine",
@@ -787,28 +787,28 @@
     "id": "F3-heat-engine",
     "param": "rpm",
     "type": "number",
-    "verdict": "INERT",
-    "evidence": "取值 0/100/1500/3000 静态与播放后快照都完全相同"
+    "verdict": "EFFECTIVE(dynamic)",
+    "evidence": "静态同,播放1.5s后 0→3000: 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[7]吸气冲程（曲轴 90°）→压缩冲程（曲轴 315°） | 场景 12处(#24(Mesh:p/s/col/emi/emiI/op),#25(Group:p),#31(Group:q),#35(Mesh:p/q))"
   },
   {
     "id": "F3-heat-engine",
     "param": "stroke",
     "type": "enum",
     "verdict": "EFFECTIVE",
-    "evidence": "intake→compress: 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[7]吸气冲程（曲轴 90°）→压缩冲程（曲轴 270°） | 场景 8处(#15(Mesh:col/emi/emiI/op),#22(Group:q),#26(Mesh:p/q),#27(Mesh:p))"
+    "evidence": "intake→compress: 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[7]吸气冲程（曲轴 90°）→压缩冲程（曲轴 270°） | 场景 8处(#24(Mesh:col/emi/emiI/op),#31(Group:q),#35(Mesh:p/q),#36(Mesh:p))"
   },
   {
     "id": "F3-heat-engine",
     "param": "qTotal",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→10: 读数 eta:—→0 | 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[8]η = —（Q总=0）→η = W有/Q总 = 0.0%"
+    "evidence": "0→10: 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[8]η = —（Q总=0）→η = W有/Q总 = 0.0%"
   },
   {
     "id": "F3-heat-engine",
     "param": "wUseful",
     "type": "number",
     "verdict": "EFFECTIVE",
-    "evidence": "0→5: 读数 eta:0→1 | 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[8]η = W有/Q总 = 0.0%→η = W有/Q总 = 1.0%"
+    "evidence": "0→5: 标签 [0]水 4.2×10³ΔT=19.6℃煤油 2.1×→水 4.2×10³ΔT=19.6℃煤油 2.1×,[8]η = W有/Q总 = 0.0%→η = W有/Q总 = 1.0%"
   }
 ]

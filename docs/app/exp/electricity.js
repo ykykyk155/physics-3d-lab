@@ -610,54 +610,273 @@ const D2 = {
   p: {},
   build(ctx) {
     this.scene = ctx.scene; this.ctx = ctx;
-    addGround(ctx.scene, 0x3a3514);
     registerMaterials(ctx);
-    // 电阻定律演示板：竖立木背板，上面并排 4 根参考电阻丝（长短粗细可辨）+ 下方待测电阻丝
-    this.boardBase = box(5.2, 0.1, 1.2, MATS.woodDark()); this.boardBase.position.set(0, 0.05, 0); ctx.scene.add(this.boardBase);
-    this.backBoard = box(4.6, 2.2, 0.08, MATS.woodLight()); this.backBoard.position.set(0, 1.2, -0.35); ctx.scene.add(this.backBoard);
-    // 四根参考电阻丝：镍铬长 / 镍铬短 / 镍铬粗 / 锰铜，长度与粗细肉眼可辨
-    const samples = [];
-    const wireCol = matClone('iron');
-    const refs = [
-      { z: 0.1, y: 1.85, len: 2.6, r: 0.035, mat: matClone('ironDark') },
-      { z: 0.1, y: 1.5, len: 1.5, r: 0.035, mat: matClone('ironDark') },
-      { z: 0.1, y: 1.15, len: 2.0, r: 0.07, mat: matClone('ironDark') },
-      { z: 0.1, y: 0.8, len: 2.0, r: 0.05, mat: matClone('manganin') },
-    ];
-    refs.forEach(rf => { const w = cyl(rf.r, rf.r, rf.len, rf.mat); w.rotation.z = Math.PI / 2; w.position.set(-0.2, rf.y, -0.28); samples.push(w); });
-    ctx.scene.add(mergeByMaterial(samples));
-    // 待测电阻丝（下方，长度/粗细随参数变）
-    this.bar = cyl(0.06, 0.06, 4, matClone('copper')); this.bar.rotation.z = Math.PI / 2; this.bar.position.set(0, 0.55, 0.25); ctx.scene.add(this.bar);
-    this.termL = cyl(0.09, 0.09, 0.22, MATS.brass()); this.termL.position.set(-2.1, 0.35, 0.25); ctx.scene.add(this.termL);
-    this.termR = cyl(0.09, 0.09, 0.22, MATS.brass()); this.termR.position.set(2.1, 0.35, 0.25); ctx.scene.add(this.termR);
-    this.leadL = fatLine([new THREE.Vector3(-2.6, 0.55, 0), new THREE.Vector3(-2.1, 0.35, 0.25)], WIRE, 3); ctx.scene.add(this.leadL);
-    this.leadR = fatLine([new THREE.Vector3(2.1, 0.35, 0.25), new THREE.Vector3(2.6, 0.55, 0)], WIRE, 3); ctx.scene.add(this.leadR);
-    // 小灯泡（显示电流大小），移到画面内
-    this.bulbG = bulb({ r: 0.24 }); this.bulbG.position.set(2.6, 0.55, 0.3); ctx.scene.add(this.bulbG);
+    addGround(ctx.scene, 0x3a3514);
+    this._timers = []; this._down = null;
+    // 电池组（底边，坐在导线上）
+    this.battG = battery({ cells: 2, h: 0.5 });
+    this.battG.position.set(-1.5, 0.9, 0);
+    ctx.scene.add(this.battG);
+    // 闸刀开关（底边，点击刀片/底座通断）
+    this.switchG = knifeSwitch();
+    this.switchG.position.set(1.3, 0.9, 0);
+    this.switchG.scale.setScalar(1.6);
+    this.switchG.userData.pickTarget = { kind: 'switch' };
+    ctx.scene.add(this.switchG);
+    // 小灯泡（左竖边，显示电流大小）
+    this.bulbG = bulb({ r: 0.24 });
+    this.bulbG.position.set(-2.6, 1.9, 0);
+    ctx.scene.add(this.bulbG);
     this.bulb = this.bulbG;
-    this.lbl = mkLabel('', C); this.lbl.position.set(0, 2.9, 0); ctx.scene.add(this.lbl);
+    // 电流表（表位固定：顶边串入缺口）
+    this.meterG = ammeter({ w: 0.66, h: 0.54 });
+    this.meterG.userData.meter = 'amp';
+    ctx.scene.add(this.meterG);
+    this.ampVal = mkLabel('电流表 I = —', '#ffe066');
+    ctx.scene.add(this.ampVal);
+    // 顶栏（R 公式读数）
+    this.lbl = mkLabel('', C);
+    this.lbl.position.set(0, 3.75, 0);
+    ctx.scene.add(this.lbl);
+    // 容器
+    this.wires = []; this.parts = []; this.junctions = []; this.elec = []; this.bar = null;
+    // 拾取交互：自建 raycast（不依赖 OrbitControls），点击闸刀通断
+    this.raycaster = new THREE.Raycaster();
+    this._vp = document.getElementById('viewport');
+    if (this._vp) {
+      this._vp.addEventListener('pointerdown', this._hDown = e => { this._down = { x: e.clientX, y: e.clientY }; });
+      this._vp.addEventListener('pointermove', this._hMove = e => this._onMove(e));
+      this._vp.addEventListener('pointerup', this._hUp = e => this._onUp(e));
+    }
+    this.t = 0;
+    this.duration = 4;
+    this.recompute();
   },
+  /* ---------- 电路几何 ---------- */
+  _geo() {
+    return { xL: -2.6, xR: 2.6, yB: 0.9, yT: 2.9, battX: -1.5, swX: 1.3, conX: 0.9, meterX: -1.5 };
+  },
+  _matColor(rho) {
+    return (rho === 8 || rho === '8') ? '#d8dde4' : (rho === 6 || rho === '6') ? '#d4a04a' : (rho === 4 || rho === '4') ? '#5a6a7a' : '#d4785e';
+  },
+  _matIdx(rho) {
+    const order = [8, 6, 2, 4];   // 与 JSON options 顺序一致：镍铬/锰铜/铜/铁
+    const i = order.indexOf(Number(rho));
+    return i < 0 ? 0 : i;
+  },
+  /* ---------- 数值（规格 §2：R = ρ0×(L/100)×(1/S)/strands×(1+temp×0.002)，U=6V） ---------- */
   onParam(k, v) { this.p[k] = v; this.recompute(); },
   recompute() {
-    const L = (this.p.len || 50) / 100;      // m
-    const S = this.p.area || 1;              // mm²
-    const rho = Number(this.p.mat) || 1.1;
-    const strands = this.p.strands || 1;
-    const tf = 1 + (this.p.temp || 20) * 0.002;
-    const R = rho * L / S / strands * tf;
-    this.R = R;
-    if (this.ctx) this.ctx.emitReadout({ r: R });
-    const lenScale = (this.p.len || 50) / 100 * 4 / 2 + 0.2;
-    this.bar.scale.set(clamp(lenScale, 0.4, 2.2), clamp(Math.sqrt(S / 4) * 0.8 + 0.4, 0.4, 1.8), clamp(Math.sqrt(S / 4) * 0.8 + 0.4, 0.4, 1.8));
-    this.bar.material.color.set(new THREE.Color(rho > 0.5 ? '#b0763a' : '#d9a066'));
-    const bright = clamp(1 / R * 3, 0, 1);
-    setBulbGlow(this.bulbG, bright);
-    this.lbl.position.set(0, 2.6, 0);
+    const L = Number(this.p.len) || 50;
+    const S = Number(this.p.area) || 1;
+    const rho = Number(this.p.mat) || 8;
+    const strands = Number(this.p.strands) || 1;
+    const temp = Number(this.p.temp) || 20;
+    const tf = 1 + temp * 0.002;
+    const R = rho * (L / 100) * (1 / S) / strands * tf;
+    const on = this.p.switch !== 'off';
+    const I = on ? 6 / R : 0;
+    this.R = R; this.I = I; this.on = on;
+    this.lenScale = L / 100;
+    this.matIdx = this._matIdx(rho);
+    const len = 0.8 + (L / 100) * 2.2;             // 导体模型长度（基准：L=50 → 1.9）
+    const r = 0.025 + Math.sqrt(S / 4) * 0.075;    // 导体模型半径（基准：S=1 → 0.0625）
+    this.rad = r;
+    if (this.ctx) this.ctx.emitReadout({ r: R, cur: I });
+    setSwitch(this.switchG, on);
+    setBulbGlow(this.bulbG, on ? clamp(I / 2, 0, 1) : 0);
+    this.buildCircuit(len, r, rho, strands);
+    // 电流表固定位（顶边缺口，表体接线柱正好落导线）
+    const { meterX, yT } = this._geo();
+    this.meterG.position.set(meterX, yT + 0.30, 0);
+    setMeterNeedle(this.meterG, clamp(I / 3, 0, 1));
+    this.ampVal.position.set(meterX + 0.90, yT + 0.36, 0.3);
+    this._renderValLabels(on, I);
     setLabel(this.lbl, 'R = ρL/S = ' + R.toFixed(2) + ' Ω');
   },
-  step() {},
-  reset() { this.recompute(); },
-  dispose() {},
+  _renderValLabels(on, I) {
+    const warn = I > 3 ? '⚠ ' : '';
+    setLabel(this.ampVal, warn + '电流表 I = ' + (on ? I.toFixed(3) : '0.000') + ' A');
+  },
+  /* ---------- 电路图（每次参数变化全量重建导线/粒子/导体） ---------- */
+  buildCircuit(len, r, rho, strands) {
+    this.wires.forEach(w => { w.geometry.dispose(); this.scene.remove(w); }); this.wires = [];
+    this.elec.forEach(e => { if (e.geometry) e.geometry.dispose(); this.scene.remove(e); }); this.elec = [];
+    this.parts.forEach(p => this.scene.remove(p)); this.parts = [];
+    this.junctions.forEach(j => this.scene.remove(j)); this.junctions = [];
+    if (this.bar) { this.bar.traverse(o => { if (o.geometry) o.geometry.dispose(); }); this.scene.remove(this.bar); this.bar = null; }
+    const { xL, xR, yB, yT, battX, swX, conX, meterX } = this._geo();
+    const bL = battX - 0.44, bR = battX + 0.44;
+    const sL = swX - 0.22, sR = swX + 0.22;
+    const gap = 0.198;
+    const conL = conX - len / 2, conR = conX + len / 2;
+    const bulbY = 1.9, yTop = bulbY + 0.72, yBot = bulbY - 0.18;   // 灯泡占位：导线接泡顶（玻璃泡最高≈2.54）之上与螺口底之下，不从玻璃泡穿过
+    const segs = [];
+    segs.push([[xL, yB], [bL, yB]]);
+    segs.push([[bR, yB], [sL, yB]]);
+    segs.push([[sR, yB], [xR, yB], [xR, yT], [conR, yT]]);
+    segs.push([[conL, yT], [meterX + gap, yT]]);
+    segs.push([[meterX - gap, yT], [xL, yT], [xL, yTop]]);
+    segs.push([[xL, yBot], [xL, yB]]);
+    segs.forEach(pts => {
+      const w = fatLine(this._roundedPath(pts, 0.12), WIRE, 3);
+      this.scene.add(w); this.wires.push(w);
+    });
+    // 接线柱（电池/开关/灯泡两端，MATS.brass() 同款）
+    const post = (x, y, z) => {
+      const p = cyl(0.03, 0.03, 0.10, MATS.brass()); p.position.set(x, y + 0.05, z);
+      this.parts.push(p); this.scene.add(p);
+    };
+    post(bL, yB, 0); post(bR, yB, 0); post(sL, yB, 0); post(sR, yB, 0);
+    post(xL, yTop, 0); post(xL, yBot, 0);
+    // 待测导体组（顶边，随 len/S/strands/mat 变化）：组内固定基准尺寸（L=50→len0=1.9、S=1→r0=0.0625），
+    // 实际参数由组 scale 表达（scale.x=len/1.9、scale.yz=r/0.0625），探针可读 bar.scale 断言随参数变化
+    const len0 = 1.9, r0 = 0.0625;
+    const g = new THREE.Group();
+    const lineM = new THREE.MeshStandardMaterial({ color: this._matColor(rho), roughness: 0.35, metalness: 0.85 });
+    const lines = [];
+    for (let i = 0; i < strands; i++) {
+      const dy = (i - (strands - 1) / 2) * 0.16;
+      const rr = strands > 1 ? r0 * 0.75 : r0;      // 多根并排时每根略细（规格 §4：每根 r×0.75）
+      const w = cyl(rr, rr, len0, lineM); w.rotation.z = Math.PI / 2; w.position.set(0, dy, 0);
+      lines.push(w);
+    }
+    g.add(mergeByMaterial(lines));
+    // 两端黄铜接线柱（竖直短柱，接导线端点）
+    const caps = [];
+    [-1, 1].forEach(s => {
+      const c = cyl(r0 * 1.6, r0 * 1.6, 0.18, MATS.brass()); c.position.set(s * len0 / 2, 0, 0); caps.push(c);
+    });
+    g.add(mergeByMaterial(caps));
+    g.position.set(conX, yT, 0);
+    g.scale.set(len / len0, r / r0, r / r0);
+    this.scene.add(g); this.bar = g;
+    // 两端导线接入点（黄铜实心节点）
+    [conL, conR].forEach(cx => {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 12), MATS.brass());
+      dot.position.set(cx, yT, 0.02); this.junctions.push(dot); this.scene.add(dot);
+    });
+    // 电子粒子沿外圈（直线段折线，不能用 CatmullRom——会把矩形拉成椭圆）
+    this._loopPoly = [[xL, yB], [xR, yB], [xR, yT], [xL, yT]].map(a => new THREE.Vector3(a[0], a[1], 0));
+    this._loopLen = 0;
+    for (let i = 0; i < this._loopPoly.length; i++) this._loopLen += this._loopPoly[i].distanceTo(this._loopPoly[(i + 1) % this._loopPoly.length]);
+    const n = 30;
+    this.elec = [electrons(n)];
+    this.elec.forEach(e => this.scene.add(e));
+    this.phases = new Array(n).fill(0).map((_, i) => i / n);
+  },
+  _roundedPath(pts, r) {
+    const P = pts.map(p => new THREE.Vector2(p[0], p[1]));
+    const out = [P[0].clone()];
+    const seg = 6;
+    for (let i = 1; i < P.length - 1; i++) {
+      const prev = P[i - 1], cur = P[i], next = P[i + 1];
+      const d1 = prev.clone().sub(cur); const l1 = d1.length(); if (l1 < 1e-6) continue; d1.normalize();
+      const d2 = next.clone().sub(cur); const l2 = d2.length(); if (l2 < 1e-6) continue; d2.normalize();
+      const dd = Math.min(r, l1 * 0.45, l2 * 0.45);
+      const a = cur.clone().add(d1.clone().multiplyScalar(dd));
+      const b = cur.clone().add(d2.clone().multiplyScalar(dd));
+      for (let k = 0; k <= seg; k++) {
+        const t = k / seg;
+        const q = a.clone().multiplyScalar((1 - t) * (1 - t))
+          .add(cur.clone().multiplyScalar(2 * (1 - t) * t))
+          .add(b.clone().multiplyScalar(t * t));
+        out.push(q);
+      }
+    }
+    out.push(P[P.length - 1].clone());
+    return out.map(v => new THREE.Vector3(v.x, v.y, 0));
+  },
+  /* ---------- 拾取与点选（闸刀开关通断，D1 同款 7px 阈值） ---------- */
+  _pickMeta(obj) {
+    let o = obj;
+    while (o) { const u = o.userData; if (u && u.pickTarget) return u; o = o.parent; }
+    return null;
+  },
+  _ndc(e) {
+    const r = this._vp.getBoundingClientRect();
+    return new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  },
+  _onMove(e) {
+    if (!this._vp) return;
+    this.raycaster.setFromCamera(this._ndc(e), this.ctx.camera);
+    const hits = this.raycaster.intersectObjects(this.scene.children, true);
+    let hover = null;
+    for (const h of hits) { const m = this._pickMeta(h.object); if (m && m.pickTarget) { hover = m; break; } }
+    this._vp.style.cursor = hover ? 'pointer' : '';
+  },
+  _onUp(e) {
+    if (!this._down || !this._vp) return;
+    const dx = e.clientX - this._down.x, dy = e.clientY - this._down.y;
+    this._down = null;
+    if (dx * dx + dy * dy > 49) return;
+    this.raycaster.setFromCamera(this._ndc(e), this.ctx.camera);
+    const hits = this.raycaster.intersectObjects(this.scene.children, true);
+    for (const h of hits) {
+      const m = this._pickMeta(h.object);
+      if (m && m.pickTarget && m.pickTarget.kind === 'switch') { this.toggleSwitch(); return; }
+    }
+  },
+  /* 程序 API：点击闸刀通断 */
+  toggleSwitch() {
+    const next = this.p.switch === 'off' ? 'on' : 'off';
+    this.p.switch = next;
+    if (this.ctx && this.ctx.ui && this.ctx.ui.setParamValue) this.ctx.ui.setParamValue('switch', next);
+    this.recompute();
+    return next;
+  },
+  getState() {
+    return { R: this.R, I: this.I, on: this.on, lenScale: this.lenScale, rad: this.rad, matIdx: this.matIdx };
+  },
+  /* ---------- 粒子环行（D1 同机制） ---------- */
+  _loopAt(u) {
+    const P = this._loopPoly; if (!P || !P.length || !this._loopLen) return new THREE.Vector3();
+    let d = ((u % 1) + 1) % 1 * this._loopLen;
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      const L = a.distanceTo(b);
+      if (d <= L) return a.clone().lerp(b, d / L);
+      d -= L;
+    }
+    return P[0].clone();
+  },
+  step(dt) {
+    if (!this.elec.length || !this._loopPoly) return;
+    if (dt > 0) this.t = Math.min((this.t || 0) + dt, this.duration || 0);
+    this.renderAt(this.t || 0);
+  },
+  seek(t) {
+    if (!this.elec.length || !this._loopPoly) return;
+    this.t = Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.duration || 0);
+    this.renderAt(this.t);
+  },
+  renderAt(t) {
+    if (!this.elec.length || !this._loopPoly) return;
+    const I = this.I || 0;
+    const k = clamp(I / 1.5, 0.2, 3);
+    const inst = this.elec[0];
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(0.42, 0.42, 0.42);
+    for (let i = 0; i < this.phases.length; i++) {
+      const p = (this.phases[i] + (t / (this.duration || 4)) * k) % 1;
+      const pos = this._loopAt(p); pos.z = -0.03;
+      m.compose(pos, q, s);
+      inst.setMatrixAt(i, m);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+    inst.visible = this.on && I > 0.001;
+  },
+  reset() { this.t = 0; this.recompute(); if (this.renderAt) this.renderAt(0); },
+  dispose() {
+    this._timers.forEach(id => { try { clearInterval(id); } catch (e) {} try { clearTimeout(id); } catch (e) {} });
+    this._timers = [];
+    if (this._vp) {
+      this._vp.removeEventListener('pointerdown', this._hDown);
+      this._vp.removeEventListener('pointermove', this._hMove);
+      this._vp.removeEventListener('pointerup', this._hUp);
+      this._vp.style.cursor = '';
+    }
+    this._vp = null;
+  },
 };
 
 /* ===================== D3 变阻器 ===================== */
@@ -1146,9 +1365,10 @@ Object.assign(D2, {
   readouts() {
     return [
       rd('电阻 R', this.R, 'Ω', 2),
+      rd('电流 I', this.on ? this.I : 0, 'A', 3),
       rd('长度 L', this.p.len || 0, 'cm', 0),
-      rd('横截面积 S', this.p.area || 0, 'mm²'),
-      rd('电阻率 ρ', Number(this.p.mat) || 0, '×10⁻⁶Ω·m'),
+      rd('横截面积 S', this.p.area || 0, 'mm²', 1),
+      rd('电阻率 ρ', Number(this.p.mat) || 0, 'Ω·mm²/m', 0),
       rd('温度', this.p.temp != null ? this.p.temp : 20, '℃', 0),
     ];
   },

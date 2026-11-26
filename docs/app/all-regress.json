@@ -42,8 +42,8 @@
     },
     {
       "id": "D2-resistance-factor",
-      "calls": 13,
-      "tris": 4296
+      "calls": 36,
+      "tris": 9386
     },
     {
       "id": "D3-rheostat-lamp",
