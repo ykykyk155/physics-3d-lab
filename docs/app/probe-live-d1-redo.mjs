@@ -1,4 +1,4 @@
-// D1(08) 重做验收（线上版，77 项）：双表常显/换位/双接线/误接/开关/记录表格+描点图/结论/readouts/槽口几何/电压表摆位/环境
+// D1(08) 重做验收（线上版，81 项）：双表常显/换位/双接线/误接/开关/记录表格+描点图/结论/readouts/槽口几何/电压表并联支路/环境
 import fs from "node:fs"; import path from "node:path"; import puppeteer from "puppeteer-core";
 const ROOT = path.resolve(import.meta.dirname);
 const LIVE = "https://ykykyk155.github.io/physics-3d-lab/";
@@ -103,8 +103,20 @@ const volPos = () => pg.evaluate(() => {
   return { vy: v.y, vz: v.z, b1y: b1.y, b2y: b2.y };
 });
 let vp = await volPos();
-ok("串联默认电压表体低于灯泡", vp.vy < vp.b1y && vp.vy < vp.b2y, JSON.stringify(vp));
-ok("串联默认电压表体在电路前方台面上", vp.vz > 0.5 && vp.vy < 0.6, JSON.stringify(vp));
+ok("串联默认电压表在灯泡上方支路里", vp.vy > vp.b1y && vp.vy > vp.b2y, JSON.stringify(vp));
+ok("串联默认电压表与主电路同面", Math.abs(vp.vz) < 0.35, JSON.stringify(vp));
+ok("串联默认支路缺口宽≈0.72", near(s.volLeadDist, 0.72, 0.05), `d=${s.volLeadDist}`);
+const branchGap = () => pg.evaluate(() => {
+  const e = window.__LAB.current().exp._impl;
+  const v = e.volMeterG.position;
+  const segs = [];
+  for (const w of e.wires) { const a = w.geometry && w.geometry.attributes && w.geometry.attributes.instanceStart; if (!a) continue; const d = a.data.array; for (let i = 0; i + 5 < d.length; i += 6) segs.push([d[i], d[i + 1], d[i + 3], d[i + 4]]); }
+  const L = v.x - 0.36, R = v.x + 0.36, y = v.y;
+  const cross = segs.filter(([x1, y1, x2, y2]) => Math.abs(y1 - y) < 0.03 && Math.abs(y2 - y) < 0.03 && Math.min(x1, x2) < R - 0.005 && Math.max(x1, x2) > L + 0.005).length;
+  return { cross, vx: v.x, vy: v.y };
+});
+let bg = await branchGap();
+ok("串联默认支路断口真实断开", bg.cross === 0, JSON.stringify(bg));
 await snip("d1r-default-series.png");
 
 // ===== 2) 电压 6V =====
@@ -151,7 +163,9 @@ ok("vol 换到 L2 → 2.00V", near(s.volReading, 2.00), `vol=${s.volReading} slo
 await place('vol', 'batt'); s = await st();
 ok("vol 换到 batt → 3.00V", near(s.volReading, 3.00), `vol=${s.volReading} slot=${s.volSlot}`);
 vp = await volPos();
-ok("batt 槽电压表体也落台面", vp.vz > 0.5 && vp.vy < 0.6, JSON.stringify(vp));
+ok("batt 槽电压表在电池上方支路里", vp.vy > 1.6 && Math.abs(vp.vz) < 0.35, JSON.stringify(vp));
+bg = await branchGap();
+ok("batt 槽支路断口真实断开", bg.cross === 0, JSON.stringify(bg));
 
 // ===== 6) 误接（两表互换位置也按误接处理） =====
 await place('vol', 'A'); s = await st();
@@ -212,7 +226,9 @@ await snip("d1r-default-parallel.png");
 g = await gapCross(['a', 'b', 'c']);
 ok("并联默认 a 槽断口真实断开", g.a === 0, JSON.stringify(g));
 vp = await volPos();
-ok("并联默认电压表体低于灯泡且在前方台面", vp.vy < Math.min(vp.b1y, vp.b2y) && vp.vz > 0.5 && vp.vy < 0.6, JSON.stringify(vp));
+ok("并联默认电压表在灯泡上方支路里", vp.vy > Math.max(vp.b1y, vp.b2y) && vp.vz < 0.35, JSON.stringify(vp));
+bg = await branchGap();
+ok("并联默认支路断口真实断开", bg.cross === 0, JSON.stringify(bg));
 for (const [slot, want] of [['a', 0.45], ['b', 0.30], ['c', 0.15]]) {
   await place('amp', slot); s = await st();
   ok(`并联 amp ${slot} → ${want}A`, near(s.ampReading, want, 1e-6), `amp=${s.ampReading} slot=${s.ampSlot}`);
