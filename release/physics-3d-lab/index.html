@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>初中物理 3D 可视化实验室</title>
-<meta name="build-version" content="17f2e48">
+<meta name="build-version" content="5374cdf">
 <link rel="icon" href="data:,">
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -1669,6 +1669,7 @@ boot().then(() => { window.__LAB.ready = true; });
   var sub = document.getElementById('boot-sub');
   if (!boot) return;
   var t0 = Date.now();
+  var timedOut = false;
   var slow = setTimeout(function () {
     if (sub) sub.textContent = '网络较慢，仍在加载…首次打开会缓存全部资源，之后秒开无需等待';
   }, 6000);
@@ -1678,8 +1679,9 @@ boot().then(() => { window.__LAB.ready = true; });
       boot.style.pointerEvents = 'none';                 // 淡出开始即放行点击：340ms 过渡期不再吞事件
       boot.style.opacity = '0';
       setTimeout(function () { boot.style.display = 'none'; }, 340);
-    } else if (Date.now() - t0 > 20000) {
-      clearInterval(tick);
+    } else if (!timedOut && Date.now() - t0 > 20000) {
+      // 超时只提示、不停止轮询：慢网首次打开资源最终到位时仍要淡出遮罩（否则场景加载好也被黑幕盖住）
+      timedOut = true;
       boot.style.pointerEvents = 'none';
       if (sub) sub.textContent = '加载超时。请在联网状态下打开一次完成缓存，之后即可离线使用。';
     }

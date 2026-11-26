@@ -24,6 +24,8 @@ const outDir = path.join(ROOT, "shots", "d2-redo"); fs.mkdirSync(outDir, { recur
 const checks = [];
 const ok = (name, pass, extra) => checks.push(`${name} => ${pass ? "OK" : "FAIL" + (extra ? "  [" + extra + "]" : "")}`);
 const near = (a, b2, eps = 1e-6) => Math.abs(a - b2) < eps;
+const bootState = await pg.evaluate(() => { const n = document.querySelector('#boot'); if (!n) return { missing: true }; const cs = getComputedStyle(n); return { display: cs.display, opacity: cs.opacity }; });
+ok("启动遮罩已淡出（场景就绪后不遮挡）", bootState.missing || bootState.display === 'none' || Number(bootState.opacity) === 0, JSON.stringify(bootState));
 
 const st = () => pg.evaluate(() => {
   const e = window.__LAB.current().exp._impl;
