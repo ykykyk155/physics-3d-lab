@@ -242,16 +242,33 @@ const D1 = {
     return { amp: mk('amp'), vol: mk('vol') };
   },
   /* ---------- 仪表摆位与引线 ---------- */
+  // 电压表并联支路几何（规格 §13）：与被测元件同竖直面(z≈0)，正上方矩形支路，表体坐进水平缺口
+  _volBranch(slot) {
+    if (slot !== 'L1' && slot !== 'L2' && slot !== 'batt') return null;
+    let ex, ny, half;
+    if (slot === 'batt') {
+      const b = this.battG.position;
+      ex = b.x; ny = 1.54; half = 0.46;
+    } else {
+      const g = slot === 'L1' ? this.bulb1G : this.bulb2G;
+      ex = g.position.x; ny = g.position.y + 0.06; half = 0.40;
+    }
+    // 抬高量：L1/L2 玻璃泡顶部约高出引线 0.58，表体半高 0.27；串联两槽与并联下支路用 0.88 保证表体与
+    // 下方灯泡可见空隙；并联上支路（L1，y≈3.0，上方还有顶栏「R总」标签）降为 0.62 并靠 z 前移避让
+    // （见 _slotPos）；电池槽 0.62。并联下支路（L2 表体正下方是 L2、正上方是 L1）空间不足，表体 z 微前移。
+    const lift = slot === 'batt' ? 0.62 : (this.p.mode === 'parallel' && slot === 'L1' ? 0.62 : 0.88);
+    return { ex, ny, half, gap: 0.36, bodyX: ex, bodyY: ny + lift, bodyZ: 0 };
+  },
   _slotPos(slot) {
     if (!slot) return null;
     const c = this._slotC(slot);
     if (c) return { bodyX: c.cx, bodyY: c.y + 0.02, bodyZ: 0.22, ends: [new THREE.Vector3(c.cx - 0.55, c.y, 0.1), new THREE.Vector3(c.cx + 0.55, c.y, 0.1)] };
-    if (slot === 'batt') {
-      const b = this.battG.position;
-      return { bodyX: b.x, bodyY: 0.34, bodyZ: 1.10, ends: [new THREE.Vector3(b.x - 0.46, 1.54, 0.1), new THREE.Vector3(b.x + 0.46, 1.54, 0.1)] };
-    }
-    const g = slot === 'L1' ? this.bulb1G : this.bulb2G;
-    return { bodyX: g.position.x, bodyY: 0.34, bodyZ: 1.10, ends: [new THREE.Vector3(g.position.x - 0.40, g.position.y + 0.06, 0.1), new THREE.Vector3(g.position.x + 0.40, g.position.y + 0.06, 0.1)] };
+    const br = this._volBranch(slot);
+    if (br) // 并联 L1 槽（表体上方是顶栏「R总」标签）与并联 L2 槽（正下方 L2、正上方 L1）空间不足，表体 z 微前移避让
+    if (this.p.mode === 'parallel' && slot === 'L2') return { bodyX: br.bodyX, bodyY: br.bodyY, bodyZ: 0.30, branch: true, ends: [new THREE.Vector3(br.ex - br.gap, br.bodyY, 0.02), new THREE.Vector3(br.ex + br.gap, br.bodyY, 0.02)] };
+    if (this.p.mode === 'parallel' && slot === 'L1') return { bodyX: br.bodyX, bodyY: br.bodyY, bodyZ: 0.30, branch: true, ends: [new THREE.Vector3(br.ex - br.gap, br.bodyY, 0.02), new THREE.Vector3(br.ex + br.gap, br.bodyY, 0.02)] };
+    return { bodyX: br.bodyX, bodyY: br.bodyY, bodyZ: 0, branch: true, ends: [new THREE.Vector3(br.ex - br.gap, br.bodyY, 0.02), new THREE.Vector3(br.ex + br.gap, br.bodyY, 0.02)] };
+    return null;
   },
   _layoutMeters() {
     ['amp', 'vol'].forEach(which => {
@@ -265,8 +282,17 @@ const D1 = {
       const pair = this.probes[which];
       const postA = new THREE.Vector3(sp.bodyX - 0.198, sp.bodyY - 0.30, sp.bodyZ + 0.09);
       const postB = new THREE.Vector3(sp.bodyX + 0.198, sp.bodyY - 0.30, sp.bodyZ + 0.09);
-      setFatLine(pair[0], [postA, sp.ends[0]]);
-      setFatLine(pair[1], [postB, sp.ends[1]]);
+      if (sp.branch) {
+        // 并联支路：缺口端点沿表体外侧向下、再横向接表底接线柱（短接线，不另画长表笔）
+        const hookY = sp.bodyY - 0.30;
+        const hookA = new THREE.Vector3(sp.bodyX - 0.36, hookY, 0.02);
+        const hookB = new THREE.Vector3(sp.bodyX + 0.36, hookY, 0.02);
+        setFatLine(pair[0], [postA, hookA, sp.ends[0]]);
+        setFatLine(pair[1], [postB, hookB, sp.ends[1]]);
+      } else {
+        setFatLine(pair[0], [postA, sp.ends[0]]);
+        setFatLine(pair[1], [postB, sp.ends[1]]);
+      }
       pair.forEach(l => { l.visible = true; });
       if (which === 'amp') this.ampLeadEnds = sp.ends; else this.volLeadEnds = sp.ends;
       if (which === 'vol') label.position.set(sp.bodyX + 0.90, sp.bodyY + 0.06, 0.3);  // 电压表读数放表体右侧，避开灯泡光晕与表盘
@@ -472,6 +498,22 @@ const D1 = {
         const dot = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), MATS.brass());
         dot.position.set(jx, jy, 0.02); this.junctions.push(dot); this.scene.add(dot);
       });
+    }
+    // 电压表并联支路（规格 §13）：主wire两节点竖直向上，水平段在表体处真实断开，表体坐进缺口
+    const vb = (!this.volError) ? this._volBranch(this.volSlot) : null;
+    if (vb) {
+      segs.push([[vb.ex - vb.half, vb.ny], [vb.ex - vb.half, vb.bodyY], [vb.ex - vb.gap, vb.bodyY]]);
+      segs.push([[vb.ex + vb.gap, vb.bodyY], [vb.ex + vb.half, vb.bodyY], [vb.ex + vb.half, vb.ny]]);
+      // 两个支路节点球合并为单个 InstancedMesh（2 实例 = 1 次绘制调用，压低整体调用数）
+      const dotGeo = new THREE.SphereGeometry(0.075, 16, 12);
+      const im = new THREE.InstancedMesh(dotGeo, MATS.brass(), 2);
+      const mm = new THREE.Matrix4();
+      [vb.ex - vb.half, vb.ex + vb.half].forEach((jx, i) => {
+        mm.makeTranslation(jx, vb.ny, 0.02);
+        im.setMatrixAt(i, mm);
+      });
+      im.instanceMatrix.needsUpdate = true;
+      this.junctions.push(im); this.scene.add(im);
     }
     segs.forEach(pts => {
       const w = fatLine(this._roundedPath(pts, 0.12), WIRE, 3);
