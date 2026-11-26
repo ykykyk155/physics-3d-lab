@@ -77,7 +77,7 @@ const gapCross = slots => pg.evaluate((slots) => {
   const out = {};
   for (const s of slots) {
     const c = e._slotC(s); if (!c) continue;
-    const L = c.cx - 0.55, R = c.cx + 0.55, y = c.y;
+    const L = c.cx - 0.198, R = c.cx + 0.198, y = c.y;
     out[s] = segs.filter(([x1, y1, x2, y2]) =>
       Math.abs(y1 - y) < 0.03 && Math.abs(y2 - y) < 0.03 &&
       Math.min(x1, x2) < R - 0.005 && Math.max(x1, x2) > L + 0.005
@@ -96,8 +96,8 @@ ok("默认无 — 读数", s.ampReading !== '—' && s.volReading !== '—', `${
 ok("顶栏 R总=30.0Ω", /R总=30\.0Ω/.test(s.lbl || ''), `lbl=${s.lbl}`);
 ok("删除了重复 lblI", s.lblIExists === false, `lblIExists=${s.lblIExists}`);
 ok("readouts 6 项且无 —", s.readouts.length === 6 && s.readouts.every(r => String(r[1]) !== '—'), JSON.stringify(s.readouts));
-ok("默认 leadEnds 距离>0.3 (amp)", s.ampLeadDist > 0.3, `d=${s.ampLeadDist}`);
-ok("默认 leadEnds 距离>0.3 (vol)", s.volLeadDist > 0.3, `d=${s.volLeadDist}`);
+ok("默认 amp 断口=接线柱间距 0.396", near(s.ampLeadDist, 0.396, 0.02), `d=${s.ampLeadDist}`);
+ok("默认 vol 两引线直连元件 0.80", near(s.volLeadDist, 0.80, 0.05), `d=${s.volLeadDist}`);
 ok("数据记录 section 显示", s.recordSectionDisplay !== 'none' && s.recordSectionDisplay !== 'missing', `display=${s.recordSectionDisplay}`);
 ok("空表格显示占位提示", s.recRowCount === 0 && s.recEmptyDisplay !== 'none' && s.recEmptyDisplay !== 'missing', `rows=${s.recRowCount} emptyDisplay=${s.recEmptyDisplay}`);
 let g = await gapCross(['A', 'B', 'C']);
@@ -110,20 +110,20 @@ const volPos = () => pg.evaluate(() => {
   return { vy: v.y, vz: v.z, b1y: b1.y, b2y: b2.y };
 });
 let vp = await volPos();
-ok("串联默认电压表在灯泡上方支路里", vp.vy > vp.b1y && vp.vy > vp.b2y, JSON.stringify(vp));
+ok("串联默认电压表在灯泡正上方", vp.vy > vp.b1y && vp.vy > vp.b2y, JSON.stringify(vp));
 ok("串联默认电压表与主电路同面", Math.abs(vp.vz) < 0.35, JSON.stringify(vp));
-ok("串联默认支路缺口宽≈0.72", near(s.volLeadDist, 0.72, 0.05), `d=${s.volLeadDist}`);
-const branchGap = () => pg.evaluate(() => {
+ok("串联默认电压表两引线直连灯泡 0.80", near(s.volLeadDist, 0.80, 0.05), `d=${s.volLeadDist}`);
+const wireInfo = () => pg.evaluate(() => {
   const e = window.__LAB.current().exp._impl;
-  const v = e.volMeterG.position;
-  const segs = [];
-  for (const w of e.wires) { const a = w.geometry && w.geometry.attributes && w.geometry.attributes.instanceStart; if (!a) continue; const d = a.data.array; for (let i = 0; i + 5 < d.length; i += 6) segs.push([d[i], d[i + 1], d[i + 3], d[i + 4]]); }
-  const L = v.x - 0.36, R = v.x + 0.36, y = v.y;
-  const cross = segs.filter(([x1, y1, x2, y2]) => Math.abs(y1 - y) < 0.03 && Math.abs(y2 - y) < 0.03 && Math.min(x1, x2) < R - 0.005 && Math.max(x1, x2) > L + 0.005).length;
-  return { cross, vx: v.x, vy: v.y };
+  const segCount = w => { const a = w.geometry && w.geometry.attributes && w.geometry.attributes.instanceStart; return a ? a.data.array.length / 6 : -1; };
+  let minX = 1e9, maxX = -1e9;
+  for (const w of e.wires) { const a = w.geometry && w.geometry.attributes && w.geometry.attributes.instanceStart; if (!a) continue; const d = a.data.array; for (let i = 0; i + 5 < d.length; i += 6) { minX = Math.min(minX, d[i], d[i + 3]); maxX = Math.max(maxX, d[i], d[i + 3]); } }
+  return { volSegs: e.probes.vol.map(segCount), ampHidden: e.probes.amp.every(l => !l.visible), width: maxX - minX };
 });
-let bg = await branchGap();
-ok("串联默认支路断口真实断开", bg.cross === 0, JSON.stringify(bg));
+let wi = await wireInfo();
+ok("电压表两引线各为单段直线", wi.volSegs[0] === 1 && wi.volSegs[1] === 1, JSON.stringify(wi.volSegs));
+ok("电流表表笔引线隐藏（导线直连接线柱）", wi.ampHidden === true, `ampHidden=${wi.ampHidden}`);
+ok("主矩形拉长后宽≈6.8", near(wi.width, 6.8, 0.15), `w=${wi.width}`);
 await snip("d1r-default-series.png");
 
 // ===== 2) 电压 6V =====
@@ -153,13 +153,13 @@ ok("恢复 → store switch=on", s.switchParam === 'on', `switchParam=${s.switch
 // ===== 4) 电流表换位 B/C =====
 await place('amp', 'B'); s = await st();
 ok("amp 换到 B → 0.10A", near(s.ampReading, 0.10), `amp=${s.ampReading} slot=${s.ampSlot}`);
-ok("B leadEnds>0.3", s.ampLeadDist > 0.3, `d=${s.ampLeadDist}`);
+ok("B 断口=接线柱间距 0.396", near(s.ampLeadDist, 0.396, 0.02), `d=${s.ampLeadDist}`);
 g = await gapCross(['A', 'B', 'C']);
 ok("换到 B → B 槽断口真实断开", g.B === 0, JSON.stringify(g));
 ok("换到 B → A 槽导线恢复连续", g.A > 0, JSON.stringify(g));
 await place('amp', 'C'); s = await st();
 ok("amp 换到 C → 0.10A", near(s.ampReading, 0.10), `amp=${s.ampReading} slot=${s.ampSlot}`);
-ok("C leadEnds>0.3", s.ampLeadDist > 0.3, `d=${s.ampLeadDist}`);
+ok("C 断口=接线柱间距 0.396", near(s.ampLeadDist, 0.396, 0.02), `d=${s.ampLeadDist}`);
 g = await gapCross(['A', 'B', 'C']);
 ok("换到 C → C 槽断口真实断开", g.C === 0, JSON.stringify(g));
 ok("换到 C → B 槽导线恢复连续", g.B > 0, JSON.stringify(g));
@@ -170,9 +170,10 @@ ok("vol 换到 L2 → 2.00V", near(s.volReading, 2.00), `vol=${s.volReading} slo
 await place('vol', 'batt'); s = await st();
 ok("vol 换到 batt → 3.00V", near(s.volReading, 3.00), `vol=${s.volReading} slot=${s.volSlot}`);
 vp = await volPos();
-ok("batt 槽电压表在电池上方支路里", vp.vy > 1.6 && Math.abs(vp.vz) < 0.35, JSON.stringify(vp));
-bg = await branchGap();
-ok("batt 槽支路断口真实断开", bg.cross === 0, JSON.stringify(bg));
+ok("batt 槽电压表在电池上方", vp.vy > 1.6 && Math.abs(vp.vz) < 0.35, JSON.stringify(vp));
+ok("batt 槽两引线直连电池 0.92", near(s.volLeadDist, 0.92, 0.05), `d=${s.volLeadDist}`);
+wi = await wireInfo();
+ok("batt 槽两引线各为单段直线", wi.volSegs[0] === 1 && wi.volSegs[1] === 1, JSON.stringify(wi.volSegs));
 
 // ===== 6) 误接（两表互换位置也按误接处理） =====
 await place('vol', 'A'); s = await st();
@@ -233,9 +234,10 @@ await snip("d1r-default-parallel.png");
 g = await gapCross(['a', 'b', 'c']);
 ok("并联默认 a 槽断口真实断开", g.a === 0, JSON.stringify(g));
 vp = await volPos();
-ok("并联默认电压表在灯泡上方支路里", vp.vy > Math.max(vp.b1y, vp.b2y) && vp.vz < 0.35, JSON.stringify(vp));
-bg = await branchGap();
-ok("并联默认支路断口真实断开", bg.cross === 0, JSON.stringify(bg));
+ok("并联默认电压表在灯泡上方", vp.vy > Math.max(vp.b1y, vp.b2y) && vp.vz < 0.35, JSON.stringify(vp));
+ok("并联默认两引线直连灯泡 0.80", near(s.volLeadDist, 0.80, 0.05), `d=${s.volLeadDist}`);
+wi = await wireInfo();
+ok("并联默认两引线各为单段直线", wi.volSegs[0] === 1 && wi.volSegs[1] === 1, JSON.stringify(wi.volSegs));
 for (const [slot, want] of [['a', 0.45], ['b', 0.30], ['c', 0.15]]) {
   await place('amp', slot); s = await st();
   ok(`并联 amp ${slot} → ${want}A`, near(s.ampReading, want, 1e-6), `amp=${s.ampReading} slot=${s.ampSlot}`);

@@ -37,8 +37,8 @@
     },
     {
       "id": "D1-series-parallel",
-      "calls": 61,
-      "tris": 16330
+      "calls": 53,
+      "tris": 15314
     },
     {
       "id": "D2-resistance-factor",
