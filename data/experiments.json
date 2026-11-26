@@ -1,0 +1,421 @@
+{
+  "meta": {
+    "title": "初中物理中考核心实验清单（three.js 3D 可视化）",
+    "textbook": "人教版 PEP 2024秋八上 / 2025春八下 / 2025秋九年级全一册",
+    "priority": "P0 首批必做 25 个场景；P1 二期扩展 11 个见文末 backlog",
+    "note": "params[] 每一项直接对应设计总裁规范里的一个滑杆区块：id 作 state key，label 显示名，min/max/step/default 生成 input[type=range]，unit 拼在数值后；type=enum 的项不做滑杆，2~4 档用分段按钮、5~6 档用下拉。result 是滑杆旁实时显示的计算量（公式驱动，禁止硬编码）；公式存在分段条件时（如 μ≥tanθ 静止），读数区显示状态词替代数值。",
+    "durationSemantics": "duration 存的是**时间轴秒数**，即时间条上 t / duration 那个 duration（= 仿真时间 simTime 的量纲），**不是墙钟秒、也不保证等于物理真实秒数**。三者关系：墙钟用时 = duration ÷ defaultSpeed；当仿真内部对时间做了缩放（如 A2 把 0.55s 的物理滑行按约 6.18× 拉长成 3.4s 时间轴），duration 跟的是缩放后的时间轴值。倍速档只改 step 的时间倍率、不改 duration（设计总裁口径）。据此：F1 = 600（时间轴即记录时长 10min，8× 下墙钟 75s）、F2 = 246.64（渲染师实测，8× 下墙钟约 30.8s）、A2 = 3.4（0.5× 下墙钟 6.8s）、A1 = 0.97。快照场景共 14 个（A1/A2/A3/A6/A7/C1/C2/C3/D1/D5/D7/F1/F2/F3），全部按渲染师实现值回填，以 getter 为唯一真实来源。`durationZeroKind` 标零值性质：`static`＝任何参数下都无演化（A4、A5、B1~B5、D2~D4、D6 共 11 个，duration 恒 0，断言「任何参数下必须为 0」；判据＝拖到 t=0.5×duration 画面与 t=0 逐像素相同——注意签名必须覆盖父节点旋转、InstancedMesh 实例矩阵与 Line2 顶点数据，且取样步长避开 3 的倍数，C2/D1 曾因只读变换矩阵被误判静止）；`branch`＝存在返回 0 的参数分支（A1 的 μ≥tanθ 静止分支、A7 平衡态、F3 rpm=0，断言「该分支下为 0，换参数必须能变非 0」）。注意 A1 默认 0.97、F3 默认 1.2，值不为 0 但同样标 branch——探针按本字段筛选，不要按「duration==0」筛。置灰文案同样分两种：标 branch 的场景必须带 `zeroHint`（情境化文案，说清是**当前参数下的状态**），外壳直接取用、不得硬编码；标 static 的场景不带此字段，外壳用默认句「本实验无时间演化」。"
+  },
+  "experiments": [
+    {
+      "id": "A1-incline-speed", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.25, "duration": 0.98,"durationZeroKind": "branch","zeroHint": "当前静止，小车不下滑（μ ≥ tanθ，改大倾角或减小摩擦即有过程）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师 A1 几何重做后回填 0.98）：能动分支 = √(2·travel/a) × 1.6，a=g(sinθ−μcosθ)；travel = L − 车长 − 2×0.06（起终点整车距板端各留 6cm）；车长 = min(0.34, L−0.25)（车宽 0.24、轮半径 0.055），随板长动态缩放（L=0.5 时缩成 0.25 保证不出界）。默认 θ=20°/L=1.0/μ=0.05 → a=2.891、车长 0.34、travel=0.54、√(2×0.54/2.891)=0.611、×1.6 = 0.978 ≈ 0.98s（0.25× 墙钟≈3.9s）。旧值 0.97 是「行程 L−0.3=0.7」口径，车长 0.589 根本放不下（车头伸出坡顶 0.145m），已废。μ≥tanθ 的静止分支返回 0，标 durationZeroKind=branch（分类标签，非数值常量：探针据此测「θ=5°、μ=0.30 时应为 0、默认时应为 0.98」）", 
+      "name": "斜面小车测平均速度", "chapter": "八上 第一章 第4节 速度的测量",
+      "quantities": ["v", "s", "t", "a"],
+      "params": [
+        { "id": "theta", "label": "斜面倾角", "min": 5, "max": 45, "step": 1, "default": 20, "unit": "°" },
+        { "id": "length", "label": "斜面长度", "min": 0.5, "max": 1.5, "step": 0.05, "default": 1.0, "unit": "m" },
+        { "id": "mu", "label": "动摩擦因数", "min": 0, "max": 0.3, "step": 0.01, "default": 0.05, "unit": "" },
+        { "id": "mass", "label": "小车质量", "min": 0.1, "max": 1.0, "step": 0.1, "default": 0.4, "unit": "kg" }
+      ],
+      "formula": "a = g(sinθ − μcosθ)",
+      "result": { "id": "acc", "label": "下滑加速度 a", "unit": "m/s²" },
+      "phenomenon": "θ↑ → v–t 斜率变大、s–t 曲线更陡；μ ≥ tanθ 时小车静止；改质量而速度不变（破除“重的快”）；上半程平均速度 < 全程 < 下半程"
+    },
+    {
+      "id": "A2-newton-first", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 2.9,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：呈现时长 = 斜坡下滑时间 tRamp + 摩擦段滑到停时间 tFlat + 0.4s 余量（clamp 1.2~12s）。tRamp=√(2·pathL/(g·sinθ))、tFlat=v0/(μg)、v0=√(2gh)、θ=atan(h/RL)、pathL=Lstr+R·θ（直线斜坡长+圆弧弧长）、RL=2.0、R=0.3。摩擦输入经标定 k(μ)=0.945μ−0.19μ²（单调、过原点；引擎有效摩擦比标称高约3%~23%，用 k 补偿后实测≈理论，全量程0.02~0.7每点偏差≤5%，有常驻探针断言兜底，换 ammo 版本或改子步会报错）。默认 h=0.35、棉布 μ=0.3 → tRamp≈1.56 + tFlat≈0.89 + 0.4 ≈ 2.85 → 快照 2.9；换材料 duration 随之变（木板 μ0.12 最长≈4.2s）。理想光滑 μ=0 为无界分支 → **getter 返回真正的 Infinity**（CEO 口径：有限窗口会造出「到头」假终点，与「永不停」教学重点矛盾；外壳表现：时间条禁拖、读数 `t / ∞ s`、不自动暂停但可手停）。两个极端材料都不画出本页、无延伸渐隐段：**冰面 μ=0.02** 理论停距 17.5m 超轨道 7.0m，滑到末端 x=7.00 钳停（速度归零、轮子不转），duration≈5.0s 有限可拖；**理想光滑 μ=0** 到末端瞬移回坡顶重滑、无限循环（单程≈4.3s，末端间隔 4.30→8.60→12.90），duration 仍返回 Infinity 禁拖。阶段文案：冰面「滑到末端·刹停」、理想光滑「循环滑行中（无限）」。A2 无返回 0 的分支，不标 durationZeroKind；∞ 分支只由运行期判定，不要在 JSON 里找标记字段", 
+      "name": "阻力对物体运动的影响（牛顿第一定律）", "chapter": "八下 第八章 第1节 牛顿第一定律",
+      "quantities": ["v0", "mu", "s"],
+      "params": [
+        { "id": "surface", "label": "表面材料", "type": "enum", "options": [ { "label": "毛巾", "value": 0.6 }, { "label": "棉布", "value": 0.3 }, { "label": "木板", "value": 0.12 }, { "label": "冰面", "value": 0.02 }, { "label": "理想光滑", "value": 0 } ], "default": 0.3, "unit": "" },
+        { "id": "height", "label": "释放高度 h", "min": 0.05, "max": 0.5, "step": 0.01, "default": 0.35, "unit": "m" },
+        { "id": "mass", "label": "小车质量", "min": 0.1, "max": 1.0, "step": 0.1, "default": 0.4, "unit": "kg" }
+      ],
+      "formula": "v0 = √(2gh) ; s = v0²/(2μg)",
+      "result": { "id": "slide", "label": "滑行距离 s", "unit": "m" },
+      "phenomenon": "μ 逐档减小 → 滑行距离逐档拉长（三条轨迹同轨叠放）；μ=0 → 匀速直线永不停下，速度条恒定"
+    },
+    {
+      "id": "A3-friction", "module": "mechanics", "priority": "P0", "duration": 12,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "固定 12s 观察窗，行程随 pull 变化 0.6~3.6m：duration 恒为 12（pull=匀速拉动速度，定义域 0.05~0.3）；drawAt 取 x=pull·t，x 上限 4 不变，同一时刻不同速度档位置差一眼可见（t=12s：pull=0.05→0.6m、0.1→1.2m、0.3→3.6m）。旧式 clamp(1.2/pull,4,12) 令行程恒为 1.2m、各档看起来无差别，已废",
+      "name": "探究滑动摩擦力大小的因素", "chapter": "八下 第八章 第3节 摩擦力",
+      "quantities": ["f", "N", "mu"],
+      "params": [
+        { "id": "normal", "label": "压力 N（砝码）", "min": 0.5, "max": 5.0, "step": 0.5, "default": 2.0, "unit": "N" },
+        { "id": "mu", "label": "摩擦因数 μ", "min": 0.1, "max": 0.8, "step": 0.05, "default": 0.4, "unit": "" },
+        { "id": "area", "label": "接触面积", "type": "enum", "options": [ { "label": "平放（大）", "value": "big" }, { "label": "侧放（小）", "value": "small" } ], "default": "big", "unit": "" },
+        { "id": "pull", "label": "匀速拉动速度", "min": 0.05, "max": 0.3, "step": 0.01, "default": 0.1, "unit": "m/s" }
+      ],
+      "formula": "f = μN",
+      "result": { "id": "read", "label": "测力计读数 f", "unit": "N" },
+      "phenomenon": "f–N 描点成过原点直线；改面积、改拉动速度 → 读数不变；启动前静摩擦爬到峰值后突降（最大静摩擦 > 滑动摩擦）"
+    },
+    {
+      "id": "A4-liquid-pressure", "module": "mechanics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "探究液体内部压强的规律", "chapter": "八下 第九章 第2节 液体的压强",
+      "quantities": ["p", "h", "rho"],
+      "params": [
+        { "id": "depth", "label": "探头深度", "min": 1, "max": 30, "step": 1, "default": 10, "unit": "cm" },
+        { "id": "liquid", "label": "液体密度 ρ", "min": 0.8, "max": 1.3, "step": 0.01, "default": 1.0, "unit": "g/cm³", "presets": [ { "label": "酒精", "value": 0.8 }, { "label": "水", "value": 1.0 }, { "label": "盐水", "value": 1.1 }, { "label": "硫酸铜", "value": 1.3 } ] },
+        { "id": "orient", "label": "探头朝向", "type": "enum", "options": [ { "label": "上", "value": 180 }, { "label": "下", "value": 0 }, { "label": "左", "value": 270 }, { "label": "右", "value": 90 } ], "default": 0, "unit": "" },
+        { "id": "vessel", "label": "容器形状", "type": "enum", "options": [ { "label": "柱形", "value": "cyl" }, { "label": "上宽下窄", "value": "flare" }, { "label": "上窄下宽", "value": "neck" } ], "default": "cyl", "unit": "" }
+      ],
+      "formula": "p = ρgh",
+      "result": { "id": "dh", "label": "U 形管液面高度差", "unit": "mm" },
+      "phenomenon": "深度越大高度差越大；同深度换朝向高度差不变（各方向压强相等）；换容器形状读数不变（破除“液体越重压强越大”）"
+    },
+    {
+      "id": "A5-buoyancy", "module": "mechanics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "浮力 · 阿基米德原理 · 物体浮沉条件", "chapter": "八下 第十章 第2/3/4节",
+      "quantities": ["F浮", "V排", "rho物", "rho液", "G"],
+      "params": [
+        { "id": "volume", "label": "物体体积 V", "min": 20, "max": 500, "step": 10, "default": 200, "unit": "cm³" },
+        { "id": "rhoObj", "label": "物体密度 ρ物", "min": 0.4, "max": 8.0, "step": 0.1, "default": 0.9, "unit": "g/cm³", "presets": [ { "label": "木", "value": 0.6 }, { "label": "塑料", "value": 0.9 }, { "label": "铝", "value": 2.7 }, { "label": "铁", "value": 7.8 } ] },
+        { "id": "rhoLiquid", "label": "液体密度 ρ液", "min": 0.8, "max": 1.3, "step": 0.05, "default": 1.0, "unit": "g/cm³", "presets": [ { "label": "酒精", "value": 0.8 }, { "label": "水", "value": 1.0 }, { "label": "盐水", "value": 1.1 }, { "label": "硫酸铜", "value": 1.3 } ] },
+        { "id": "submerge", "label": "下潜深度", "min": 0, "max": 30, "step": 1, "default": 5, "unit": "cm" },
+        { "id": "hollow", "label": "空心/实心", "type": "enum", "options": [ { "label": "实心", "value": "solid" }, { "label": "空心", "value": "hollow" } ], "default": "solid", "unit": "" },
+        { "id": "ballast", "label": "潜水艇水舱注水量", "min": 0, "max": 100, "step": 5, "default": 0, "unit": "%" }
+      ],
+      "formula": "F浮 = ρ液·g·V排 ; 浮沉由 ρ物 与 ρ液 比较",
+      "result": { "id": "read", "label": "测力计示数 F = G − F浮", "unit": "N" },
+      "phenomenon": "浸没比例随下潜单调增大、示数线性下降；完全浸没后再下潜示数不变（浮力与深度无关）；ρ_eff<ρ液 自动漂浮、浸没比例=ρ_eff/ρ液、示数0；ρ_eff=ρ液 悬浮停在任意深度；潜水艇注水越过临界后下沉；液体密度越大同物体浮得越高"
+    },
+    {
+      "id": "A6-energy", "module": "mechanics", "priority": "P0", "duration": 6.22,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：duration = 4T，T = 2π√(pendLen/9.8)；默认 pendLen=0.6 → T=1.5547 → 6.2188，实现取 6.22。已按实现复算吻合（独立算得 4T=6.22）。改摆长会跟着变，以 getter 为准",
+      "name": "动能、势能影响因素与机械能转化", "chapter": "八下 第十一章 第3/4节",
+      "quantities": ["Ek", "Ep", "m", "v", "h"],
+      "params": [
+        { "id": "mass", "label": "钢球质量 m", "min": 0.05, "max": 0.5, "step": 0.05, "default": 0.2, "unit": "kg" },
+        { "id": "height", "label": "释放高度 h", "min": 0.05, "max": 0.5, "step": 0.01, "default": 0.2, "unit": "m" },
+        { "id": "pendLen", "label": "摆长 / 滚摆半径 L", "min": 0.2, "max": 1.5, "step": 0.05, "default": 0.6, "unit": "m" },
+        { "id": "angle", "label": "摆角", "min": 5, "max": 60, "step": 1, "default": 20, "unit": "°" },
+        { "id": "damping", "label": "阻尼系数", "min": 0, "max": 0.3, "step": 0.01, "default": 0, "unit": "" }
+      ],
+      "formula": "Ek = ½mv² ; Ep = mgh ; v = √(2gh) ; T = 2π√(L/g)",
+      "result": { "id": "ek", "label": "撞击时动能 Ek", "unit": "J" },
+      "phenomenon": "木块被推出距离 ∝ Ek：h 加倍距离约加倍、m 加倍距离加倍（速度影响更陡）；单摆 Ek/Ep 条此消彼长、总量守恒；L↑ → 周期变大而与质量无关；阻尼>0 → 振幅衰减而周期不变"
+    },
+    {
+      "id": "A7-lever", "module": "mechanics", "priority": "P0", "defaultSpeed": 0.5, "duration": 0,
+      "actions": [
+        { "id": "balance-left", "label": "以左边为基准", "desc": "保持 F1、L1 不变，自动调整 F2、L2 使力矩相等" },
+        { "id": "balance-right", "label": "以右边为基准", "desc": "保持 F2、L2 不变，自动调整 F1、L1 使力矩相等" }
+      ],"durationZeroKind": "branch","zeroHint": "当前平衡，杠杆静止（改动任一参数使力矩不等即转动）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：|F1L1 − F2L2| < 0.05 → 返回 0（平衡即无过程）；否则返回 2.2s（梁转到 ±25° 极限所需时间，|net| 越大落得越快）。默认参数 f1=2/l1=4 与 f2=4/l2=2 力矩都是 8，处于平衡态，故快照取 0；改动任一参数使力矩不等，duration 立刻变 2.2s、时间条自动可用。钩码为梁（pivotG）子节点、挂点 y=-0.30，随梁转动。快照为 0 时相对容差退化，校验用 |Δ| < max(0.1×|snapshot|, 0.1s)",
+      "name": "探究杠杆的平衡条件", "chapter": "八下 第十二章 第1/2节",
+      "quantities": ["F1", "L1", "F2", "L2"],
+      "params": [
+        { "id": "f1", "label": "动力 F1", "min": 0.5, "max": 5.0, "step": 0.5, "default": 2.0, "unit": "N" },
+        { "id": "l1", "label": "动力臂格数 L1", "min": 1, "max": 10, "step": 1, "default": 4, "unit": "格" },
+        { "id": "f2", "label": "阻力 F2（钩码）", "min": 0.5, "max": 5.0, "step": 0.5, "default": 4.0, "unit": "N" },
+        { "id": "l2", "label": "阻力臂格数 L2", "min": 1, "max": 10, "step": 1, "default": 2, "unit": "格" }
+      ],
+      "removedParams": [{ "id": "tilt", "reason": "CEO 定案删除：倾角若由用户拖动，学生可在力矩相差十倍时把滑块拖到 0，让杠杆「看起来平衡」，等于自由伪造实验结果。倾角改由 net = F1L1 − F2L2 决定" }],
+      "formula": "F1L1 = F2L2 ; 实际力臂 = 支点到力作用线的垂线段",
+      "result": { "id": "torque", "label": "F1L1 / F2L2 双数值条", "unit": "N·格" },
+      "phenomenon": "两力矩相等 → 梁水平静止；不等 → 梁朝力矩较大的一侧转动，转到 ±25° 极限停住（倾角由 net 算出，用户不能直接拖）；L1>L2 时 1 个钩码撬起 4 个（省力费距离，末端行程更大）；梁转到倾斜后力臂是「支点到力作用线的垂线段」实时缩短 → 所需力自动变大。**验收只看一条：F1 调最大、L1 调最小，梁必须明显歪过去，且歪向力矩较大的一侧**"
+    },
+
+    {
+      "id": "B1-pinhole", "module": "optics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "光的直线传播与小孔成像", "chapter": "八上 第四章 第1节 光的直线传播",
+      "quantities": ["u", "v", "d", "像高"],
+      "params": [
+        { "id": "objDist", "label": "蜡烛到孔 u", "min": 5, "max": 50, "step": 1, "default": 20, "unit": "cm" },
+        { "id": "screenDist", "label": "孔到屏 v", "min": 5, "max": 50, "step": 1, "default": 20, "unit": "cm" },
+        { "id": "hole", "label": "孔直径 d", "min": 1, "max": 10, "step": 0.5, "default": 2, "unit": "mm" },
+        { "id": "shape", "label": "孔形状", "type": "enum", "options": [ { "label": "圆孔", "value": "circle" }, { "label": "方孔", "value": "square" }, { "label": "三角孔", "value": "triangle" } ], "default": "circle", "unit": "" }
+      ],
+      "formula": "像高 = 物高 × v/u",
+      "result": { "id": "imgH", "label": "像的高度", "unit": "cm" },
+      "phenomenon": "屏上出现倒立实像，拖动屏像连续放大缩小；d 变大 → 像由清晰变模糊而亮度上升；换方孔/三角孔像仍是烛焰形（关键迷思点）"
+    },
+    {
+      "id": "B2-reflection", "module": "optics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "探究光的反射定律", "chapter": "八上 第四章 第2节 光的反射",
+      "quantities": ["入射角 i", "反射角 r"],
+      "params": [
+        { "id": "incidence", "label": "入射角 i", "min": 0, "max": 80, "step": 1, "default": 35, "unit": "°" },
+        { "id": "plane", "label": "半屏折角（验证共面）", "min": 0, "max": 90, "step": 5, "default": 0, "unit": "°" },
+        { "id": "kind", "label": "反射面类型", "type": "enum", "options": [ { "label": "镜面", "value": "specular" }, { "label": "粗糙面（漫反射）", "value": "diffuse" } ], "default": "specular", "unit": "" }
+      ],
+      "formula": "r = i ; 三线共面、两角分居法线两侧",
+      "result": { "id": "refl", "label": "反射角 r", "unit": "°" },
+      "phenomenon": "半屏后折 → 折面上反射光消失（证共面）；i↑ → r 1:1 增大；i=0 → 原路返回；漫反射时平行光散向各方向但每条仍满足 r=i"
+    },
+    {
+      "id": "B3-plane-mirror", "module": "optics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "探究平面镜成像的特点", "chapter": "八上 第四章 第3节 平面镜成像",
+      "quantities": ["物距", "像距", "像的大小", "虚实"],
+      "params": [
+        { "id": "objDist", "label": "蜡烛到镜面距离 u", "min": 2, "max": 20, "step": 0.5, "default": 8, "unit": "cm" },
+        { "id": "tilt", "label": "玻璃板倾角", "min": 0, "max": 90, "step": 1, "default": 90, "unit": "°" },
+        { "id": "altHeight", "label": "镜后替代蜡烛高度", "min": 1, "max": 10, "step": 0.5, "default": 5, "unit": "cm" },
+        { "id": "screen", "label": "像位置放光屏", "type": "enum", "options": [ { "label": "不放", "value": "off" }, { "label": "放", "value": "on" } ], "default": "off", "unit": "" }
+      ],
+      "formula": "像距 = 物距 ; 像与物等大、左右相反、为虚像",
+      "result": { "id": "imgDist", "label": "像距", "unit": "cm" },
+      "phenomenon": "像始终与物等大，u↑ 像距同步增大、物像连线垂直镜面；换不对称箭头模型可见左右相反；放光屏接不到像（虚像）；镜面倾角改变 → 像绕转轴转 2θ"
+    },
+    {
+      "id": "B4-refraction", "module": "optics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "光的折射规律与全反射", "chapter": "八上 第四章 第4节 光的折射",
+      "quantities": ["入射角 i", "折射角 r", "n", "临界角 C"],
+      "params": [
+        { "id": "incidence", "label": "入射角 i", "min": 0, "max": 85, "step": 1, "default": 30, "unit": "°" },
+        { "id": "pair", "label": "介质组合", "type": "enum", "options": [ { "label": "空气→水 n=1.33", "value": "air-water" }, { "label": "空气→玻璃 n=1.50", "value": "air-glass" }, { "label": "水→空气", "value": "water-air" }, { "label": "玻璃→空气", "value": "glass-air" } ], "default": "water-air", "unit": "" },
+        { "id": "scene", "label": "情景切换", "type": "enum", "options": [ { "label": "激光穿界面", "value": "laser" }, { "label": "筷子在水中折断", "value": "chopstick" }, { "label": "叉鱼瞄准位置（视深）", "value": "fish" }, { "label": "光纤全反射", "value": "fiber" } ], "default": "laser", "unit": "" }
+      ],
+      "formula": "n1 sin i = n2 sin r ; sin C = n2/n1 ; 视深 h' = h/n",
+      "result": { "id": "refr", "label": "折射角 r", "unit": "°" },
+      "phenomenon": "光疏→光密 r<i 且靠近法线，n 越大偏折越狠；光密→光疏 r>i，i 越过临界角（水 48.8°/玻璃 41.8°）折射光突然消失、能量全转反射；筷子水面处“折断”、看到的鱼比实际浅"
+    },
+    {
+      "id": "B5-convex-lens", "module": "optics", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "探究凸透镜成像的规律", "chapter": "八上 第五章 第3节 凸透镜成像的规律",
+      "quantities": ["u", "f", "v", "像的倒正/大小/虚实"],
+      "params": [
+        { "id": "focal", "label": "焦距 f", "min": 5, "max": 30, "step": 1, "default": 10, "unit": "cm" },
+        { "id": "objDist", "label": "物距 u", "min": 3, "max": 60, "step": 0.5, "default": 30, "unit": "cm" },
+        { "id": "aperture", "label": "透镜直径", "min": 2, "max": 10, "step": 0.5, "default": 6, "unit": "cm" },
+        { "id": "cover", "label": "遮挡上半透镜", "type": "enum", "options": [ { "label": "不遮", "value": "off" }, { "label": "遮一半", "value": "half" } ], "default": "off", "unit": "" },
+        { "id": "source", "label": "光源形状", "type": "enum", "options": [ { "label": "F 形 LED", "value": "F" }, { "label": "蜡烛", "value": "candle" }, { "label": "箭头", "value": "arrow" } ], "default": "F", "unit": "" }
+      ],
+      "formula": "1/v + 1/u = 1/f ; 放大率 m = v/u",
+      "result": { "id": "imgDist", "label": "像距 v", "unit": "cm" },
+      "phenomenon": "自动标出 f、2f 刻度线，五区间一目了然：u>2f 倒立缩小实像（照相机）/ u=2f 等大 / f<u<2f 倒立放大实像（投影仪）/ u=f 出射平行光不成像 / u<f 正立放大虚像（放大镜，屏接不到）；物靠近焦点 → 像迅速远离并变大；遮一半 → 像变暗但完整"
+    },
+
+    {
+      "id": "C1-sound-medium", "module": "acoustics", "priority": "P0", "duration": 6,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：6s = 一个完整波壳扩散周期；波壳相位速率与声速成正比，换介质（水/钢）时同一段时间里波壳更密，但 duration 本身不随参数变。t=半程画面必须与 t=0 不同（probe-six 判据）",
+      "name": "声音的产生与传播（真空罩实验）", "chapter": "八上 第二章 第1节 声音的产生与传播",
+      "quantities": ["v", "介质", "气压", "振幅"],
+      "params": [
+        { "id": "medium", "label": "传播介质", "type": "enum", "options": [ { "label": "空气 340", "value": 340 }, { "label": "水 1500", "value": 1500 }, { "label": "钢 5200", "value": 5200 } ], "default": 340, "unit": "m/s" },
+        { "id": "temp", "label": "空气温度", "min": -20, "max": 40, "step": 1, "default": 15, "unit": "℃" },
+        { "id": "pressure", "label": "罩内气压", "min": 0, "max": 101.3, "step": 1, "default": 101.3, "unit": "kPa" },
+        { "id": "freq", "label": "音叉频率", "type": "enum", "options": [ { "label": "256 Hz", "value": 256 }, { "label": "512 Hz", "value": 512 } ], "default": 512, "unit": "Hz" },
+        { "id": "dist", "label": "声源到接收器距离", "min": 0.2, "max": 5, "step": 0.1, "default": 1, "unit": "m" }
+      ],
+      "formula": "v ≈ 331 + 0.6T ; 响度 ∝ 1/r",
+      "result": { "id": "loud", "label": "接收端响度", "unit": "dB" },
+      "phenomenon": "三维疏密纵波扩散 + 乒乓球被弹开；抽气 → 响度衰减至听不见而振动仍在（真空不能传声）；换介质波前速度明显不同；距离拉大响度按 1/r 下降"
+    },
+    {
+      "id": "C2-sound-chars", "module": "acoustics", "priority": "P0", "duration": 4, "durationIsSnapshot": true, "snapshotTolerance": 0.1, "durationSource": "实现值 4s：波形沿横轴平移，整段时间正好走一个完整相位周期。此前误标 static——原因是只看了 step 有没有推进时间，没做像素级复核；实测播放 0.7s 画面确实在变（用截图逐像素比对确认）。噪声波形同时改成确定性伪随机，同一 t 两次 seek 波形一致",
+      "name": "声音的特性（音调、响度、音色）", "chapter": "八上 第二章 第2节 声音的特性",
+      "quantities": ["f", "A", "λ", "波形"],
+      "params": [
+        { "id": "freq", "label": "频率 f", "min": 50, "max": 2000, "step": 10, "default": 440, "unit": "Hz" },
+        { "id": "amp", "label": "振幅（响度）", "min": 0, "max": 100, "step": 1, "default": 60, "unit": "%" },
+        { "id": "wave", "label": "波形（音色）", "type": "enum", "options": [ { "label": "正弦", "value": "sine" }, { "label": "方波", "value": "square" }, { "label": "锯齿", "value": "saw" }, { "label": "噪声", "value": "noise" } ], "default": "sine", "unit": "" },
+        { "id": "ruler", "label": "钢尺伸出桌面长度", "min": 5, "max": 30, "step": 1, "default": 15, "unit": "cm" },
+        { "id": "pipe", "label": "哨管空气柱长度", "min": 5, "max": 40, "step": 1, "default": 20, "unit": "cm" }
+      ],
+      "formula": "λ = v/f ; f ∝ 1/L（尺/空气柱）",
+      "result": { "id": "lambda", "label": "波长 λ", "unit": "m" },
+      "phenomenon": "三维示波器：f↑ 波形横向变密（音调高）；A↑ 纵向变高（响度大）而疏密不变；换波形 → 高低疏密相同形状不同（音色）；钢尺/空气柱压短 → 频率连续上升；f>20000 标超声、<20 标次声并提示人耳听不到"
+    },
+    {
+      "id": "C3-noise-control", "module": "acoustics", "priority": "P0", "duration": 4,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：4s = 一次完整回声（声源→墙→耳）；真实 Δt=0.294s 仍在读数里，时间轴只是把它放慢到能看清",
+      "name": "噪声的控制与声的利用（回声测距）", "chapter": "八上 第二章 第3/4/5节",
+      "quantities": ["dB", "t", "s", "隔声量"],
+      "params": [
+        { "id": "level", "label": "声强级", "min": 0, "max": 120, "step": 1, "default": 60, "unit": "dB" },
+        { "id": "range", "label": "障碍距离 s", "min": 1, "max": 500, "step": 1, "default": 50, "unit": "m" },
+        { "id": "material", "label": "隔声材料", "type": "enum", "options": [ { "label": "泡沫 3dB", "value": 3 }, { "label": "棉布 8dB", "value": 8 }, { "label": "硬纸板 15dB", "value": 15 }, { "label": "玻璃 30dB", "value": 30 } ], "default": 8, "unit": "dB" },
+        { "id": "stage", "label": "控制环节", "type": "enum", "options": [ { "label": "声源处", "value": "source" }, { "label": "传播途径", "value": "path" }, { "label": "人耳处", "value": "ear" } ], "default": "path", "unit": "" }
+      ],
+      "formula": "s = vΔt/2",
+      "result": { "id": "echo", "label": "回声间隔 Δt", "unit": "s" },
+      "phenomenon": "发射/回波两条脉冲间隔实时读出并画距离标尺（蝙蝠、B 超、声呐同模型换标签）；插入不同材料 → 接收端响度条按隔声量下降；dB>90 波形与警示色变红；三处控制环节可分别高亮标注"
+    },
+
+    {
+      "id": "D1-series-parallel", "module": "electricity", "priority": "P0", "duration": 4, "durationIsSnapshot": true, "snapshotTolerance": 0.1, "durationSource": "实现值 4s：电子粒子沿导线环行，整段时间环行圈数随电流变 k=clamp(I/0.15,0.2,3)。断路 I=0 时电子不动但仍有时长——那是参数状态，不是「没有过程」。此前误标 static 是漏检：InstancedMesh 的实例矩阵动画不体现在 object 的变换上，只读局部/世界矩阵的探针看不见，要用像素比对才抓得住",
+      "name": "串联与并联电路 · 电流和电压的规律", "chapter": "九全 第十五章 第2~5节、第十六章 第2节",
+      "quantities": ["I", "U", "R"],
+      "params": [
+        { "id": "voltage", "label": "电源电压 U", "min": 1.5, "max": 6.0, "step": 0.5, "default": 3.0, "unit": "V" },
+        { "id": "r1", "label": "R1 阻值", "min": 5, "max": 50, "step": 1, "default": 10, "unit": "Ω" },
+        { "id": "r2", "label": "R2 阻值", "min": 5, "max": 50, "step": 1, "default": 20, "unit": "Ω" },
+        { "id": "mode", "label": "连接方式", "type": "enum", "options": [ { "label": "串联", "value": "series" }, { "label": "并联", "value": "parallel" } ], "default": "series", "unit": "" },
+        { "id": "switch", "label": "开关 / 支路通断", "type": "enum", "options": [ { "label": "闭合", "value": "on" }, { "label": "断开", "value": "off" } ], "default": "on", "unit": "" }
+      ],
+      "formula": "串: I 同、U=U1+U2 ; 并: U 同、I=I1+I2",
+      "result": { "id": "cur", "label": "干路电流 I", "unit": "A" },
+      "phenomenon": "双表常显读数型：电流表串入导线、电压表跨接元件，默认即接好有读数；点表身选表、点测量点换位（两表可互换位置），接线按真实双接线；点击闸刀开关通断电路；导线内电子流实时流动；点「记录数据」把当前电压表/电流表读数记入表格并自动描点 I-U 图；串联测齐 A/B/C 得「I 处处相等」、再测 L1/L2/电池得「U=U1+U2」，并联测齐 a/b/c 得「I=I1+I2」、支路电压均等；测齐自动弹结论卡（数字随参数实时刷新）；电流表误并元件、电压表误串导线 → toast 异常警示且读数保持 —；断路时电压表跨电源仍读 U（电源电压）",
+      "dataRecord": { "xLabel": "电压 U", "xUnit": "V", "yLabel": "电流 I", "yUnit": "A" }
+    },
+    {
+      "id": "D2-resistance-factor", "module": "electricity", "priority": "P0", "duration": 4, "durationIsSnapshot": true, "snapshotTolerance": 0.1, "durationSource": "实现值 4s：电子粒子沿闭合回路环行，整段圈数随电流变 k=clamp(I/1.5,0.2,3)。断路 I=0 时粒子停（参数状态，非无过程）——与 D1 同机制",
+      "name": "探究影响电阻大小的因素", "chapter": "九全 第十六章 第3节 电阻",
+      "quantities": ["R", "L", "S", "ρ", "温度"],
+      "params": [
+        { "id": "len", "label": "导体长度 L", "min": 10, "max": 100, "step": 5, "default": 50, "unit": "cm" },
+        { "id": "area", "label": "横截面积 S", "min": 0.5, "max": 4.0, "step": 0.1, "default": 1.0, "unit": "mm²" },
+        { "id": "mat", "label": "材料 ρ", "type": "enum", "options": [ { "label": "镍铬 8", "value": 8 }, { "label": "锰铜 6", "value": 6 }, { "label": "铜 2", "value": 2 }, { "label": "铁 4", "value": 4 } ], "default": 8, "unit": "Ω·mm²/m" },
+        { "id": "temp", "label": "温度", "min": 0, "max": 100, "step": 5, "default": 20, "unit": "℃" },
+        { "id": "strands", "label": "并联根数", "min": 1, "max": 4, "step": 1, "default": 1, "unit": "根" },
+        { "id": "switch", "label": "开关", "type": "enum", "options": [ { "label": "闭合", "value": "on" }, { "label": "断开", "value": "off" } ], "default": "on", "unit": "" }
+      ],
+      "formula": "R = ρL/S",
+      "result": { "id": "r", "label": "接入电阻 R", "unit": "Ω" },
+      "phenomenon": "完整串联电路型：电池 6V + 闸刀开关 + 待测导体 + 电流表 + 小灯泡组成闭合回路；改材料（镍铬/锰铜/铁/铜）、长度 L、横截面积 S 或并联根数 → 导体外观实时变、电流表读数随之变（L↑I↓、S↑I↑、换铜 I 骤增）；点击闸刀开关通断电路，闭合后导线内电子流流动、灯泡随电流变亮、电流表指针摆动（量程 0~3A，超量程示警）；断开后电流归零、粒子停；读数含 R、I、L、S、ρ、温度"
+    },
+    {
+      "id": "D3-rheostat-lamp", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "滑动变阻器与调光台灯（跨学科实践）", "chapter": "九全 第十六章 第4/5节",
+      "quantities": ["R接入", "I", "亮度"],
+      "params": [
+        { "id": "wiper", "label": "滑片位置", "min": 0, "max": 100, "step": 1, "default": 100, "unit": "%" },
+        { "id": "rating", "label": "变阻器规格", "type": "enum", "options": [ { "label": "0~20 Ω", "value": 20 }, { "label": "0~50 Ω", "value": 50 } ], "default": 20, "unit": "Ω" },
+        { "id": "voltage", "label": "电源电压", "min": 3, "max": 6, "step": 0.5, "default": 4.5, "unit": "V" },
+        { "id": "wiring", "label": "接线柱接法", "type": "enum", "options": [ { "label": "一上一下（正确）", "value": "correct" }, { "label": "同上两柱", "value": "top" }, { "label": "同下两柱", "value": "bottom" } ], "default": "correct", "unit": "" }
+      ],
+      "formula": "R接入 = 规格 × (1 − 滑片%) ; I = U/R",
+      "result": { "id": "cur", "label": "电路电流 I", "unit": "A" },
+      "phenomenon": "拖动滑片 → 接入电阻丝长度实时增减、电流连续变化、台灯亮度渐变；接上面两柱 → R≈0 灯最亮且滑片失效；接下面两柱 → 恒为最大、亮度不变；闭合前阻值调最大可做保护引导动画"
+    },
+    {
+      "id": "D4-ohm-law", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "电流与电压、电阻的关系（欧姆定律 + 伏安法测电阻）", "chapter": "九全 第十七章 第1~3节",
+      "quantities": ["I", "U", "R", "Rx"],
+      "params": [
+        { "id": "voltage", "label": "定值电阻两端电压 U", "min": 0, "max": 6, "step": 0.1, "default": 2.0, "unit": "V" },
+        { "id": "rfix", "label": "定值电阻 R", "type": "enum", "options": [ { "label": "5 Ω", "value": 5 }, { "label": "10 Ω", "value": 10 }, { "label": "20 Ω", "value": 20 }, { "label": "50 Ω", "value": 50 } ], "default": 10, "unit": "Ω" },
+        { "id": "graph", "label": "图像模式", "type": "enum", "options": [ { "label": "I–U 图", "value": "iu" }, { "label": "I–R 图", "value": "ir" } ], "default": "iu", "unit": "" },
+        { "id": "dut", "label": "待测元件", "type": "enum", "options": [ { "label": "定值电阻 Rx", "value": "resistor" }, { "label": "小灯泡（非线性）", "value": "bulb" } ], "default": "resistor", "unit": "" }
+      ],
+      "formula": "I = U/R ; Rx = U/I",
+      "result": { "id": "cur", "label": "电流表读数 I", "unit": "A" },
+      "phenomenon": "三维坐标板实时描点：R 不变 → 过原点直线（I∝U）；U 不变换 R → 反比曲线（I∝1/R）；两表读数即时算出 Rx；换小灯泡 → 直线变弯（电阻随温度变化，中考高频对比点）"
+    },
+    {
+      "id": "D5-power-joule", "module": "electricity", "priority": "P0", "duration": 180,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：get duration() { return this.p.time*60 }。JSON 里的 180 是默认 time=3min 的快照，改档后由 getter 重算", 
+      "name": "电功率 · 焦耳定律（电流的热效应）", "chapter": "九全 第十八章 第1/2/4节",
+      "quantities": ["P", "W", "Q", "t", "I", "U"],
+      "params": [
+        { "id": "voltage", "label": "电压 U", "min": 1.5, "max": 6, "step": 0.5, "default": 3.0, "unit": "V" },
+        { "id": "r", "label": "电阻 R", "min": 5, "max": 50, "step": 1, "default": 20, "unit": "Ω" },
+        { "id": "time", "label": "通电时间 t", "min": 0, "max": 10, "step": 0.5, "default": 3, "unit": "min" },
+        { "id": "ra", "label": "甲瓶电阻 R甲", "min": 5, "max": 50, "step": 5, "default": 10, "unit": "Ω" },
+        { "id": "rb", "label": "乙瓶电阻 R乙", "min": 5, "max": 50, "step": 5, "default": 20, "unit": "Ω" },
+        { "id": "link", "label": "两瓶连接", "type": "enum", "options": [ { "label": "串联（I 同）", "value": "series" }, { "label": "并联（U 同）", "value": "parallel" } ], "default": "series", "unit": "" }
+      ],
+      "formula": "P = UI = U²/R = I²R ; Q = I²Rt ; W = Pt",
+      "result": { "id": "p", "label": "电功率 P", "unit": "W" },
+      "phenomenon": "P 数值 + 灯泡亮度 + 电能表转盘转速三者同步；实际电压<额定 → 灯明显偏暗；串联时 R 大的瓶升温快；单独增大 I → 升温按平方暴涨；大电流下保险丝熔断"
+    },
+    {
+      "id": "D6-magnet-solenoid", "module": "electricity", "priority": "P0", "duration": 0, "durationZeroKind": "static",
+      "name": "磁场与磁感线 · 电磁铁（电生磁）", "chapter": "九全 第二十章 第1/2/3节",
+      "quantities": ["磁极", "磁场方向", "I", "N", "磁性强弱"],
+      "params": [
+        { "id": "layout", "label": "磁体布局", "type": "enum", "options": [ { "label": "条形磁铁", "value": "bar" }, { "label": "蹄形磁铁", "value": "horseshoe" }, { "label": "同名磁极相对", "value": "repel" }, { "label": "异名磁极相对", "value": "attract" } ], "default": "bar", "unit": "" },
+        { "id": "current", "label": "电流 I", "min": 0, "max": 3.0, "step": 0.1, "default": 1.0, "unit": "A" },
+        { "id": "turns", "label": "螺线管匝数 N", "min": 10, "max": 200, "step": 10, "default": 60, "unit": "匝" },
+        { "id": "core", "label": "铁芯", "type": "enum", "options": [ { "label": "无（空心）", "value": "air" }, { "label": "有（铁芯）", "value": "iron" } ], "default": "air", "unit": "" },
+        { "id": "dir", "label": "电流方向", "type": "enum", "options": [ { "label": "正向", "value": 1 }, { "label": "反向", "value": -1 } ], "default": 1, "unit": "" },
+        { "id": "needles", "label": "小磁针数量", "min": 0, "max": 12, "step": 1, "default": 6, "unit": "个" }
+      ],
+      "formula": "磁性强弱 ∝ I·N（有铁芯显著增强）",
+      "result": { "id": "strength", "label": "吸引大头针数量", "unit": "个" },
+      "phenomenon": "三维磁感线由 N 出回 S 闭合、疏密随间距变化；小磁针沿切线排列；同名磁极场线被挤开、异名连通；奥斯特实验通电偏转断电回位；增大 I、N 或插铁芯 → 吸起大头针按 I·N 增多；右手螺旋定则高亮手指与 N/S 对应"
+    },
+    {
+      "id": "D7-motor-generator", "module": "electricity", "priority": "P0", "duration": 9,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（渲染师实现值）：duration = clamp(1800/n, 4, 12)，n=转速；默认 200 r/min → 9s。整段转 3 圈不是 2 圈——2 圈时半程正好转满一圈、位姿与起点重合，probe-six 会误报无过程；探针签名读世界矩阵（线圈是父节点在转）",
+      "name": "直流电动机与电磁感应（磁生电）", "chapter": "九全 第二十章 第4/5/6节",
+      "quantities": ["转速 n", "受力方向", "感应电流 I", "v", "B"],
+      "params": [
+        { "id": "mode", "label": "装置模式", "type": "enum", "options": [ { "label": "电动机（通电转动）", "value": "motor" }, { "label": "导体切割磁感线", "value": "cut" }, { "label": "交流发电机", "value": "generator" } ], "default": "motor", "unit": "" },
+        { "id": "current", "label": "电流 I", "min": 0, "max": 3.0, "step": 0.1, "default": 1.0, "unit": "A" },
+        { "id": "field", "label": "磁场强弱 B", "min": 0.1, "max": 1.0, "step": 0.05, "default": 0.5, "unit": "（相对值）" },
+        { "id": "speed", "label": "导体运动速度 v", "min": 0, "max": 5, "step": 0.1, "default": 2, "unit": "m/s" },
+        { "id": "moveDir", "label": "运动方向", "type": "enum", "options": [ { "label": "向右（切割）", "value": "cut" }, { "label": "沿磁感线（不切割）", "value": "along" }, { "label": "向左（反向）", "value": "rev" } ], "default": "cut", "unit": "" },
+        { "id": "commutator", "label": "换向器", "type": "enum", "options": [ { "label": "有（持续旋转）", "value": "on" }, { "label": "无（来回摆动）", "value": "off" } ], "default": "on", "unit": "" }
+      ],
+      "formula": "电动机：F = BIL（两边反向力构成力矩）；感应电流大小 ∝ B·v·L",
+      "result": { "id": "rpm", "label": "转速 / 指针摆幅", "unit": "r/min · mA" },
+      "phenomenon": "电动机：线圈两边受反向力 → 力矩可视化，换向器每半周翻转电流方向使持续旋转；I↑ 或 B↑ → 转速上升；去掉换向器 → 在平衡位置附近摆动停不住；切割模式：v↑ 指针摆幅↑，运动反向或磁极对调 → 指针反向摆动，沿磁感线运动 → 指针不动；发电机 → 指针左右周期摆动并画出正弦波形"
+    },
+    {
+      "id": "F1-melting-curve", "module": "thermal", "priority": "P0", "defaultSpeed": 8, "duration": 600,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：get duration() { return this.p.duration*60 }。JSON 里的 600 只是默认「记录时长=10min」的快照，**不要当常量用**。命名坑（CEO 点出）：F1 自己有个参数也叫 duration，参数是 this.p.duration、接口是 this.duration，两者不同物，别写成自己调自己", 
+      "name": "熔化与凝固（温度—时间曲线）", "chapter": "八上 第三章 第2节 熔化和凝固",
+      "quantities": ["T", "t", "Q", "熔点", "凝固点"],
+      "params": [
+        { "id": "substance", "label": "物质", "type": "enum", "options": [ { "label": "冰（晶体 0℃）", "value": "ice" }, { "label": "海波（晶体 48℃）", "value": "hypo" }, { "label": "石蜡（非晶体）", "value": "wax" } ], "default": "ice", "unit": "" },
+        { "id": "power", "label": "等效吸热功率", "min": 100, "max": 300, "step": 10, "default": 150, "unit": "W" },
+        { "id": "mass", "label": "质量", "min": 50, "max": 500, "step": 10, "default": 200, "unit": "g" },
+        { "id": "t0", "label": "初温", "min": -20, "max": 40, "step": 1, "default": -10, "unit": "℃" },
+        { "id": "duration", "label": "记录时长", "min": 1, "max": 15, "step": 1, "default": 10, "unit": "min" }
+      ],
+      "formula": "升温段 t = m·c·ΔT/P；平台段 t = m·L/P —— 两段必须共用同一组 m、P（渲染师口径：改质量两段同步变长）",
+      "constants": {
+        "_note": "初中教材不列熔化热。冰 334 kJ/kg 是通用值、海波约 250 kJ/kg 是近似值，两者仅用于让平台时长成比例，不进物理对照验收（CEO 已定口径）。c 单位 ×10³ J/(kg·℃)，L 单位 kJ/kg。",
+        "ice": { "mp": 0, "cSolid": 2.1, "cLiquid": 4.2, "L": 334 },
+        "hypo": { "mp": 48, "cSolid": 1.9, "cLiquid": null, "L": 250 },
+        "wax": { "mp": null, "cSolid": 2.1, "cLiquid": null, "L": null, "softenRange": [40, 60] }
+      },
+      "result": { "id": "temp", "label": "当前温度 T", "unit": "℃" },
+      "phenomenon": "晶体熔化中持续吸热而温度停在熔点，曲线出现平台（冰 0℃/海波 48℃），熔完才继续升温；非晶体石蜡无平台，边吸热边升温边变软；凝固时反向出现平台并放热；同功率下质量越大平台越长"
+    },
+    {
+      "id": "F2-boiling", "module": "thermal", "priority": "P0", "defaultSpeed": 8, "duration": 246.64,"durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter（以渲染师实现为准，已从 420 回填为 246.64）：duration = (T沸 − t0)/rate + 60s 沸腾观察段，rate = P/(m·c水)。**火力 1~5 档 → 60/120/180/240/300 W**；默认 3 档=180W、100mL(m=0.1kg)、20℃→99.99℃ → 80/0.4286 = 186.67 + 60 = 246.64s。我原先的 420 是按另一套功率映射估的，超容差已弃",
+      "name": "汽化与液化（水的沸腾）", "chapter": "八上 第三章 第3节 汽化和液化",
+      "quantities": ["T沸", "p", "t", "Q"],
+      "params": [
+        { "id": "pressure", "label": "气压", "min": 70, "max": 101.3, "step": 0.3, "default": 101.3, "unit": "kPa" },
+        { "id": "volume", "label": "水量", "min": 50, "max": 500, "step": 10, "default": 100, "unit": "mL" },
+        { "id": "t0", "label": "初温", "min": 20, "max": 90, "step": 1, "default": 20, "unit": "℃" },
+        { "id": "flame", "label": "火力", "min": 1, "max": 5, "step": 1, "default": 3, "unit": "档" }
+      ],
+      "formula": "沸点由 Antoine 方程反解（闭式，禁止线性插值）：log10(P_mmHg) = 8.07131 − 1730.63/(233.426 + T) ⇒ T = 1730.63/(8.07131 − log10(P_mmHg)) − 233.426；P_mmHg = P_kPa × 7.50062",
+      "constants": {
+        "_note": "Antoine 系数（水，1~100℃ 有效）。自检：101.3kPa → 99.99℃；70kPa → 89.99℃（真实值 89.9℃），比线性经验式 100+0.28(p−101.3) 的 91.2℃ 准 1.2℃，且仍是一行闭式解，符合「所有物理量由公式算出」的底线。",
+        "antoine": { "A": 8.07131, "B": 1730.63, "C": 233.426 },
+        "kPa_to_mmHg": 7.50062
+      },
+      "result": { "id": "boil", "label": "沸点", "unit": "℃" },
+      "phenomenon": "沸腾时继续加热温度不再升高（沸点恒定）；气压↓→沸点↓（高山、真空罩）；沸腾前气泡上升变小、沸腾时气泡上升变大到液面破裂；加水量只延长到达沸腾的时间，不改变沸点"
+    },
+    {
+      "id": "F3-heat-engine", "module": "thermal", "priority": "P0", "defaultSpeed": 0.25, "duration": 1.2,"durationZeroKind": "branch","zeroHint": "当前转速为零，曲轴不转（调大转速即有循环）","durationIsSnapshot": true,"snapshotTolerance": 0.1,"durationSource": "getter：get duration() { return this.p.rpm>0 ? 6*(120/this.p.rpm) : 0 }。默认 600rpm → 6 个循环=1.2s；**rpm=0 → 返回 0**（CEO 口径：曲轴完全不转是「没有过程」，不是「无限长的过程」），走置灰，置灰文案取本场景的 zeroHint（branch 类不用通用句「本实验无时间演化」）；速度档同时置灰", 
+      "name": "比热容与四冲程热机", "chapter": "九全 第十三章 第1/2节、第十四章 第2节",
+      "quantities": ["Q", "c", "ΔT", "W", "η", "转速"],
+      "params": [
+        { "id": "material", "label": "物质", "type": "enum", "options": [ { "label": "水 4.2×10³", "value": 4.2 }, { "label": "煤油 2.1×10³", "value": 2.1 }, { "label": "砂石 0.92×10³", "value": 0.92 } ], "default": 4.2, "unit": "J/(kg·℃)" },
+        { "id": "mass", "label": "质量", "min": 0.1, "max": 2.0, "step": 0.1, "default": 0.5, "unit": "kg" },
+        { "id": "heatQ", "label": "吸收热量 Q（相同热源加热）", "min": 0, "max": 200, "step": 1, "default": 15, "unit": "kJ", "maxFollow": "mass", "maxFactor": 82.8, "maxRule": "实际上限 = min(200, 0.92 × m × 90) = min(200, 82.8·m) kJ" },
+        { "id": "rpm", "label": "转速", "min": 0, "max": 3000, "step": 100, "default": 600, "unit": "r/min" },
+        { "id": "stroke", "label": "冲程", "type": "enum", "options": [ { "label": "吸气", "value": "intake" }, { "label": "压缩", "value": "compress" }, { "label": "做功", "value": "power" }, { "label": "排气", "value": "exhaust" } ], "default": "intake", "unit": "" },
+        { "id": "qTotal", "label": "燃料完全燃烧放热 Q总", "min": 0, "max": 500, "step": 10, "default": 100, "unit": "kJ" },
+        { "id": "wUseful", "label": "有用机械功 W有", "min": 0, "max": 200, "step": 5, "default": 30, "unit": "kJ", "maxFollow": "qTotal", "maxRule": "实际上限 = min(200, Q总)" }
+      ],
+      "constants": {
+        "_note": "比热容取值已核实：人教版九年级 13.3《比热容》教材原表（CEO 2026-11-16 查证，教材用词为「砂石」）。本场景三值均取自该表，非教辅近似值。",
+        "specificHeatTable": { "水": 4.2, "冰": 2.1, "煤油": 2.1, "砂石": 0.92, "干泥土": 0.84, "铜": 0.39, "铅": 0.13, "水银": 0.14 },
+        "unit": "×10³ J/(kg·℃)",
+        "source": "https://www.jyeoo.com/shiti/100d0035-15fe-4d15-51c1-25eb4e63df30"
+      },
+      "formula": "比热容部分 ΔT = Q/(c·m)（同质量、同吸收热量，比较温升）；热机效率 η = W有/Q总 × 100%",
+      "constraints": "比热容部分的口径：Q 是**参数**（相同热源加热相同时间 → 吸热相同），ΔT 是**结果**，三根升温条的高度分别表示水/煤油/砂石的 ΔT，水最低即是「比热容最大」的视觉证据。禁止把 ΔT 反过来做成参数（会与条高矛盾）。**Q 的上限必须按最烫的砂石封顶，不能只按水**：`heatQ` 通过 `maxFollow: \"mass\"` 动态取 `min(200, 0.92×m×90)`，保证任何参数组合下砂石 ΔT ≤ 90℃（只按水封顶的话砂石会冲到 400℃ 以上）。默认 Q=15kJ、m=0.5kg → 水 7.1℃ / 煤油 14.3℃ / 砂石 32.6℃。W有 滑杆上限动态跟随 Q总（实际上限 min(200, Q总)），η>100% 调不出来，不弹窗、不做事后校验——与 A1 静止态同一原则：不让用户调出无效状态。Q总=0 时 η 读数显示「—」，禁止出现 NaN 或 0/0。默认 100kJ/30kJ → 初始 η=30%，学生一眼对上「70% 变成废气」。",
+      "referenceBand": { "eta": [20, 45], "note": "η 参考区间 20~45%（汽油机~柴油机量级），仅用于读数区给「超出常见热机效率区间」的**提示色**，不阻断操作。**此区间值不进物理对照验收**——与冰/海波潜热常数同一口径（CEO 已定）：初中教材《一些热机的效率》原表本轮在线检索未能取到，故只作量级参考，验收第 12 条查的是 η = W有/Q总 的公式实现与 W有<Q总 的动态约束，不查效率绝对值。" },
+      "result": { "id": "eta", "label": "热机效率 η", "unit": "%" },
+      "secondaryResult": { "id": "dT", "label": "水温升 ΔT = Q/(c·m)", "unit": "℃" },
+      "_resultNote": "已定稿（客户端工程师）：secondaryResult 为可选字段、对象结构与 result 完全一致（id/label/unit），仅 F3 填写；其余 24 场景无此字段。",
+      "phenomenon": "同质量同吸收热量下水的温升最小（比热容最大）、砂石最烫——三根升温条高矮分明就是比热容的证据；四冲程循环曲轴转 2 圈做功 1 次；压缩冲程机械能→内能（缸内变红）、做功冲程内能→机械能（活塞下压）；只有做功冲程对外做功"
+    }
+  ],
+  "backlog": [
+    { "id": "E1", "name": "二力平衡条件", "params": "两侧砝码 10~200 g、卡片转角 0~90°", "chapter": "八下 8.2" },
+    { "id": "E2", "name": "压力的作用效果（固体压强）", "params": "F 1~20 N、S 1~20 cm²", "chapter": "八下 9.1" },
+    { "id": "E3", "name": "大气压强与流体压强", "params": "海拔 0~5000 m、吸盘直径 1~8 cm、流速 1~40 m/s", "chapter": "八下 9.3/9.5" },
+    { "id": "E4", "name": "弹力与重力", "params": "砝码 50~500 g、k 2~20 N/m、g 9.8 / 月球 1.6", "chapter": "八下 7.2/7.3" },
+    { "id": "E5", "name": "质量与密度（m–V 关系）", "params": "V 10~100 cm³、ρ 铝2.7/铁7.9/铜8.9/水1.0", "chapter": "八上 6.2/6.3" },
+    { "id": "E6", "name": "滑轮与滑轮组、机械效率", "params": "G 1~10 N、绳段数 n 1~4、G动 0.1~1 N", "chapter": "八下 12.3/12.4" },
+    { "id": "E7", "name": "同一直线上二力的合成", "params": "F1、F2 1~10 N、同向/反向", "chapter": "八下 8.4" },
+    { "id": "E8", "name": "光的色散（三棱镜）", "params": "入射角 0~80°、顶角 30~90°", "chapter": "八上 4.5" },
+    { "id": "E9", "name": "眼睛与眼镜、望远镜", "params": "f、模拟近视/远视 −600~+600 度", "chapter": "八上 5.4/5.5" },
+    { "id": "E10", "name": "生活中的透镜", "params": "物距、像距、镜头焦距", "chapter": "八上 5.2" },
+    { "id": "E11", "name": "两种电荷与验电器", "params": "电荷量 ±Q、带电体距离、张角 0~60°", "chapter": "九全 15.1" }
+  ],
+  "warning": "热学是中考必考模块（约占 15~20%），已作为第五模块 thermal 进入 P0：F1 熔化凝固曲线、F2 水的沸腾、F3 比热容与四冲程热机。P0 总数 25，P1 剩余 11 项。module 的五个 key：mechanics / electricity / optics / acoustics / thermal。"
+}
