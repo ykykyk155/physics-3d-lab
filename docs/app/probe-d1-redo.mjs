@@ -103,6 +103,15 @@ ok("空表格显示占位提示", s.recRowCount === 0 && s.recEmptyDisplay !== '
 let g = await gapCross(['A', 'B', 'C']);
 ok("默认 A 槽断口真实断开", g.A === 0, JSON.stringify(g));
 ok("默认 B 槽未占用（导线连续）", g.B > 0, JSON.stringify(g));
+// 电压表摆位：表体落台面（低于灯泡、在电路平面前方），不许竖在灯泡上方
+const volPos = () => pg.evaluate(() => {
+  const e = window.__LAB.current().exp._impl || window.__LAB.current().exp;
+  const v = e.volMeterG.position, b1 = e.bulb1G.position, b2 = e.bulb2G.position;
+  return { vy: v.y, vz: v.z, b1y: b1.y, b2y: b2.y };
+});
+let vp = await volPos();
+ok("串联默认电压表体低于灯泡", vp.vy < vp.b1y && vp.vy < vp.b2y, JSON.stringify(vp));
+ok("串联默认电压表体在电路前方台面上", vp.vz > 0.5 && vp.vy < 0.6, JSON.stringify(vp));
 await snip("d1r-default-series.png");
 
 // ===== 2) 电压 6V =====
@@ -148,6 +157,8 @@ await place('vol', 'L2'); s = await st();
 ok("vol 换到 L2 → 2.00V", near(s.volReading, 2.00), `vol=${s.volReading} slot=${s.volSlot}`);
 await place('vol', 'batt'); s = await st();
 ok("vol 换到 batt → 3.00V", near(s.volReading, 3.00), `vol=${s.volReading} slot=${s.volSlot}`);
+vp = await volPos();
+ok("batt 槽电压表体也落台面", vp.vz > 0.5 && vp.vy < 0.6, JSON.stringify(vp));
 
 // ===== 6) 误接（两表互换位置也按误接处理） =====
 await place('vol', 'A'); s = await st();
@@ -207,6 +218,8 @@ ok("并联顶栏 R总=6.7Ω", /R总=6\.7Ω/.test(s.lbl || ''), `lbl=${s.lbl}`);
 await snip("d1r-default-parallel.png");
 g = await gapCross(['a', 'b', 'c']);
 ok("并联默认 a 槽断口真实断开", g.a === 0, JSON.stringify(g));
+vp = await volPos();
+ok("并联默认电压表体低于灯泡且在前方台面", vp.vy < Math.min(vp.b1y, vp.b2y) && vp.vz > 0.5 && vp.vy < 0.6, JSON.stringify(vp));
 for (const [slot, want] of [['a', 0.45], ['b', 0.30], ['c', 0.15]]) {
   await place('amp', slot); s = await st();
   ok(`并联 amp ${slot} → ${want}A`, near(s.ampReading, want, 1e-6), `amp=${s.ampReading} slot=${s.ampSlot}`);

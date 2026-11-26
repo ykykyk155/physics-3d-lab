@@ -248,10 +248,10 @@ const D1 = {
     if (c) return { bodyX: c.cx, bodyY: c.y + 0.02, bodyZ: 0.22, ends: [new THREE.Vector3(c.cx - 0.55, c.y, 0.1), new THREE.Vector3(c.cx + 0.55, c.y, 0.1)] };
     if (slot === 'batt') {
       const b = this.battG.position;
-      return { bodyX: b.x, bodyY: 2.35, bodyZ: 0.22, ends: [new THREE.Vector3(b.x - 0.46, 1.54, 0.1), new THREE.Vector3(b.x + 0.46, 1.54, 0.1)] };
+      return { bodyX: b.x, bodyY: 0.34, bodyZ: 1.10, ends: [new THREE.Vector3(b.x - 0.46, 1.54, 0.1), new THREE.Vector3(b.x + 0.46, 1.54, 0.1)] };
     }
     const g = slot === 'L1' ? this.bulb1G : this.bulb2G;
-    return { bodyX: g.position.x, bodyY: g.position.y + 0.85, bodyZ: 0.22, ends: [new THREE.Vector3(g.position.x - 0.40, g.position.y + 0.06, 0.1), new THREE.Vector3(g.position.x + 0.40, g.position.y + 0.06, 0.1)] };
+    return { bodyX: g.position.x, bodyY: 0.34, bodyZ: 1.10, ends: [new THREE.Vector3(g.position.x - 0.40, g.position.y + 0.06, 0.1), new THREE.Vector3(g.position.x + 0.40, g.position.y + 0.06, 0.1)] };
   },
   _layoutMeters() {
     ['amp', 'vol'].forEach(which => {
